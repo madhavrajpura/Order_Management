@@ -1,0 +1,94 @@
+using DataAccessLayer.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace DataAccessLayer.Context;
+
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options) { }
+
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<Item> Items { get; set; }
+    public DbSet<Order> Orders { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<User>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<Role>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<Item>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<Order>().HasKey(table => new { table.Id });
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Role)
+            .WithMany(r => r.Users)
+            .HasForeignKey(u => u.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Item>()
+            .HasOne(i => i.CreatedByUser)
+            .WithMany(u => u.Items)
+            .HasForeignKey(i => i.CreatedBy)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // UpdatedBy relationship
+        modelBuilder.Entity<Item>()
+            .HasOne(i => i.UpdatedByUser)
+            .WithMany()
+            .HasForeignKey(i => i.UpdatedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);  // Make sure this is optional if not always provided
+
+        // DeletedBy relationship
+        modelBuilder.Entity<Item>()
+            .HasOne(i => i.DeletedByUser)
+            .WithMany()
+            .HasForeignKey(i => i.DeletedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.CreatedByUser)
+            .WithMany(u => u.Orders)
+            .HasForeignKey(o => o.CreatedBy)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.UpdatedByUser)
+            .WithMany()
+            .HasForeignKey(o => o.UpdatedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.DeletedByUser)
+            .WithMany()
+            .HasForeignKey(o => o.DeletedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Items)
+            .WithMany(i => i.Orders)
+            .HasForeignKey(o => o.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<User>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        modelBuilder.Entity<User>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<User>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<User>().Property(p => p.IsDelete).HasDefaultValue(false);
+
+        modelBuilder.Entity<Item>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        modelBuilder.Entity<Item>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<Item>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<Item>().Property(p => p.IsDelete).HasDefaultValue(false);
+
+        modelBuilder.Entity<Order>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        modelBuilder.Entity<Order>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<Order>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<Order>().Property(p => p.IsDelete).HasDefaultValue(false);
+    }
+}

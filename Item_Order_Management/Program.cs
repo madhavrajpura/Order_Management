@@ -24,6 +24,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IJWTService, JWTService>();
 builder.Services.AddScoped<IItemsService, ItemsService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 builder.Services.AddAuthentication(x =>
 {

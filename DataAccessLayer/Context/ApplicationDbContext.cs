@@ -12,6 +12,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Item> Items { get; set; }
     public DbSet<Order> Orders { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<UserNotification> UserNotifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,6 +23,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Role>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Item>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Order>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<Notification>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<UserNotification>().HasKey(table => new { table.Id });
 
         modelBuilder.Entity<User>()
             .HasOne(u => u.Role)
@@ -34,15 +38,13 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(i => i.CreatedBy)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // UpdatedBy relationship
         modelBuilder.Entity<Item>()
             .HasOne(i => i.UpdatedByUser)
             .WithMany()
             .HasForeignKey(i => i.UpdatedBy)
             .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired(false);  // Make sure this is optional if not always provided
+            .IsRequired(false);
 
-        // DeletedBy relationship
         modelBuilder.Entity<Item>()
             .HasOne(i => i.DeletedByUser)
             .WithMany()
@@ -90,5 +92,11 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Order>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Order>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Order>().Property(p => p.IsDelete).HasDefaultValue(false);
+
+        modelBuilder.Entity<Notification>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        modelBuilder.Entity<Notification>().Property(p => p.IsActive).HasDefaultValue(true);
+
+        modelBuilder.Entity<UserNotification>().Property(p => p.ReadAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<UserNotification>().Property(p => p.IsRead).HasDefaultValue(true);
     }
 }

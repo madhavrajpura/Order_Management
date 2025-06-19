@@ -39,7 +39,7 @@ public class User
 
     [Required]
     [Column("CreatedAt")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     [Column("UpdatedAt")]
     public DateTime? UpdatedAt { get; set; }
@@ -47,20 +47,16 @@ public class User
     [Column("DeletedAt")]
     public DateTime? DeletedAt { get; set; }
 
-    [Required]
-    // [ForeignKey("User")]
     [Column("CreatedBy")]
-    public int CreatedBy { get; set; }
+    public int? CreatedBy { get; set; }
 
-    // [ForeignKey("User")]
     [Column("UpdatedBy")]
     public int? UpdatedBy { get; set; }
 
-    // [ForeignKey("User")]
     [Column("DeletedBy")]
     public int? DeletedBy { get; set; }
     [ForeignKey("CreatedBy")]
-    public virtual User CreatedByUser { get; set; }
+    public virtual User? CreatedByUser { get; set; }
 
     [ForeignKey("UpdatedBy")]
     public virtual User? UpdatedByUser { get; set; }

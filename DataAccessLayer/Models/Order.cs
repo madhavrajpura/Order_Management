@@ -36,7 +36,7 @@ public class Order
 
     [Required]
     [Column("OrderDate")]
-    public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+    public DateTime OrderDate { get; set; } = DateTime.Now;
 
     [Required]
     [Column("DeliveryDate")]
@@ -51,7 +51,7 @@ public class Order
 
     [Required]
     [Column("CreatedAt")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     [Column("UpdatedAt")]
     public DateTime? UpdatedAt { get; set; }
@@ -60,15 +60,12 @@ public class Order
     public DateTime? DeletedAt { get; set; }
 
     [Required]
-    // [ForeignKey("User")]
     [Column("CreatedBy")]
     public int CreatedBy { get; set; }
 
-    // [ForeignKey("User")]
     [Column("UpdatedBy")]
     public int? UpdatedBy { get; set; }
 
-    // [ForeignKey("User")]
     [Column("DeletedBy")]
     public int? DeletedBy { get; set; }
 

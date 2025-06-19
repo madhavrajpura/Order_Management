@@ -7,6 +7,8 @@ public interface IUserService
 {
     Task<bool> Register(UserViewModel model);
     Task<string> Login(UserViewModel model);
-     List<Role> GetRoles();
+    Task<bool> IsEmailExists(string email);
+    Task<bool> IsUsernameExists(string Username);
+    Task<int> GetUserIdFromToken(string token);
 
 }

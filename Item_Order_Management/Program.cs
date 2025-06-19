@@ -18,8 +18,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register repositories and services
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IItemsRepository, ItemsRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IJWTService, JWTService>();
+builder.Services.AddScoped<IItemsService, ItemsService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddAuthentication(x =>
 {
@@ -47,11 +51,7 @@ builder.Services.AddAuthentication(x =>
         OnMessageReceived = context =>
         {
             // Check for the token in cookies
-            var token = context.Request.Cookies["JWTToken"]; // Change "AuthToken" to your cookie name if it's different
-                                                             // if (!string.IsNullOrEmpty(token))
-                                                             // {
-                                                             //     context.Request.Headers["Authorization"] = "Bearer " + token;
-                                                             // }
+            var token = context.Request.Cookies["JWTToken"];
             if (!string.IsNullOrEmpty(token))
             {
                 context.Token = token;
@@ -62,13 +62,13 @@ builder.Services.AddAuthentication(x =>
         {
             // Redirect to login page when unauthorized 
             context.HandleResponse();
-            context.Response.Redirect("/Account/Index");
+            context.Response.Redirect("/Authentication/Login");
             return Task.CompletedTask;
         },
         OnForbidden = context =>
         {
             // Redirect to login when access is forbidden (403)
-            context.Response.Redirect("/Account/Index");
+            context.Response.Redirect("/Authentication/Login");
             return Task.CompletedTask;
         }
     };
@@ -83,7 +83,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Account/Index");
+    app.UseExceptionHandler("/Authentication/Login");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
@@ -99,6 +99,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Index}/{id?}");
+    pattern: "{controller=Authentication}/{action=Login}/{id?}");
 
 app.Run();

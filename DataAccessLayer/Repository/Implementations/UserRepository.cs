@@ -16,21 +16,13 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            User? userData = await _db.Users.FirstOrDefaultAsync(e => e.Email == model.Email);
-
-            if (userData != null)
-            {
-                return false;
-            }
-
             User? user = new User();
             user.Username = model.UserName;
             user.Email = model.Email;
             user.RoleId = model.RoleId;
             user.Password = model.Password;
-            user.CreatedBy = 1;
-            user.CreatedAt = DateTime.UtcNow;
-            await _db.Users.AddAsync(user);
+            user.CreatedAt = DateTime.Now;
+            await _db.Users.AddAsync(user); 
             await _db.SaveChangesAsync();
 
             return true;
@@ -38,7 +30,7 @@ public class UserRepository : IUserRepository
         catch (Exception ex)
         {
             Console.WriteLine($"Error in Register: {ex.Message}");
-            return false;
+            throw new Exception("Error registering user", ex);
         }
     }
 
@@ -46,29 +38,54 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            // var Items = _db.Items.FirstOrDefault(e => e.Id == 1);
-
-            var users = _db.Users.ToList();
-
-            var roles = _db.Roles.ToList();
-
-            var items = _db.Items.ToList();
-
-            var orders = _db.Orders.ToList();
-
             User? user = _db.Users.FirstOrDefault(e => e.Email == email);
 
             if (user == null) return null;
-
             return user;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in GetUserByEmail: {ex.Message}");
-            return null;
+            throw new Exception("Error retrieving user by email", ex);
         }
     }
 
+    public async Task<bool> IsEmailExists(string email)
+    {
+        try
+        {
+            User? user = await _db.Users.FirstOrDefaultAsync(e => e.Email == email);
 
+            if (user != null)
+            {
+                return true; 
+            }
+            return false;  
+        }
+        catch
+        {
+            Console.WriteLine("Error in IsEmailExists");
+            throw new Exception("Error checking if email exists");
+        }
+    }
+
+    public async Task<bool> IsUsernameExists(string Username)
+    {
+        try
+        {
+            User? user = await _db.Users.FirstOrDefaultAsync(e => e.Username == Username);
+
+            if (user != null)
+            {
+                return true; 
+            }
+            return false;  
+        }
+        catch
+        {
+            Console.WriteLine("Error in IsEmailExists");
+            throw new Exception("Error checking if username exists");
+        }
+    }
 
 }

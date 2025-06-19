@@ -1,0 +1,69 @@
+@model DataAccessLayer.ViewModels.ItemViewModel;
+
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title fs-5 fw-bold text-secondary">@(Model.ItemId == 0 ? "Add " : "Update ") Item
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <form id="SaveItemForm">
+        <div class="modal-body ">
+
+            <input type="hidden" asp-for="@Model.ItemId" />
+
+            <div class="d-flex flex-sm-row flex-column gap-sm-3 gap-0">
+                <div class="form-floating col mb-3">
+                    <input type="text" class="form-control" id="ItemName" asp-for="@Model.ItemName"
+                        placeholder="First Name*">
+                    <label for="ItemName" class="text-black-50">Name*</label>
+                    <span asp-validation-for="@Model.ItemName" class="text-danger text-size"></span>
+                </div>
+                <div class="form-floating col mb-3">
+                    <input type="number" class="form-control" id="Price" asp-for="@Model.Price"
+                        placeholder="Last Name*">
+                    <label for="Price" class="text-black-50">Price*</label>
+                    <span asp-validation-for="@Model.Price" class="text-danger text-size"></span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn solid-btn">Save</button>
+                <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<partial name="_ValidationScriptsPartial" />
+
+<script>
+    // POST method of Save Tax
+    $("#SaveItemForm").on("submit", function (e) {
+
+        e.preventDefault();
+
+        let form = $("#SaveItemForm");
+
+        if (form.valid()) {
+
+            let formData = new FormData(this);
+
+            $.ajax({
+                url: "/Admin/SaveItem",
+                type: "POST",
+                contentType: false,
+                processData: false,
+                data: formData,
+                success: function (data) {
+                    if (data.success) {
+                        callSuccessToaster(data.text);
+                        Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
+                        $("#SaveItemModal").modal('hide');
+                    } else {
+                        callErrorToaster(data.text);
+                    }
+                }
+            });
+        }
+    });
+</script>

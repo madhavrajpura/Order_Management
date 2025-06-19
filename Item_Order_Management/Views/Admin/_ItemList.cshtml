@@ -1,0 +1,27 @@
+@using DataAccessLayer.ViewModels
+@model PaginationViewModel<ItemViewModel>
+
+@if (Model.Items.Count == 0)
+{
+    <tr>
+        <td colspan="6" class="text-center text-danger fw-bold">No Records Found</td>
+    </tr>
+}
+else
+{
+    @foreach (var item in Model.Items)
+    {
+        <tr class="border border-end-0 border-start-0 border-top-0 border-bottom-1">
+            <td class="text-start text-nowrap"># @item.ItemId</td>
+            <td class="text-start text-nowrap">@item.ItemName</td>
+            <td class="text-start text-nowrap ">₹ @item.Price</td>
+            <td class="text-start text-nowrap">
+                <i class="fa-solid fa-pen SaveItemId cursorPointer" data-bs-toggle="modal" data-bs-target="#SaveItemModal"
+                    data-id="@item.ItemId" title="Update Item"></i>
+                <i class="fa-solid fa-trash-can ms-4 cursorPointer" data-bs-toggle="modal" data-bs-target="#DeleteItemModal"
+                    data-id="@item.ItemId" onclick="GetIdForDeleteItem(this)" title="Delete Item"></i>
+            </td>
+        </tr>
+    }
+}
+<input type="hidden" id="totalRecords" value="@Model.TotalCount" />

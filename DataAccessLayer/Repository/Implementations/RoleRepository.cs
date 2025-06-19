@@ -11,14 +11,30 @@ public class RoleRepository : IRoleRepository
 
     public List<Role> GetRoles()
     {
-        List<Role> roles = _db.Roles.ToList();
-        return roles;
+        try
+        {
+            return _db.Roles.ToList() ?? new List<Role>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetRoles: {ex.Message}");
+            throw new Exception("Error retrieving roles", ex);
+        }
     }
 
-    public string GetRoleById(int roleId)
+    public string? GetRoleById(int roleId)
     {
-        Role? roleName = _db.Roles.Find(roleId);
-        return roleName!.Name;
+        try
+        {
+            string? roleName = string.Empty;
+            Role? Role = _db.Roles.Find(roleId);
+            return Role != null ? (roleName = Role.Name) : roleName = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetRoleById: {ex.Message}");
+            throw new Exception("Error retrieving role by ID", ex);
+        }
 
         // return await _db.Roles.FindAsync(roleId) ?? throw new CustomException("Role not found");
     }

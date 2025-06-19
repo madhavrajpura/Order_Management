@@ -22,14 +22,7 @@ public class UserService : IUserService
     public async Task<bool> Register(UserViewModel model)
     {
         model.Password = Encryption.EncryptPassword(model.Password);
-        bool result = await _userRepository.Register(model);
-
-        if (result)
-        {
-            return true;
-        }
-
-        return false;
+        return await _userRepository.Register(model);
     }
 
     public async Task<string> Login(UserViewModel model)
@@ -41,33 +34,35 @@ public class UserService : IUserService
             if (user.Password == Encryption.EncryptPassword(model.Password))
             {
                 string? roleName = _roleRepository.GetRoleById(model.RoleId);
+                if (string.IsNullOrEmpty(roleName))
+                {
+                    roleName = "3";
+                }
                 string token = _JWTService.GenerateToken(model.Email, roleName);
                 return token;
             }
             return null;
         }
         return null;
-
-
     }
 
-    public (string UserName, string Email) GetUserData(string email)
+    public async Task<bool> IsEmailExists(string email) => await _userRepository.IsEmailExists(email);
+
+    public async Task<bool> IsUsernameExists(string Username) => await _userRepository.IsUsernameExists(Username);
+
+    public async Task<int> GetUserIdFromToken(string token)
     {
-        User? data = _userRepository.GetUserByEmail(email);
-        if (data == null)
+        // var claims = _JWTService.GetClaimsFromToken(token);
+        string? Email = _JWTService.GetClaimValue(token, "email");
+        User? user = _userRepository.GetUserByEmail(Email);
+        if (user.Email == Email)
         {
-            return (string.Empty, string.Empty);
+            return user.Id;
         }
-        string UserName = data.Username;
-        string Email = data.Email;
-        return (UserName, Email);
-    }
-
-    public List<Role> GetRoles()
-    {
-        List<Role> roles = _roleRepository.GetRoles();
-        
-        return roles;
+        else
+        {
+            return 0;
+        }
     }
 
 }

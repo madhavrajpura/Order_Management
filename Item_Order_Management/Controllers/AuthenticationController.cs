@@ -6,19 +6,19 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Item_Order_Management.Controllers;
 
-public class AccountController : Controller
+public class AuthenticationController : Controller
 {
     private readonly IUserService _userService;
     private readonly IJWTService _jwtService;
 
-    public AccountController(IUserService userService, IJWTService jwtService)
+    public AuthenticationController(IUserService userService, IJWTService jwtService)
     {
         _userService = userService;
         _jwtService = jwtService;
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public IActionResult Login()
     {
         if (Request.Cookies.ContainsKey("JWTToken"))
         {
@@ -27,7 +27,7 @@ public class AccountController : Controller
 
             if (claims != null)
             {
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Dashboard", "Admin");
             }
             else
             {
@@ -47,16 +47,32 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> Register(UserViewModel model)
     {
-        bool result = await _userService.Register(model);
+        bool isEmailExists = await _userService.IsEmailExists(model.Email);
+        bool isUsernameExists = await _userService.IsUsernameExists(model.UserName);
 
-        if (result)
+        if (isEmailExists)
         {
-            TempData["SuccessMessage"] = NotificationMessage.RegistrationSuccess;
-            return RedirectToAction("Index", "Account");
+            TempData["ErrorMessage"] = NotificationMessage.AlreadyExists.Replace("{0}", "Email");
+            return RedirectToAction("Register", "Authentication");
         }
+        else if (isUsernameExists)
+        {
+            TempData["ErrorMessage"] = NotificationMessage.AlreadyExists.Replace("{0}", "Username");
+            return RedirectToAction("Register", "Authentication");
+        }
+        else
+        {
+            bool result = await _userService.Register(model);
 
-        TempData["ErrorMessage"] = NotificationMessage.RegistrationFailed;
-        return RedirectToAction("Register", "Account");
+            if (result)
+            {
+                TempData["SuccessMessage"] = NotificationMessage.RegistrationSuccess;
+                return RedirectToAction("Login", "Authentication");
+            }
+
+            TempData["ErrorMessage"] = NotificationMessage.RegistrationFailed;
+            return RedirectToAction("Register", "Authentication");
+        }
     }
 
     [HttpPost]
@@ -72,11 +88,11 @@ public class AccountController : Controller
             Response.Cookies.Append("JWTToken", verification_token, option);
 
             TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Dashboard", "Admin");
         }
 
         TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;
-        return RedirectToAction("Index", "Account");
+        return RedirectToAction("Login", "Authentication");
     }
 
     public IActionResult Logout()
@@ -85,6 +101,6 @@ public class AccountController : Controller
         Response.Headers["Clear-Site-Data"] = "\"cache\", \"cookies\", \"storage\"";
         TempData["SuccessMessage"] = NotificationMessage.LogoutSuccess;
 
-        return RedirectToAction("Index", "Account");
+        return RedirectToAction("Login", "Authentication");
     }
 }

@@ -1,0 +1,131 @@
+@{
+    ViewData["Title"] = "User Dashboard";
+}
+
+<div id="Navbar" class="mb-4"></div>
+
+<div class="container-fluid p-4">
+    <div class="row mb-4">
+        <div class="col-12 col-md-6">
+            <h2 class="text-dark fw-bold">Browse Items</h2>
+        </div>
+        <div class="col-12 col-md-6 d-flex justify-content-end align-items-center gap-3">
+            <input type="text" id="searchInput" class="form-control w-50" placeholder="Search by name or price">
+            <div class="d-flex align-items-center">
+                <span class="me-2">Items per page:</span>
+                <select id="itemsPerPage" class="form-select">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="itemList" class="row g-4"></div>
+    <div id="loading" class="text-center mt-4 d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    <div id="noMoreItems" class="text-center mt-4 d-none">
+        <p class="text-muted">No more items to load</p>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .item-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        }
+    </style>
+    <script>
+        let currentPage = 1;
+        let pageSize = $("#itemsPerPage").val();
+        let searchText = "";
+        let sortColumn = "ID";
+        let sortDirection = "asc";
+        let isLoading = false;
+        let hasMoreItems = true;
+
+        function loadNavbar() {
+            $.ajax({
+                url: "/User/GetUserNavbarData",
+                type: "GET",
+                success: function(data) {
+                    $("#Navbar").html(data);
+                },
+                error: function() {
+                    console.error("Error loading navbar");
+                }
+            });
+        }
+
+        function loadItems(append = true) {
+            if (isLoading || !hasMoreItems) return;
+            isLoading = true;
+            $("#loading").removeClass("d-none");
+
+            $.ajax({
+                url: "/User/GetItemList",
+                type: "GET",
+                data: { pageNumber: currentPage, search: searchText, pageSize: pageSize, sortColumn: sortColumn, sortDirection: sortDirection },
+                success: function(data) {
+                    if (append) {
+                        $("#itemList").append(data);
+                    } else {
+                        $("#itemList").html(data);
+                    }
+
+                    const totalRecords = parseInt($("#totalRecords").val()) || 0;
+                    if (currentPage * pageSize >= totalRecords) {
+                        hasMoreItems = false;
+                        $("#noMoreItems").removeClass("d-none");
+                    }
+                    currentPage++;
+                    isLoading = false;
+                    $("#loading").addClass("d-none");
+                },
+                error: function() {
+                    isLoading = false;
+                    $("#loading").addClass("d-none");
+                    console.error("Error loading items");
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            loadNavbar();
+            loadItems(false);
+
+            // Lazy loading on scroll
+            $(window).scroll(function() {
+                if ($(window).scrollTop() + $(window).height() >= $(document).height() - 100) {
+                    loadItems();
+                }
+            });
+
+            // Search
+            $("#searchInput").on("keyup", _.debounce(function() {
+                searchText = $(this).val().trim();
+                currentPage = 1;
+                hasMoreItems = true;
+                $("#noMoreItems").addClass("d-none");
+                loadItems(false);
+            }, 300));
+
+            // Items per page
+            $("#itemsPerPage").on("change", function() {
+                pageSize = $(this).val();
+                currentPage = 1;
+                hasMoreItems = true;
+                $("#noMoreItems").addClass("d-none");
+                loadItems(false);
+            });
+        });
+    </script>
+}

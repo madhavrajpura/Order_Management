@@ -1,0 +1,16 @@
+@model DataAccessLayer.ViewModels.PaginationViewModel<DataAccessLayer.ViewModels.ItemViewModel>
+
+<input type="hidden" id="totalRecords" value="@Model.TotalCount" />
+
+@foreach (var item in Model.Items)
+{
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card item-card border-0 shadow-sm p-3">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
+                <p class="card-text text-muted">Price: $@item.Price.ToString("F2")</p>
+                <p class="card-text text-muted small">Added: @item.CreatedAt.ToString("MMM dd, yyyy")</p>
+            </div>
+        </div>
+    </div>
+}

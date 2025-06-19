@@ -27,7 +27,7 @@ public class AuthenticationController : Controller
 
             if (claims != null)
             {
-                return RedirectToAction("Dashboard", "Admin");
+                return RedirectToAction("Dashboard", "User");
             }
             else
             {
@@ -88,7 +88,7 @@ public class AuthenticationController : Controller
             Response.Cookies.Append("JWTToken", verification_token, option);
 
             TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
-            return RedirectToAction("Dashboard", "Admin");
+            return RedirectToAction("Dashboard", "User");
         }
 
         TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;

@@ -1,0 +1,30 @@
+@using DataAccessLayer.ViewModels
+@model List<NotificationViewModel>
+
+<li>
+    <span class="ps-2 pe-2 fw-bold mb-5">Notifications (@Model.Count)</span>
+</li>
+@if (Model.Any())
+{
+    foreach (var item in Model)
+    {
+        <hr class="m-1">
+        <li class="d-flex justify-content-between p-1 ps-2">
+            @item.Message 
+            <span class="pe-2">
+                <input type="radio" data-id="@item.UserNotificationId" onclick="MarkAsRead(event, this)">
+            </span>
+        </li>
+    }
+    <hr class="m-1">
+    <li>
+        <span class="MarkAllAsRead ps-2 pe-2 fw-bold cursorPointer mb-5">
+            <i class="fa-solid fa-check-double me-3"></i>Mark as Read
+        </span>
+    </li>
+}
+else
+{
+    <hr class="m-1">
+    <li class="p-1 ps-2">No new notifications</li>
+}

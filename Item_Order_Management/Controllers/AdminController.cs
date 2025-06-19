@@ -54,6 +54,26 @@ public class AdminController : Controller
         return PartialView("_AdminNavbar", NotifyVM);
     }
 
+    [HttpPost]
+    public async Task<IActionResult> MarkAsRead(int userNotificationId)
+    {
+        await _notificationService.MarkNotificationAsRead(userNotificationId);
+        string token = Request.Cookies["JWTToken"];
+        var userId = await _userService.GetUserIdFromToken(token);
+        List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
+        return PartialView("_NotificationList", notifications);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> MarkAllAsRead()
+    {
+        string token = Request.Cookies["JWTToken"];
+        var userId = await _userService.GetUserIdFromToken(token);
+        await _notificationService.MarkAllNotificationsAsRead(userId);
+        List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
+        return PartialView("_NotificationList", notifications);
+    }
+
     #region Items CRUD
 
     [HttpGet]

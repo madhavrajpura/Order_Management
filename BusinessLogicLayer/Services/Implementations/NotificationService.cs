@@ -13,9 +13,19 @@ public class NotificationService : INotificationService
         _notificationRepository = notificationRepository;
     }
 
-    public List<NotificationViewModel> GetNotificationsById(int UserId){
+    public List<NotificationViewModel> GetNotificationsById(int UserId)
+    {
         var data = _notificationRepository.GetNotificationsById(UserId);
         return data;
+    }
+
+    public async Task<bool> MarkNotificationAsRead(int userNotificationId)
+    {
+        return await _notificationRepository.MarkNotificationAsRead(userNotificationId);
+    }
+    public async Task<bool> MarkAllNotificationsAsRead(int userId)
+    {
+        return await _notificationRepository.MarkAllNotificationsAsRead(userId);
     }
 
 }

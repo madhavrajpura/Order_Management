@@ -1,4 +1,4 @@
-@using DataAccessLayer.ViewModels
+@* @using DataAccessLayer.ViewModels
 @model List<NotificationViewModel>;
 
 <div class="container-fluid p-3 d-flex justify-content-between shadow">
@@ -64,7 +64,7 @@
         callErrorToaster("Ajax Error Loading data");
         }
         });
-        }) *@
+        }) 
 
         // Favourite Item
         function MarkAsRead(event, tag) {
@@ -80,4 +80,76 @@
             });
         }
 
+</script> *@
+
+
+@using DataAccessLayer.ViewModels
+@model List<NotificationViewModel>
+
+<div class="container-fluid p-3 d-flex justify-content-between shadow">
+    <div class="d-flex">
+        <span class="fs-4 fw-bold text-decoration-none text-dark pe-3">Item Order Management</span>
+        <div class="p-2 ps-3 pt-1">
+            <a class="fs-5 text-decoration-none text-dark" asp-action="Dashboard" asp-controller="Admin">Items</a>
+        </div>
+        <div class="p-2 ps-3 pt-1">
+            <a class="fs-5 text-decoration-none text-dark" asp-action="Dashboard" asp-controller="Admin">Orders</a>
+        </div>
+    </div>
+    <div class="d-flex">
+        <div class="dropdown">
+            <button class="btn dropdown p-0 m-0 me-4 col-6" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bell fs-3"></i>
+                @if (Model.Any())
+                {
+                    <div class="bell_notifiy bg-danger rounded-circle text-white pb-1">@Model.Count</div>
+                }
+            </button>
+            <ul class="dropdown-menu" id="notificationDropdown">
+                <partial name="_NotificationList" model="Model" />
+            </ul>
+        </div>
+        <div class="dropdown me-3">
+            <a class="btn dropdown p-0" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fa-solid fa-circle-user fs-1 hollow-btn rounded-circle"></i>
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                <li><span class="dropdown-item d-flex align-content-center"><i class="bi bi-person-circle pe-2"></i><span></span></span></li>
+                <li><a class="dropdown-item text-black text-decoration-none" asp-action="Logout" asp-controller="Authentication"><i class="fa-solid fa-right-from-bracket pe-2 pb-2"></i>Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    function MarkAsRead(event, tag) {
+        event.stopPropagation();
+        var userNotificationId = tag.getAttribute("data-id");
+        $.ajax({
+            url: "/Admin/MarkAsRead",
+            type: "POST",
+            data: { userNotificationId: userNotificationId },
+            success: function (data) {
+                $("#notificationDropdown").html(data);
+                LoadAdminNavbar();
+            },
+            error: function () {
+                console.error("Error marking notification as read");
+            }
+        });
+    }
+
+    $(document).on("click", ".MarkAllAsRead", function () {
+        $.ajax({
+            url: "/Admin/MarkAllAsRead",
+            type: "POST",
+            success: function (data) {
+                $("#notificationDropdown").html(data);
+                LoadAdminNavbar();
+            },
+            error: function () {
+                console.error("Error marking all notifications as read");
+            }
+        });
+    });
 </script>

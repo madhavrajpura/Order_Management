@@ -1,0 +1,136 @@
+@using System.Security.Claims
+@using BusinessLogicLayer.Services.Interfaces
+@model DataAccessLayer.ViewModels.ItemViewModel
+
+<div id="Navbar" class="shadow-lg position-fixed w-100"></div>
+
+<div class="container-fluid p-4 dashboard-color min-vh-100">
+    <div class="row pt-5 justify-content-center" style="margin-top: 100px !important;">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card shadow-lg border-0 rounded-4 h-100 bg-white">
+                <div class="row g-0">
+                    <!-- Item Image -->
+                    <div class="col-md-5 p-2 d-flex align-items-center justify-content-center rounded-start">
+                        <img src="@Model.ThumbnailImageUrl" alt="@Model.ItemName" class="img-fluid rounded"
+                            style="max-height: 450px; object-fit: contain; border: 2px solid #e0f7fa; width: 330px;">
+                    </div>
+
+                    <!-- Item Info -->
+                    <div class="col-md-7">
+                        <div class="card-body p-4">
+                            <div class="position-absolute m-2" style="top:10px; right:20px">
+                            @{
+                                var isFavourite = await CheckIfFavourite(Model.ItemId);
+                            }
+                            <i class="@(isFavourite ? "fa-solid text-danger" : "fa-regular") fa-heart fs-4 cursor-pointer"
+                                onclick="toggleWishlist(event, this)" data-item-id="@Model.ItemId"
+                                title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
+                        </div>
+                        <h2 class="card-title fw-bold custom-text-color mb-3">@Model.ItemName</h2>
+                        <div class="my-3">
+                            <h5 class="text-dark fw-semibold">Price:</h5>
+                            <p class="fs-5 text-success fw-bold">₹@Model.Price.ToString("F2")</p>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Details))
+                        {
+                            <div class="mt-4">
+                                <h5 class="text-dark fw-semibold">Details:</h5>
+                                <p class="text-muted">@Model.Details</p>
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-end mt-4 gap-2">
+                            <a asp-action="Dashboard" asp-controller="User" class="btn hollow-btn px-3">
+                                <i class="fa fa-arrow-left me-1"></i> Back to List
+                            </a>
+                            <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
+                                <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                            </button>
+                            <button class="btn solid-btn px-3">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+@functions {
+    private async Task<bool> CheckIfFavourite(int itemId)
+    {
+        if (!User.Identity.IsAuthenticated) return false;
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var wishlistService = Context.RequestServices.GetService<IWishListService>();
+        return await wishlistService.IsItemInWishlist(userId, itemId);
+    }
+}
+
+@section Scripts {
+    <script>
+
+        function toggleWishlist(event, element) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const itemId = $(element).data('item-id');
+            const isFavourite = $(element).hasClass('fa-solid');
+            $.ajax({
+                url: '@Url.Action("ToggleWishlistItem", "User")',
+                type: 'POST',
+                data: { itemId: itemId },
+                success: function (response) {
+                    if (response.success) {
+                        if (response.isFavourite) {
+                            $(element).removeClass('fa-regular').addClass('fa-solid text-danger')
+                                .attr('title', 'Remove from wishlist');
+                        } else {
+                            $(element).removeClass('fa-solid text-danger').addClass('fa-regular')
+                                .attr('title', 'Add to wishlist');
+                        }
+                    }
+                },
+                error: function () {
+                    alert('Failed to update wishlist');
+                }
+            });
+        }
+        
+        function addToCart(itemId) {
+            $.ajax({
+                url: "/User/AddToCart",
+                type: "POST",
+                data: { itemId: itemId },
+                success: function (response) {
+                    if (response.success) {
+                        callSuccessToaster("Item added to cart!");
+                    } else {
+                        callErrorToaster(response.message);
+                    }
+                },
+                error: function () {
+                    callErrorToaster("Failed to add item to cart");
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            // Load navbar
+            $.ajax({
+                url: "/User/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    console.log("asdsdadads")
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    console.error("Error loading navbar");
+                }
+            });
+        });
+    </script>
+}

@@ -129,9 +129,34 @@
             });
         }
 
+        /*
+    function placeOrderFromItem(itemId) {
+    $.ajax({
+        url: "/User/PlaceOrderFromItem",
+        type: "POST",
+        data: { itemId: itemId },
+        success: function (response) {
+            if (response.success) {
+                if (typeof callSuccessToaster === 'function') {
+                    callSuccessToaster(response.message);
+                }
+                window.location.href = "/User/MyOrders";
+            } else {
+                if (typeof callErrorToaster === 'function') {
+                    callErrorToaster(response.message);
+                }
+            }
+        },
+        error: function () {
+            if (typeof callErrorToaster === 'function') {
+                callErrorToaster("Failed to place order");
+            }
+        }
+    });
+    }
+        */
+
         $(document).ready(function () {
-
-
 
             // Add click handler for wishlist items
             $(document).on('click', '.fa-heart', function (e) {

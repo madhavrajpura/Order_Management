@@ -33,7 +33,7 @@ public class UserService : IUserService
         {
             if (user.Password == Encryption.EncryptPassword(model.Password))
             {
-                string? roleName = _roleRepository.GetRoleById(model.RoleId);
+                string? roleName = _roleRepository.GetRoleById(user.RoleId);
                 if (string.IsNullOrEmpty(roleName))
                 {
                     roleName = "3";

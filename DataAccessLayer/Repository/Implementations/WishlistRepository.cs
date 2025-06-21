@@ -50,6 +50,7 @@ public class WishlistRepository : IWishlistRepository
                 ItemId = w.Item.Id,
                 ItemName = w.Item.Name,
                 Price = w.Item.Price,
+                Details = w.Item.Details,
                 ThumbnailImageUrl = string.Join(", ", w.Item.ItemImages.Select(i => i.ImageURL)),
                 LikedAt = w.LikedAt
             })

@@ -1,0 +1,47 @@
+@model List<DataAccessLayer.ViewModels.CartViewModel>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <i class="fa-solid fa-cart-plus fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">Your Cart is empty</h4>
+        <p class="text-muted">Start shopping by adding items into the catalog!</p>
+        <a href="@Url.Action("Dashboard", "User")" class="btn solid-btn mt-3">Continue Shopping</a>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow cart-item" data-price="@item.Price">
+                    <div class="card-body d-flex align-items-center p-4">
+                        <img src="@item.ThumbnailImageUrl" class="card-img-top rounded"
+                            style="width: 120px; height: 130px; object-fit: cover;">
+                        <div class="ms-3 flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title text-dark fw-bold">@item.ItemName</h5> <i
+                                    class="fa-solid fa-trash-can remove-btn cursorPointer" data-cart-id="@item.Id"></i>
+                            </div>
+                            <p class="card-text text-muted">Price per unit : <span
+                                    class="fw-bold">₹@item.Price.ToString("F2")</span></p>
+                            <div class="d-flex align-items-center mt-2">
+                                <button class="btn hollow-btn quantity-btn minus me-2">-</button>
+                                <input type="number" class="form-control quantity-input text-center" value="1"
+                                    style="width: 70px;" min="1">
+                                <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
+                            </div>
+                            <span
+                                class="d-flex justify-content-end text-success fw-bold item-total">₹@item.Price.ToString("F2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div id="cartSummary" class="mt-5 p-3 bg-white shadow rounded">
+        <h4 class="custom-text-color">Total Amount : <span id="totalAmount" class="fw-bold">₹0.00</span></h4>
+        <button class="btn solid-btn mt-3" onclick="alert('Place Order')">Place Order</button>
+    </div>
+}

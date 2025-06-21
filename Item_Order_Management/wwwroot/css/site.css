@@ -125,7 +125,7 @@ input:focus {
 
 .truncate-text {
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Number of lines to show */
+  -webkit-line-clamp: 1; /* Number of lines to show */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -141,4 +141,49 @@ input:focus {
 
 #Navbar{
   z-index: 2;
+}
+
+/* Remove number input arrows */
+.quantity-input {
+    -moz-appearance: textfield; /* Firefox */
+}
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .col-md-5, .col-md-7 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .img-fluid {
+        max-height: 350px !important;
+    }
+    .card-body h2 {
+        font-size: 1.5rem !important;
+    }
+    .card-body .fs-5 {
+        font-size: 1.2rem !important;
+    }
+    .btn {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.9rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .img-fluid {
+        max-height: 250px !important;
+    }
+    .card-body h2 {
+        font-size: 1.3rem !important;
+    }
+    .card-body .fs-5 {
+        font-size: 1rem !important;
+    }
+    .badge {
+        font-size: 0.8rem !important;
+    }
 }

@@ -14,7 +14,8 @@ public class Role
     [Required]
     [Column("Name")]
     [StringLength(30)]
-    public string Name { get; set; }
-    public ICollection<User> Users { get; set; } = new List<User>();
+    public string Name { get; set; } = null!;
+
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
 
 }

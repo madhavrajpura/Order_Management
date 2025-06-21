@@ -25,9 +25,14 @@ public class AuthenticationController : Controller
             string? token = Request.Cookies["JWTToken"];
             System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
 
+
             if (claims != null)
             {
-                return RedirectToAction("Dashboard", "User");
+                if (User.IsInRole("User"))
+                {
+                    return RedirectToAction("Dashboard", "User");
+                }
+                return RedirectToAction("Dashboard", "Admin");
             }
             else
             {
@@ -87,8 +92,15 @@ public class AuthenticationController : Controller
         {
             Response.Cookies.Append("JWTToken", verification_token, option);
 
+            string? RoleName = _jwtService.GetClaimValue(verification_token, "role");
+
+            if (RoleName == "User")
+            {
+                TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
+                return RedirectToAction("Dashboard", "User");
+            }
             TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
-            return RedirectToAction("Dashboard", "User");
+            return RedirectToAction("Dashboard", "Admin");
         }
 
         TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;

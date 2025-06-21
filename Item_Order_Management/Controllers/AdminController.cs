@@ -45,10 +45,10 @@ public class AdminController : Controller
 
     public async Task<IActionResult> GetAdminNavbarData()
     {
-        string token = Request.Cookies["JWTToken"];
+        string? token = Request.Cookies["JWTToken"];
         System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
 
-        var UserId = await _userService.GetUserIdFromToken(token);
+        var UserId = _userService.GetUserIdFromToken(token);
 
         List<NotificationViewModel> NotifyVM = _notificationService.GetNotificationsById(UserId);
         return PartialView("_AdminNavbar", NotifyVM);
@@ -58,8 +58,8 @@ public class AdminController : Controller
     public async Task<IActionResult> MarkAsRead(int userNotificationId)
     {
         await _notificationService.MarkNotificationAsRead(userNotificationId);
-        string token = Request.Cookies["JWTToken"];
-        var userId = await _userService.GetUserIdFromToken(token);
+        string? token = Request.Cookies["JWTToken"];
+        var userId = _userService.GetUserIdFromToken(token);
         List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
         return PartialView("_NotificationList", notifications);
     }
@@ -67,8 +67,8 @@ public class AdminController : Controller
     [HttpPost]
     public async Task<IActionResult> MarkAllAsRead()
     {
-        string token = Request.Cookies["JWTToken"];
-        var userId = await _userService.GetUserIdFromToken(token);
+        string? token = Request.Cookies["JWTToken"];
+        var userId = _userService.GetUserIdFromToken(token);
         await _notificationService.MarkAllNotificationsAsRead(userId);
         List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
         return PartialView("_NotificationList", notifications);
@@ -93,10 +93,10 @@ public class AdminController : Controller
     [HttpPost]
     public async Task<IActionResult> SaveItem([FromForm] ItemViewModel ItemVM)
     {
-        string token = Request.Cookies["JWTToken"];
+        string? token = Request.Cookies["JWTToken"];
         System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
 
-        var UserId = await _userService.GetUserIdFromToken(token);
+        var UserId = _userService.GetUserIdFromToken(token);
 
 
         if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
@@ -110,6 +110,24 @@ public class AdminController : Controller
             return Json(new { success = false, text = NotificationMessage.AlreadyExists.Replace("{0}", "Item") });
         }
 
+        // Handle thumbnail image
+        if (ItemVM.ThumbnailImageFile != null)
+        {
+            string[] extension = ItemVM.ThumbnailImageFile.FileName.Split(".");
+            string ext = extension[extension.Length - 1].ToLower();
+
+            if (new[] { "jpg", "jpeg", "png", "gif", "webp", "jfif" }.Contains(ext))
+            {
+                string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                string fileName = ImageTemplate.GetFileName(ItemVM.ThumbnailImageFile, path);
+                ItemVM.ThumbnailImageUrl = $"/Uploads/{fileName}";
+            }
+            else
+            {
+                return Json(new { success = false, text = NotificationMessage.ImageFormat });
+            }
+        }
+
         bool saveStatus = _itemService.SaveItem(ItemVM, UserId);
         return Json(saveStatus
             ? new { success = true, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateSuccess.Replace("{0}", "Item") : NotificationMessage.UpdateSuccess.Replace("{0}", "Item") }
@@ -119,10 +137,10 @@ public class AdminController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteItem(int ItemId)
     {
-        string token = Request.Cookies["JWTToken"];
+        string? token = Request.Cookies["JWTToken"];
         System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
 
-        var UserId = await _userService.GetUserIdFromToken(token);
+        var UserId = _userService.GetUserIdFromToken(token);
 
 
         if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))

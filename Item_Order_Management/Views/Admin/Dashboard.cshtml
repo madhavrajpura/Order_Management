@@ -176,7 +176,6 @@
                 url: "/Admin/GetAdminNavbarData",
                 type: "GET",
                 success: function (data) {
-                    console.log("data", data);
                     $("#Navbar").html(data);
                 },
                 error: function () {
@@ -269,7 +268,7 @@
                         callErrorToaster("Ajax Error deleting Item");
                     }
                 });
-            })
+            });
 
         });
         // END READY

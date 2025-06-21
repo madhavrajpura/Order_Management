@@ -1,38 +1,57 @@
-@* @model DataAccessLayer.ViewModels.PaginationViewModel<DataAccessLayer.ViewModels.ItemViewModel>
-
-<input type="hidden" id="totalRecords" value="@Model.TotalCount" />
-
-@foreach (var item in Model.Items)
-{
-    <div class="col-12 col-md-6 col-lg-4">
-        <div class="card item-card border-0 shadow-sm p-3">
-            <div class="card-body">
-                <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
-                <p class="card-text text-muted">Price: $@item.Price.ToString("F2")</p>
-                <p class="card-text text-muted small">Added: @item.CreatedAt.ToString("MMM dd, yyyy")</p>
-            </div>
-        </div>
-    </div>
-} *@
-
+@using System.Security.Claims
+@using BusinessLogicLayer.Services.Interfaces
 @model DataAccessLayer.ViewModels.PaginationViewModel<DataAccessLayer.ViewModels.ItemViewModel>
 
 <input type="hidden" id="totalRecords" value="@Model.TotalCount" />
 
 @foreach (var item in Model.Items)
 {
-    <div class="col-12 col-md-6 col-lg-4">
-        <div class="card item-card border-0 shadow-sm p-3">
-            <div class="card-body">
+    <div class="col-12 col-md-4 col-lg-2">
+        <div class="card item-card border-1  shadow-lg p-1">
+            <div class="card-body" style="height: 530px !important;">
+                <div class="bg-white position-absolute rounded-circle p-2" style="margin-left: 220px; margin-top: -10px;">
+
+                    @{
+
+                        var isFavourite = await CheckIfFavourite(item.ItemId);
+
+                    }
+
+                    <i class="@(isFavourite ? "fa-solid text-danger" : "fa-regular") fa-heart fs-3 d-flex justify-content-end"
+                        onclick="toggleWishlist(event, this)" data-item-id="@item.ItemId"
+                        title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
+
+                </div>
+                <img src="@item.ThumbnailImageUrl" class="mb-3 rounded h-50 w-100">
                 <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
-                <p class="card-text text-muted">Price: $@item.Price.ToString("F2")</p>
-                <p class="card-text text-muted small">Added: @item.CreatedAt.ToString("MMM dd, yyyy")</p>
-                <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-sm btn-primary placeOrder" data-bs-toggle="modal" data-bs-target="#SaveOrderModal" data-item-id="@item.ItemId" data-item-name="@item.ItemName" data-item-price="@item.Price">
-                        <i class="bi bi-cart-plus"></i> Order
+                <p class="card-text fw-bold mb-1">Price : <span
+                        class="text-muted fw-light">₹@item.Price.ToString("F2")</span></p>
+                <p class="small fw-bold" title="@item.Details">Details : <span
+                        class="card-text text-muted fw-lighter truncate-text">@item.Details</span></p>
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                    <button class="btn hollow-btn placeOrder w-100">
+                        <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                    </button>
+                </div>
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                    <button class="btn solid-btn placeOrder w-100">
+                        Buy Now
                     </button>
                 </div>
             </div>
         </div>
     </div>
+}
+
+@functions {
+
+    private async Task<bool> CheckIfFavourite(int itemId)
+    {
+
+        if (!User.Identity.IsAuthenticated) return false;
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var wishlistService = Context.RequestServices.GetService<IWishListService>();
+        return await wishlistService.IsItemInWishlist(userId, itemId);
+
+    }
 }

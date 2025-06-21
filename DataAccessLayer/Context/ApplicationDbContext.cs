@@ -14,6 +14,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<UserNotification> UserNotifications { get; set; }
+    public DbSet<ItemImages> ItemImages { get; set; }
+    public DbSet<WishList> WishLists { get; set; }
+    public DbSet<Cart> Carts { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +29,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Order>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Notification>().HasKey(table => new { table.Id });
         modelBuilder.Entity<UserNotification>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<ItemImages>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<WishList>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<Cart>().HasKey(table => new { table.Id });
 
         modelBuilder.Entity<User>()
             .HasOne(u => u.Role)
@@ -78,6 +85,19 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(o => o.ItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // modelBuilder.Entity<ItemImages>()
+        // .HasOne(o => o.CreatedByUser)
+        // .WithMany(u => u.Items)
+        // .HasForeignKey(o => o.CreatedBy)
+        // .OnDelete(DeleteBehavior.Restrict);
+
+        // modelBuilder.Entity<ItemImages>()
+        //     .HasOne(o => o.UpdatedByUser)
+        //     .WithMany()
+        //     .HasForeignKey(o => o.UpdatedBy)
+        //     .OnDelete(DeleteBehavior.Restrict)
+        //     .IsRequired(false);
+
         modelBuilder.Entity<User>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
         modelBuilder.Entity<User>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<User>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
@@ -98,5 +118,12 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<UserNotification>().Property(p => p.ReadAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<UserNotification>().Property(p => p.IsRead).HasDefaultValue(true);
+
+        modelBuilder.Entity<ItemImages>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<ItemImages>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<ItemImages>().Property(p => p.IsThumbnail).HasDefaultValue(false);
+
+        modelBuilder.Entity<WishList>().Property(p => p.LikedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<Cart>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
     }
 }

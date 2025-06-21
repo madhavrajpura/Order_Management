@@ -13,7 +13,13 @@ else
     {
         <tr class="border border-end-0 border-start-0 border-top-0 border-bottom-1">
             <td class="text-start text-nowrap"># @item.ItemId</td>
-            <td class="text-start text-nowrap">@item.ItemName</td>
+            <td class="text-start text-nowrap align-content-center d-flex">
+                <a class="text-decoration-none"> <!--  asp-action="ProductDetails" asp-route-productid="item.ItemId" -->
+                    <img src="@item.ThumbnailImageUrl" class="rounded-circle me-2" style="width: 50px; height: 50px;"
+                        alt="@item.ItemName">
+                </a>
+                <p class="mt-2">@item.ItemName</p>
+            </td>
             <td class="text-start text-nowrap ">₹ @item.Price</td>
             <td class="text-start text-nowrap">
                 <i class="fa-solid fa-pen SaveItemId cursorPointer" data-bs-toggle="modal" data-bs-target="#SaveItemModal"

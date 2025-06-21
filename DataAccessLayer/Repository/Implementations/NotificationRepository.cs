@@ -34,7 +34,6 @@ public class NotificationRepository : INotificationRepository
         return data;
     }
 
-    ////////////////////////////////////////
     public async Task<bool> MarkNotificationAsRead(int userNotificationId)
     {
         var notification = await _db.UserNotifications.FindAsync(userNotificationId);
@@ -54,9 +53,9 @@ public class NotificationRepository : INotificationRepository
             .Where(n => n.UserId == userId && !n.IsRead);
         if (!notifications.Any())
         {
-            return false; // No unread notifications to mark as read
+            return false;
         }
-        
+
         foreach (var notification in notifications)
         {
             notification.IsRead = true;
@@ -65,4 +64,5 @@ public class NotificationRepository : INotificationRepository
         await _db.SaveChangesAsync();
         return true;
     }
+
 }

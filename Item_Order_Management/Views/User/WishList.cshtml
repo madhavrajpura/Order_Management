@@ -1,0 +1,111 @@
+@model List<DataAccessLayer.ViewModels.WishListViewModel>
+
+<div id="Navbar" class="shadow-lg position-fixed w-100"></div>
+
+<div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="custom-text-color fw-bold">My Wishlist</h2>
+        </div>
+    </div>
+
+    <div id="wishlist-content">
+        @if (Model.Any())
+        {
+            <div class="row g-4" id="wishlistItems">
+                @foreach (var item in Model)
+                {
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <div class="card item-card-wishlist border-1 shadow-lg p-1">
+                            <div class="card-body" style="height: 430px !important;">
+                                <div class="bg-white position-absolute rounded-circle p-2" style="margin-left: 220px; margin-top: -10px;">
+                                    <i class="fa-solid fa-heart fs-3 d-flex justify-content-end text-danger"
+                                       onclick="toggleWishlist(event, this)"
+                                       data-item-id="@item.ItemId"
+                                       title="Remove from wishlist"></i>
+                                </div>
+                                <img src="@item.ThumbnailImageUrl" class="mb-3 rounded h-50 w-100">
+                                <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
+                                <p class="card-text fw-bold mb-1">
+                                    Price: <span class="text-muted fw-light">₹@item.Price.ToString("F2")</span>
+                                </p>
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    <button class="btn hollow-btn placeOrder w-100">
+                                        <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    <button class="btn solid-btn placeOrder w-100">
+                                        Buy Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Your wishlist is empty</h4>
+                <p class="text-muted">Add items to your wishlist to see them here</p>
+                <a href="@Url.Action("Dashboard", "User")" class="btn solid-btn mt-3">Browse Items</a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+
+        function toggleWishlist(event, element) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const itemId = $(element).data('item-id');
+
+            $.ajax({
+                url: "/User/ToggleWishlistItem",
+                type: 'POST',
+                data: { itemId: itemId },
+                success: function(response) {
+                    if (response.success) {
+                        $(element).closest('.col-12').fadeOut(300, function() {
+                            $(this).remove();
+                            
+                            if ($('#wishlistItems .col-12').length === 0) {
+                                $('#wishlist-content').html(`
+                                    <div class="text-center py-5">
+                                        <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
+                                        <h4 class="text-muted">Your wishlist is empty</h4>
+                                        <p class="text-muted">Add items to your wishlist to see them here</p>
+                                        <a href="@Url.Action("Dashboard", "User")" class="btn solid-btn mt-3">Browse Items</a>
+                                    </div>
+                                `);
+                            }
+                        });
+                    }
+                },
+                error: function() {
+                    alert('Failed to update wishlist');
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            // Load navbar
+            $.ajax({
+                url: "/User/GetUserNavbarData",
+                type: "GET",
+                success: function(data) {
+                    $("#Navbar").html(data);
+                },
+                error: function() {
+                    console.error("Error loading navbar");
+                }
+            });
+        });
+    </script>
+}

@@ -2,6 +2,7 @@ using DataAccessLayer.Context;
 using DataAccessLayer.Models;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataAccessLayer.Repository.Implementations;
 
@@ -16,7 +17,7 @@ public class ItemsRepository : IItemsRepository
     {
         try
         {
-            return _db.Items
+            return _db.Items.Include(item => item.ItemImages)
                 .Where(item => !item.IsDelete)
                 .Select(item => new ItemViewModel
                 {
@@ -24,6 +25,8 @@ public class ItemsRepository : IItemsRepository
                     ItemName = item.Name,
                     Price = item.Price,
                     CreatedAt = item.CreatedAt,
+                    Details = item.Details,
+                    ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL
                 })
                 .OrderBy(item => item.CreatedAt) ?? Enumerable.Empty<ItemViewModel>().AsQueryable();
         }
@@ -38,13 +41,15 @@ public class ItemsRepository : IItemsRepository
     {
         try
         {
-            return _db.Items.Where(item => item.Id == ItemId && !item.IsDelete)
+            return _db.Items.Include(item => item.ItemImages).Where(item => item.Id == ItemId && !item.IsDelete)
                 .Select(item => new ItemViewModel
                 {
                     ItemId = item.Id,
                     ItemName = item.Name,
                     Price = item.Price,
                     CreatedAt = item.CreatedAt,
+                    Details = item.Details,
+                    ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
                 })
                 .FirstOrDefault() ?? new ItemViewModel();
         }
@@ -57,39 +62,88 @@ public class ItemsRepository : IItemsRepository
 
     public bool SaveItem(ItemViewModel itemVM, int UserId)
     {
-        try
+        if (itemVM == null) return false;
+
+        if (itemVM.ItemId == 0)
         {
-            if (itemVM.ItemId == 0)
+            using var transaction = _db.Database.BeginTransaction();
+            try
             {
-                Item item = new Item
+                Item newItem = new Item
                 {
                     Id = itemVM.ItemId,
                     Name = itemVM.ItemName,
                     Price = itemVM.Price,
+                    Details = itemVM.Details,
                     CreatedAt = DateTime.Now,
                     CreatedBy = UserId
                 };
-                _db.Items.Add(item);
+                _db.Items.Add(newItem);
+                _db.SaveChanges();
+
+                if (itemVM.ThumbnailImageFile != null)
+                {
+                    ItemImages thumbnailImage = new ItemImages
+                    {
+                        ItemId = newItem.Id,
+                        ImageURL = itemVM.ThumbnailImageUrl,
+                        IsThumbnail = true,
+                        CreatedAt = DateTime.Now,
+                        CreatedBy = UserId
+                    };
+                    _db.ItemImages.Add(thumbnailImage);
+                }
+
+                _db.SaveChanges();
+                transaction.Commit();
+                return true;
             }
-            else
+            catch
+            {
+                transaction.Rollback();
+                return false;
+            }
+        }
+        else
+        {
+            using var transaction = _db.Database.BeginTransaction();
+            try
             {
                 Item? ExistingItem = _db.Items.FirstOrDefault(item => item.Id == itemVM.ItemId && !item.IsDelete);
                 if (ExistingItem == null) return false;
 
                 ExistingItem.Name = itemVM.ItemName;
                 ExistingItem.Price = itemVM.Price;
+                ExistingItem.Details = itemVM.Details;
                 ExistingItem.UpdatedAt = DateTime.Now;
                 ExistingItem.UpdatedBy = UserId;
                 _db.Items.Update(ExistingItem);
-            }
+                _db.SaveChanges();
 
-            _db.SaveChanges();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in SaveItem: {ex.Message}");
-            throw new Exception("Error saving item", ex);
+                // Handle thumbnail image
+                if (itemVM.ThumbnailImageFile != null)
+                {
+                    ItemImages? existingThumbnail = _db.ItemImages
+                        .FirstOrDefault(pi => pi.ItemId == ExistingItem.Id && pi.IsThumbnail);
+
+                    if (existingThumbnail != null)
+                    {
+                        existingThumbnail.ImageURL = itemVM.ThumbnailImageUrl;
+                        existingThumbnail.UpdatedAt = DateTime.Now;
+                        existingThumbnail.UpdatedBy = UserId;
+                        _db.ItemImages.Update(existingThumbnail);
+                    }
+                }
+
+                _db.SaveChanges();
+                transaction.Commit();
+                return true;
+            }
+            catch
+            {
+                transaction.Rollback();
+                return false;
+            }
         }
     }
 
@@ -98,6 +152,8 @@ public class ItemsRepository : IItemsRepository
         try
         {
             Item? item = _db.Items.FirstOrDefault(item => item.Id == ItemId && !item.IsDelete);
+
+            // Notification notification = _db.Notifications.Where(item => item.)   
 
             if (item != null)
             {
@@ -108,6 +164,7 @@ public class ItemsRepository : IItemsRepository
                 return true;
             }
             return false;
+
         }
         catch (Exception ex)
         {

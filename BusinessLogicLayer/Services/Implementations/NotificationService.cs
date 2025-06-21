@@ -28,4 +28,5 @@ public class NotificationService : INotificationService
         return await _notificationRepository.MarkAllNotificationsAsRead(userId);
     }
 
+
 }

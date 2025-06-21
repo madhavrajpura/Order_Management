@@ -9,6 +9,6 @@ public interface IUserService
     Task<string> Login(UserViewModel model);
     Task<bool> IsEmailExists(string email);
     Task<bool> IsUsernameExists(string Username);
-    Task<int> GetUserIdFromToken(string token);
+    int GetUserIdFromToken(string token);
 
 }

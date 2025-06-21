@@ -14,15 +14,15 @@ public class User
     [Required]
     [Column("Username")]
     [StringLength(50)]
-    public string Username { get; set; }
+    public string Username { get; set; } = null!;
 
     [Required]
     [Column("Password")]
-    public string Password { get; set; }
+    public string Password { get; set; } = null!;
 
     [Required]
     [Column("Email")]
-    public string Email { get; set; }
+    public string Email { get; set; } = null!;
 
     [Required]
     [ForeignKey("Role")]
@@ -64,7 +64,7 @@ public class User
     [ForeignKey("DeletedBy")]
     public virtual User? DeletedByUser { get; set; }
 
-    public ICollection<Item> Items { get; set; } = new List<Item>();
-    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public virtual ICollection<Item> Items { get; set; } = new List<Item>();
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
 }

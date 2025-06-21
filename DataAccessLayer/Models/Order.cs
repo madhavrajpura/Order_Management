@@ -48,6 +48,9 @@ public class Order
 
     [Column("IsDelete")]
     public bool IsDelete { get; set; } = false;
+    
+    [Column("IsDelivered")]
+    public bool IsDelivered { get; set; } = false;
 
     [Required]
     [Column("CreatedAt")]

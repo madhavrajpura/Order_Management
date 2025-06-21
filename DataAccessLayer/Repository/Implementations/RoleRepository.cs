@@ -22,7 +22,7 @@ public class RoleRepository : IRoleRepository
         }
     }
 
-    public string? GetRoleById(int roleId)
+    public string GetRoleById(int roleId)
     {
         try
         {

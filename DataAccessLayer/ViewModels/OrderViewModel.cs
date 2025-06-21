@@ -10,13 +10,13 @@ public class OrderViewModel
 
     [Required(AllowEmptyStrings = false, ErrorMessage = "Customer Name is required")]
     [StringLength(100, ErrorMessage = "Customer Name cannot exceed 100 characters.")]
-    public string CustomerName { get; set; }
+    public string CustomerName { get; set; } = null!;
 
     public decimal OrderAmount { get; set; }
 
     [Required(AllowEmptyStrings = false, ErrorMessage = "Item Name is required")]
     [StringLength(50, ErrorMessage = "Item Name cannot exceed 50 characters.")]
-    public string ItemName { get; set; }
+    public string ItemName { get; set; } = null!;
 
     [Required(ErrorMessage = "Quantity is required")]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1.")]

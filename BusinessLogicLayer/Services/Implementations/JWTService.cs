@@ -18,7 +18,7 @@ public class JWTService : IJWTService
         _tokenDuration = configuration.GetValue<int>("JwtConfig:Duration");
     }
 
-    public string GenerateToken(string email,string roleName)
+    public string GenerateToken(string email,string roleName,int UserId)
     {
         SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
         SigningCredentials credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -26,7 +26,8 @@ public class JWTService : IJWTService
         Claim[] claims = new[]
         {
                 new Claim("email", email),
-                new Claim("role", roleName)
+                new Claim("role", roleName),
+                new Claim(ClaimTypes.NameIdentifier,UserId.ToString())
             };
 
         JwtSecurityToken token = new JwtSecurityToken(

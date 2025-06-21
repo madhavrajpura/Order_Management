@@ -38,7 +38,7 @@ public class UserService : IUserService
                 {
                     roleName = "3";
                 }
-                string token = _JWTService.GenerateToken(model.Email, roleName);
+                string token = _JWTService.GenerateToken(model.Email, roleName,user.Id);
                 return token;
             }
             return null;
@@ -50,19 +50,17 @@ public class UserService : IUserService
 
     public async Task<bool> IsUsernameExists(string Username) => await _userRepository.IsUsernameExists(Username);
 
-    public async Task<int> GetUserIdFromToken(string token)
+    public int GetUserIdFromToken(string token)
     {
-        // var claims = _JWTService.GetClaimsFromToken(token);
         string? Email = _JWTService.GetClaimValue(token, "email");
-        User? user = _userRepository.GetUserByEmail(Email);
-        if (user.Email == Email)
-        {
-            return user.Id;
-        }
-        else
-        {
-            return 0;
-        }
+
+        if (string.IsNullOrEmpty(Email)) return 0;
+
+        User? user = _userRepository.GetUserByEmail(Email!);
+
+        if (user.Email == Email) return user.Id;
+
+        return 0;
     }
 
 }

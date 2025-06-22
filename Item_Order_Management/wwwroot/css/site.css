@@ -116,6 +116,7 @@ input:focus {
 .item-card:hover {
   transform: translateY(-8px);
 }
+
 .ui-autocomplete {
   max-height: 100px !important;
   overflow-y: auto;

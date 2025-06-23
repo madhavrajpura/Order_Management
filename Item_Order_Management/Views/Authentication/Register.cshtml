@@ -43,6 +43,19 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group col-md-12 pb-3">
+                        <input asp-for="Phone" class="form-control input d-inline" type="number" autocomplete="off"
+                            id="register-pass-inp" style="width: 100% !important; height: 50px;"
+                            placeholder="Phone*" />
+                            <i class="bi bi-person-fill" style="margin: -29px;"></i>
+                        <div class="pe-5">
+                            <span asp-validation-for="Phone" class="text-size"
+                                style="color: rgb(218, 0, 0) !important;"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Password -->
 
                 <div class="form-row">

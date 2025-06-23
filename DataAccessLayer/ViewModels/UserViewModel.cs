@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
+
 
 namespace DataAccessLayer.ViewModels;
 
@@ -7,6 +9,13 @@ public class UserViewModel
     public int UserId { get; set; }
     public int RoleId { get; set; }
 
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Phone number is required")]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be 10 digits.")]
+    public int Phone { get; set; }
+
+    public IFormFile? ImageFile { get; set; }
+
+    public string? ImageURL { get; set; }
 
     [Required(AllowEmptyStrings = false, ErrorMessage = "Username is required")]
     [StringLength(50, ErrorMessage = "Name cannot exceed 50 characters.")]

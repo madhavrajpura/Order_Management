@@ -19,6 +19,8 @@ public class UserRepository : IUserRepository
             User? user = new User();
             user.Username = model.UserName;
             user.Email = model.Email;
+            user.Phone = model.Phone;
+            user.Image = model.ImageURL;
             user.RoleId = model.RoleId;
             user.Password = model.Password;
             user.CreatedAt = DateTime.Now;
@@ -121,11 +123,13 @@ public class UserRepository : IUserRepository
             User userdetails = _db.Users.FirstOrDefault(x => x.Email == Email);
             userdetails.Username = user.UserName;
             userdetails.Email = user.Email;
-            // if (user.Image != null)
-            // {
-            //     userdetails.ProfileImage = user.Image;
-            // }
-            // userdetails.Phone = user.Phone;
+
+            if (user.ImageFile != null)
+            {
+                userdetails.Image = user.ImageURL;
+            }
+
+            userdetails.Phone = user.Phone;
 
             _db.Update(userdetails);
             _db.SaveChanges();
@@ -146,8 +150,8 @@ public class UserRepository : IUserRepository
             {
                 UserName = x.Username,
                 Email = x.Email,
-                // Image = x.ProfileImage,
-                // Phone = x.Phone
+                ImageURL = x.Image,
+                Phone = x.Phone
             }
         ).ToList();
 

@@ -293,31 +293,31 @@ public class ItemsController : Controller
         string? token = Request.Cookies["JWTToken"];
         string? userEmail = _jwtService.GetClaimValue(token, "email");
 
-        // if (user.ProfileImage != null)
-        // {
-        //     string[]? extension = user.ProfileImage.FileName.Split(".");
-        //     if (extension[extension.Length - 1] == "jpg" || extension[extension.Length - 1] == "jpeg" || extension[extension.Length - 1] == "png")
-        //     {
-        //         string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-        //         string fileName = BLL.common.ImageTemplate.UploadImage(user.ProfileImage, path);
-        //         user.Image = $"/uploads/{fileName}";
-        //     }
-        //     else
-        //     {
-        //         TempData["ErrorMessage"] = NotificationMessage.ImageFormat;
-        //         return RedirectToAction("AddUser", "User", new { Email = user.Email });
-        //     }
-        // }
+        if (user.ImageFile != null)
+        {
+            string[]? extension = user.ImageFile.FileName.Split(".");
+            if (extension[extension.Length - 1] == "jpg" || extension[extension.Length - 1] == "jpeg" || extension[extension.Length - 1] == "png")
+            {
+                string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                string fileName = ImageTemplate.GetFileName(user.ImageFile, path);
+                user.ImageURL = $"/uploads/{fileName}";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = NotificationMessage.ImageFormat;
+                return RedirectToAction("AddUser", "User", new { Email = user.Email });
+            }
+        }
 
 
         _userService.UpdateUserProfile(user, userEmail);
 
         CookieOptions options = new CookieOptions();
         options.Expires = DateTime.Now.AddMinutes(60);
-        // if (user.Image != null)
-        // {
-        //     Response.Cookies.Append("profileImage", user.Image, options);
-        // }
+        if (user.ImageURL != null)
+        {
+            Response.Cookies.Append("profileImage", user.ImageURL, options);
+        }
         Response.Cookies.Append("username", user.UserName, options);
 
         TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Profile");
@@ -334,7 +334,7 @@ public class ItemsController : Controller
     public IActionResult ChangePassword(ChangePasswordViewModel changepassword)
 
     {
-        string? token = Request.Cookies["AuthToken"];
+        string? token = Request.Cookies["JWTToken"];
         string? userEmail = _jwtService.GetClaimValue(token, "email");
 
 
@@ -352,7 +352,7 @@ public class ItemsController : Controller
             if (password_verify)
             {
                 TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Password");
-                return RedirectToAction("UserListData", "User");
+                return RedirectToAction("Dashboard", "Items");
             }
             else
             {

@@ -1,0 +1,323 @@
+@using DataAccessLayer.ViewModels
+@model List<CartViewModel>
+
+@{
+    ViewData["Title"] = "My Cart";
+}
+<div id="Navbar" class="shadow-lg position-fixed w-100"></div>
+
+<div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="custom-text-color fw-bold">My Cart</h2>
+        </div>
+    </div>
+    <div id="cart-content">
+        <div id="cartItems" class="row g-4"></div>
+    </div>
+</div>
+
+@* <!-- Add this at the end of Cart.cshtml -->
+<div class="modal fade" id="orderConfirmationModal" tabindex="-1" aria-labelledby="orderConfirmationModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold fs-4" id="orderConfirmationModalLabel">Order Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="orderItemsList"></div>
+                <hr>
+                <h4 class="text-end">Grand Total : <span id="modalTotalAmount" class="fw-bold text-success">₹0.00</span>
+                </h4>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn solid-btn" id="confirmOrderBtn">Place Order</button>
+            </div>
+        </div>
+    </div>
+</div> *@
+
+@section Scripts {
+
+    <script>
+        function showOrderConfirmationModal() {
+            let orderItems = [];
+            let total = 0;
+
+            $(".cart-item").each(function () {
+                const price = parseFloat($(this).data("price"));
+                const quantity = parseInt($(this).find(".quantity-input").val());
+                const itemName = $(this).find(".card-title").text();
+                const itemId = $(this).find(".remove-btn").data("item-id");
+
+                orderItems.push({
+                    OrderItemId: 0,
+                    OrderId: 0,
+                    ItemId: itemId,
+                    ItemName: itemName,
+                    Price: price,
+                    Quantity: quantity
+                });
+
+                total += price * quantity;
+            });
+
+            // Populate modal with order items
+            let itemsHtml = `<table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="text-nowrap">Item Name</th>
+                            <th class="text-nowrap">Quantity</th>
+                            <th class="text-nowrap">Unit Price (₹)</th>
+                            <th class="text-nowrap">Sub Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            orderItems.forEach(item => {
+                itemsHtml += `
+                        <tr>
+                            <td class="text-nowrap">${item.ItemName}</td>
+                            <td class="text-nowrap">${item.Quantity}</td>
+                            <td class="text-nowrap">${item.Price.toFixed(2)}</td>
+                            <td class="text-nowrap">${(item.Price * item.Quantity).toFixed(2)}</td>
+                        </tr>`;
+            });
+            itemsHtml += `</tbody>
+                </table>`;
+
+            $("#orderItemsList").html(itemsHtml);
+            $("#modalTotalAmount").text(`₹${totalAmount.toFixed(2)}`);
+            $("#orderConfirmationModal").modal('show');
+
+            // Store order data for confirmation
+            $("#confirmOrderBtn").off('click').on('click', function () {
+                const orderData = {
+                    OrderId: 0,
+                    OrderDate: new Date().toISOString(),
+                    TotalAmount: total,
+                    IsDelivered: false,
+                    IsDelete: false,
+                    OrderItems: orderItems
+                };
+
+                $.ajax({
+                    url: "/Items/CreateOrder",
+                    type: "POST",
+                    data: { orderData: JSON.stringify(orderData) },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#orderConfirmationModal").modal('hide');
+                            callSuccessToaster(response.message);
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to place order");
+                    }
+                });
+            });
+        }
+
+        $(document).ready(function () {
+            // Existing code remains unchanged
+            $("#cartSummary .solid-btn").off('click').on('click', function () {
+                showOrderConfirmationModal();
+            });
+        });
+    </script>
+
+
+    <!-- Add to existing scripts -->
+    <script>
+        function showOrderConfirmationModal() {
+            let orderItems = [];
+            let total = 0;
+
+            var orderData;
+
+            $(".cart-item").each(function () {
+                const price = parseFloat($(this).data("price"));
+                const quantity = parseInt($(this).find(".quantity-input").val());
+                const itemName = $(this).find(".card-title").text();
+                const itemId = $(this).find(".remove-btn").data("item-id");
+
+                orderItems.push({
+                    OrderItemId: 0,
+                    OrderId: 0,
+                    ItemId: itemId,
+                    ItemName: itemName,
+                    Price: price,
+                    Quantity: quantity
+                });
+
+                total += price * quantity;
+            });
+
+            // Populate modal with order items
+            let itemsHtml = `<table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="text-nowrap">Item Name</th>
+                            <th class="text-nowrap">Quantity</th>
+                            <th class="text-nowrap">Unit Price (₹)</th>
+                            <th class="text-nowrap">Sub Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            orderItems.forEach(item => {
+                itemsHtml += `
+                        <tr>
+                            <td class="text-nowrap">${item.ItemName}</td>
+                            <td class="text-nowrap">${item.Quantity}</td>
+                            <td class="text-nowrap">${item.Price.toFixed(2)}</td>
+                            <td class="text-nowrap">${(item.Price * item.Quantity).toFixed(2)}</td>
+                        </tr>`;
+            });
+            itemsHtml += `</tbody>
+                </table>`;
+
+            // Append the generated HTML to the modal or desired container
+            $("#orderItemsList").html(itemsHtml);
+            $("#modalTotalAmount").text(`₹${total.toFixed(2)}`);
+            $("#orderConfirmationModal").modal('show');
+
+            // Store order data for confirmation
+            $("#confirmOrderBtn").off('click').on('click', function () {
+                orderData = {
+                    OrderId: 0,
+                    OrderDate: new Date().toISOString(),
+                    TotalAmount: total,
+                    IsDelivered: false,
+                    IsDelete: false,
+                    OrderItems: orderItems
+                };
+
+                console.log("orderData", orderData);
+
+                $.ajax({
+                    url: "/Items/CreateOrder",
+                    type: "POST",
+                    data: { orderData: JSON.stringify(orderData) },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#orderConfirmationModal").modal('hide');
+                            callSuccessToaster(response.message);
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to place order");
+                    }
+                });
+            });
+        }
+
+        $(document).ready(function () {
+            // Update the Place Order button click handler
+            $("#cartSummary .solid-btn").off('click').on('click', function () {
+                showOrderConfirmationModal();
+            });
+        });
+    </script>
+
+
+    <script>
+
+        // Function to Load the Cart items
+        function loadCartItems() {
+            $.ajax({
+                url: "/Items/GetCartItems",
+                type: "GET",
+                success: function (data) {
+                    $("#cartItems").html(data);
+                    updateTotalAmount();
+                },
+                error: function () {
+                    console.error("Error loading cart items");
+                }
+            });
+        }
+
+        // Function to Update the Total Amount
+        function updateTotalAmount() {
+            let total = 0;
+            $(".cart-item").each(function () {
+                const price = parseFloat($(this).data("price"));
+                const quantity = parseInt($(this).find(".quantity-input").val());
+                const itemTotal = price * quantity;
+                $(this).find(".item-total").text(`₹${itemTotal.toFixed(2)}`);
+                console.log(`Updated item total: ₹${$(this).find(".item-total").text()}`);
+                total += itemTotal;
+            });
+            $("#totalAmount").text(`₹${total.toFixed(2)}`);
+        }
+
+        $(document).ready(function () {
+            // Load navbar
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    console.error("Error loading navbar");
+                }
+            });
+
+            loadCartItems();
+
+            // Quantity Button
+            $(document).on("click", ".quantity-btn", function () {
+                const inputTag = $(this).siblings(".quantity-input");
+                let qty = parseInt(inputTag.val());
+                if (isNaN(qty)) qty = 1; // Reset to 1 if invalid
+                const cardTag = $(this).closest(".cart-item");
+                const price = parseFloat(cardTag.data("price"));
+
+                if ($(this).hasClass("plus")) {
+                    if (price > 50000 && qty >= 2) {
+                        callWarningToaster("Maximum quantity limit of 2 reached for items above ₹50,000!");
+                        return;
+                    } else if (price > 30000 && qty >= 5) {
+                        callWarningToaster("Maximum quantity limit of 5 reached for items above ₹30,000!");
+                        return;
+                    }
+                    qty += 1;
+                } else {
+                    qty = qty > 1 ? qty - 1 : 1;
+                }
+
+                inputTag.val(qty);
+                updateTotalAmount();
+            });
+
+            // Remove Button 
+            $(document).on("click", ".remove-btn", function () {
+                const cartId = $(this).data("cart-id");
+                $.ajax({
+                    url: "/Items/RemoveFromCart",
+                    type: "POST",
+                    data: { cartId: cartId },
+                    success: function (data) {
+                        $("#cartItems").html(data);
+                        updateTotalAmount();
+                        console.log("Item removed successfully 1");
+                        loadCartItems();
+                        console.log("Item removed successfully 2");
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to remove item");
+                    }
+                });
+            });
+        });
+    </script>
+}

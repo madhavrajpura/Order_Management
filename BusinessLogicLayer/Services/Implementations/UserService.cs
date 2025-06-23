@@ -38,7 +38,7 @@ public class UserService : IUserService
                 {
                     roleName = "3";
                 }
-                string token = _JWTService.GenerateToken(model.Email, roleName,user.Id);
+                string token = _JWTService.GenerateToken(model.Email, roleName, user.Id);
                 return token;
             }
             return null;
@@ -61,6 +61,21 @@ public class UserService : IUserService
         if (user.Email == Email) return user.Id;
 
         return 0;
+    }
+
+    public bool ChangePassword(ChangePasswordViewModel changepassword, string Email)
+    {
+        return _userRepository.ChangePassword(changepassword, Email);
+    }
+
+    public bool UpdateUserProfile(UserViewModel user, string Email)
+    {
+        return _userRepository.UpdateUserProfile(user, Email);
+    }
+
+    public List<UserViewModel> GetUserProfileDetails(string Email)
+    {
+        return _userRepository.GetUserProfileDetails(Email);
     }
 
 }

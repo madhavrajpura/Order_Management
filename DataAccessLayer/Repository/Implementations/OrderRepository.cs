@@ -1,85 +1,81 @@
-// using DataAccessLayer.Context;
-// using DataAccessLayer.Models;
-// using DataAccessLayer.Repository.Interfaces;
-// using DataAccessLayer.ViewModels;
-// using Microsoft.EntityFrameworkCore;
+using DataAccessLayer.Context;
+using DataAccessLayer.Models;
+using DataAccessLayer.Repository.Interfaces;
+using DataAccessLayer.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
-// namespace DataAccessLayer.Repository.Implementations;
+namespace DataAccessLayer.Repository.Implementations;
 
-// public class OrderRepository : IOrderRepository
-// {
-//     private readonly ApplicationDbContext _db;
+public class OrderRepository : IOrderRepository
+{
+    private readonly ApplicationDbContext _db;
+    private readonly ICartRepository _cartRepo;
 
-//     public OrderRepository(ApplicationDbContext db)
-//     {
-//         _db = db;
-//     }
+    public OrderRepository(ApplicationDbContext db,ICartRepository cartRepo)
+    {
+        _db = db;
+        _cartRepo = cartRepo;
+    }
 
-//     public async Task<int> CreateOrder(int createdBy, List<CartViewModel> cartItems)
-//     {
-//         var order = new Order
-//         {
-//             CreatedBy = createdBy,
-//             OrderDate = DateTime.Now,
-//             TotalAmount = cartItems.Sum(item => item.Price * item.Quantity),
-//             Status = "Pending",
-//             IsDelivered = false
-//         };
+    public async Task<bool> CreateOrderAsync(Order order)
+    {
+        using var transaction  = _db.Database.BeginTransaction();
+        try
+        {
+            _db.Orders.Add(order);
+            _db.SaveChanges();
 
-//         var orderItems = cartItems.Select(item => new OrderItem
-//         {
-//             ItemId = item.ItemId,
-//             ItemName = item.ItemName,
-//             Price = item.Price,
-//             Quantity = item.Quantity,
-//             ThumbnailImageUrl = item.ThumbnailImageUrl
-//         }).ToList();
+            foreach(var OrderItems in order.OrderItems){
+                OrderItems.OrderId = order.Id;
+                _db.OrderItems.Add(OrderItems);
+            }
 
-//         order.OrderItems = orderItems;
-//         _db.Orders.Add(order);
-//         await _db.SaveChangesAsync();
-//         return order.Id;
-//     }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            Console.WriteLine($"Error in CreateOrderAsync: {ex.Message}");
+            throw;
+        }
+    }
 
-//     public async Task<List<OrderViewModel>> GetUserOrders(int createdBy)
-//     {
-//         return await _db.Orders
-//             .Where(o => o.CreatedBy == createdBy)
-//             .Include(o => o.OrderItems)
-//             .Select(o => new OrderViewModel
-//             {
-//                 Id = o.Id,
-//                 OrderDate = o.OrderDate,
-//                 TotalAmount = o.TotalAmount,
-//                 Status = o.Status,
-//                 IsDelivered = o.IsDelivered,
-//                 Items = o.OrderItems.Select(oi => new OrderItemViewModel
-//                 {
-//                     ItemId = oi.ItemId,
-//                     ItemName = oi.ItemName,
-//                     Price = oi.Price,
-//                     Quantity = oi.Quantity,
-//                     ThumbnailImageUrl = oi.ThumbnailImageUrl
-//                 }).ToList()
-//             })
-//             .ToListAsync();
-//     }
+    public async Task<List<Order>> GetUserOrdersAsync(int userId)
+    {
+        try
+        {
+            var data = await _db.Orders
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Items)
+                .Where(o => o.CreatedBy == userId && !o.IsDelete)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetUserOrdersAsync: {ex.Message}");
+            throw;
+        }
+    }
 
-//     public async Task<bool> UpdateOrder(int orderId, decimal newTotalAmount)
-//     {
-//         var order = await _db.Orders.FindAsync(orderId);
-//         if (order == null) return false;
-//         order.TotalAmount = newTotalAmount;
-//         await _db.SaveChangesAsync();
-//         return true;
-//     }
+    // public async Task<Order> GetOrderByIdAsync(int orderId, int userId)
+    // {
+    //     try
+    //     {
+    //         var data = await _db.Orders
+    //             .Include(o => o.OrderItems)
+    //             .ThenInclude(oi => oi.Items)
+    //             .FirstOrDefaultAsync(o => o.Id == orderId && o.CreatedBy == userId && !o.IsDelete);
+    //         return data;
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error in GetOrderByIdAsync: {ex.Message}");
+    //         throw;
+    //     }
+    // }
 
-//     public async Task<bool> DeleteOrder(int orderId)
-//     {
-//         var order = await _db.Orders.FindAsync(orderId);
-//         if (order == null) return false;
-//         _db.Orders.Remove(order);
-//         await _db.SaveChangesAsync();
-//         return true;
-//     }
-// }
+
+    
+}

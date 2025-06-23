@@ -1,5 +1,12 @@
-// namespace DataAccessLayer.Repository.Interfaces;
+using DataAccessLayer.Models;
+using DataAccessLayer.ViewModels;
 
-// public interface IOrderRepository
-// {
-// }
+namespace DataAccessLayer.Repository.Interfaces;
+
+public interface IOrderRepository
+{
+Task<bool> CreateOrderAsync(Order order);    
+Task<List<Order>> GetUserOrdersAsync(int userId);
+// Task<Order> GetOrderByIdAsync(int orderId, int userId);
+
+}

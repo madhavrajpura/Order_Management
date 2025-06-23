@@ -10,5 +10,7 @@ public interface IUserService
     Task<bool> IsEmailExists(string email);
     Task<bool> IsUsernameExists(string Username);
     int GetUserIdFromToken(string token);
-
+    bool ChangePassword(ChangePasswordViewModel changepassword, string Email);
+    bool UpdateUserProfile(UserViewModel user, string Email);
+    List<UserViewModel> GetUserProfileDetails(string Email);
 }

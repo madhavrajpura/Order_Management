@@ -12,7 +12,7 @@
                     <!-- Item Image -->
                     <div class="col-md-5 p-2 d-flex align-items-center justify-content-center rounded-start">
                         <img src="@Model.ThumbnailImageUrl" alt="@Model.ItemName" class="img-fluid rounded"
-                            style="max-height: 450px; object-fit: contain; border: 2px solid #e0f7fa; width: 330px;">
+                            style="max-height: 450px; object-fit: contain;">
                     </div>
 
                     <!-- Item Info -->
@@ -41,7 +41,7 @@
                         }
 
                         <div class="d-flex justify-content-end mt-4 gap-2">
-                            <a asp-action="Dashboard" asp-controller="User" class="btn hollow-btn px-3">
+                            <a asp-action="Dashboard" asp-controller="Items" class="btn hollow-btn px-3">
                                 <i class="fa fa-arrow-left me-1"></i> Back to List
                             </a>
                             <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
@@ -72,6 +72,7 @@
 @section Scripts {
     <script>
 
+        // Function To toggle Wishlist Items
         function toggleWishlist(event, element) {
 
             event.preventDefault();
@@ -80,7 +81,7 @@
             const itemId = $(element).data('item-id');
             const isFavourite = $(element).hasClass('fa-solid');
             $.ajax({
-                url: '@Url.Action("ToggleWishlistItem", "User")',
+                url: '@Url.Action("ToggleWishlistItem", "Items")',
                 type: 'POST',
                 data: { itemId: itemId },
                 success: function (response) {
@@ -100,9 +101,10 @@
             });
         }
         
+        // Function To Add items into Cart
         function addToCart(itemId) {
             $.ajax({
-                url: "/User/AddToCart",
+                url: "/Items/AddToCart",
                 type: "POST",
                 data: { itemId: itemId },
                 success: function (response) {
@@ -121,7 +123,7 @@
         $(document).ready(function () {
             // Load navbar
             $.ajax({
-                url: "/User/GetUserNavbarData",
+                url: "/Items/GetUserNavbarData",
                 type: "GET",
                 success: function (data) {
                     console.log("asdsdadads")

@@ -8,25 +8,12 @@ public class NotificationService : INotificationService
 {
     private readonly INotificationRepository _notificationRepository;
 
-    public NotificationService(INotificationRepository notificationRepository)
-    {
-        _notificationRepository = notificationRepository;
-    }
+    public NotificationService(INotificationRepository notificationRepository) => _notificationRepository = notificationRepository;
 
-    public List<NotificationViewModel> GetNotificationsById(int UserId)
-    {
-        var data = _notificationRepository.GetNotificationsById(UserId);
-        return data;
-    }
+    public List<NotificationViewModel> GetNotificationsById(int UserId) => _notificationRepository.GetNotificationsById(UserId);
 
-    public async Task<bool> MarkNotificationAsRead(int userNotificationId)
-    {
-        return await _notificationRepository.MarkNotificationAsRead(userNotificationId);
-    }
-    public async Task<bool> MarkAllNotificationsAsRead(int userId)
-    {
-        return await _notificationRepository.MarkAllNotificationsAsRead(userId);
-    }
+    public async Task<bool> MarkNotificationAsRead(int userNotificationId) => await _notificationRepository.MarkNotificationAsRead(userNotificationId);
 
+    public async Task<bool> MarkAllNotificationsAsRead(int userId) => await _notificationRepository.MarkAllNotificationsAsRead(userId);
 
 }

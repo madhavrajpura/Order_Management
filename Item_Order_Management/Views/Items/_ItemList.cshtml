@@ -1,0 +1,137 @@
+@using System.Security.Claims
+@using BusinessLogicLayer.Services.Interfaces
+@model DataAccessLayer.ViewModels.PaginationViewModel<DataAccessLayer.ViewModels.ItemViewModel>
+
+<input type="hidden" id="totalRecords" value="@Model.TotalCount" />
+
+@foreach (var item in Model.Items)
+{
+    <div class="col-12 col-md-4 col-lg-3">
+        <div class="card item-card border-0 shadow h-100">
+            <div class="card-body text-center p-3">
+                <div class="position-absolute top-0 end-0 m-2">
+                    @{
+                        var isFavourite = await CheckIfFavourite(item.ItemId);
+                    }
+                    <i class="@(isFavourite ? "fa-solid text-danger" : "fa-regular") fa-heart fs-4"
+                        onclick="toggleWishlist(event, this)" data-item-id="@item.ItemId"
+                        title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
+                </div>
+                @* <img src="@item.ThumbnailImageUrl" class="card-img-top rounded mb-3" style="height: 150px; object-fit:
+            contain;"> *@
+                <img src="@item.ThumbnailImageUrl" class="card-img-top rounded img-fluid mb-3 cursor-pointer"
+                    style="height: 180px; object-fit: contain;"
+                    onclick="window.location.href='@Url.Action("ItemDetails", "Items", new { itemId = item.ItemId })'">
+                <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
+                <p class="card-text text-dark">Price : <span
+                        class="text-success  fw-bold">₹@item.Price.ToString("F2")</span></p>
+                <p class="small text-muted truncate-text" title="@item.Details">@item.Details</p>
+                <div class="mt-3">
+                    <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
+                        <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                    </button>
+                    <button class="btn solid-btn w-100" onclick="buyNow(@item.ItemId, '@item.ItemName', @item.Price)">Buy
+                        Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@functions {
+    private async Task<bool> CheckIfFavourite(int itemId)
+    {
+        if (!User.Identity.IsAuthenticated) return false;
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var wishlistService = Context.RequestServices.GetService<IWishListService>();
+        return await wishlistService.IsItemInWishlist(userId, itemId);
+    }
+}
+
+<script>
+
+    // Function To Add Items into Cart
+    function addToCart(itemId) {
+        $.ajax({
+            url: "/Items/AddToCart",
+            type: "POST",
+            data: { itemId: itemId },
+            success: function (response) {
+                if (response.success) {
+                    callSuccessToaster("Item added to cart!");
+                } else {
+                    callErrorToaster(response.message);
+                }
+            },
+            error: function () {
+                callErrorToaster("Failed to add item to cart");
+            }
+        });
+    }
+
+    function buyNow(itemId, itemName, price) {
+        // Show confirmation modal for single item
+        const orderItem = {
+            OrderItemId: 0,
+            OrderId: 0,
+            ItemId: itemId,
+            ItemName: itemName,
+            Price: price,
+            Quantity: 1 // Default quantity for Buy Now
+        };
+
+        const orderData = {
+            OrderId: 0,
+            OrderDate: new Date().toISOString(),
+            TotalAmount: price,
+            IsDelivered: false,
+            IsDelete: false,
+            OrderItems: [orderItem]
+        };
+        
+        // Populate confirmation modal
+        let itemsHtml = `<table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Price (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>`;
+        itemsHtml += `
+            <td>${itemName}</td>
+                <td>1</td>
+                <td>₹${price.toFixed(2)}</td>
+                `;
+        itemsHtml += `</tr>
+        </tbody>
+    </table>`;
+
+        $("#orderItemsList").html(itemsHtml);
+        $("#modalTotalAmount").text(`₹${price.toFixed(2)}`);
+        $("#orderConfirmationModal").modal('show');
+
+        // Handle confirm order
+        $("#confirmOrderBtn").off('click').on('click', function () {
+            $.ajax({
+                url: "/Items/CreateOrder",
+                type: "POST",
+                data: { orderData: JSON.stringify(orderData) },
+                success: function (response) {
+                    if (response.success) {
+                        $("#orderConfirmationModal").modal('hide');
+                        callSuccessToaster(response.message);
+                        window.location.href = response.redirectUrl;
+                    } else {
+                        callErrorToaster(response.message);
+                    }
+                },
+                error: function () {
+                    callErrorToaster("Failed to place order");
+                }
+            });
+        });
+    }
+</script>

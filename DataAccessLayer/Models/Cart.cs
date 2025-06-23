@@ -12,12 +12,10 @@ public class Cart
     public int Id { get; set; }
 
     [Required]
-    [ForeignKey("Item")]
     [Column("ItemId")]
     public int ItemId { get; set; }
 
     [Required]
-    [ForeignKey("User")]
     [Column("UserId")]
     public int UserId { get; set; }
 
@@ -25,6 +23,9 @@ public class Cart
     [Column("CreatedAt")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    [ForeignKey("UserId")]
     public virtual User User { get; set; } = null!;
+
+    [ForeignKey("ItemId")]
     public virtual Item Item { get; set; } = null!;
 }

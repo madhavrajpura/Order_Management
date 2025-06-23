@@ -3,30 +3,39 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DataAccessLayer.Models;
 
-[Table("Order", Schema = "public")]
-public class Order
+
+[Table("OrderItem", Schema = "public")]
+public class OrderItem
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("Id")]
     public int Id { get; set; }
 
+    [Column("OrderId")]
+    public int? OrderId { get; set; }
+    
     [Required]
-    [Column("TotalAmount", TypeName = "decimal(10,2)")]
-    public decimal TotalAmount { get; set; }
+    [Column("ItemId")]
+    public int ItemId { get; set; }
 
     [Required]
-    [Column("OrderDate")]
-    public DateTime OrderDate { get; set; } = DateTime.Now;
+    [Column("ItemName")]
+    public string ItemName { get; set; } = null!;
 
-    [Column("DeliveryDate")]
-    public DateTime? DeliveryDate { get; set; }
+    [Required]
+    [Column("Price", TypeName = "decimal(10,2)")]
+    public decimal Price { get; set; }
+
+    [Required]
+    [Column("Quantity")]
+    public int Quantity{get; set;}
 
     [Column("IsDelete")]
     public bool IsDelete { get; set; } = false;
-    
-    [Column("IsDelivered")]
-    public bool IsDelivered { get; set; } = false;
+
+    [Column("CreatedAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     [Column("UpdatedAt")]
     public DateTime? UpdatedAt { get; set; }
@@ -53,6 +62,9 @@ public class Order
     [ForeignKey("DeletedBy")]
     public virtual User? DeletedByUser { get; set; }
 
-    public virtual ICollection<OrderItem>? OrderItems { get; set; }
-
+    [ForeignKey("ItemId")]
+    public virtual Item Items { get; set; } = null!;
+    
+    [ForeignKey("OrderId")]
+    public virtual Order? Orders {get; set;} = null!;
 }

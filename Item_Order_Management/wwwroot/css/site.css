@@ -144,10 +144,10 @@ input:focus {
   z-index: 2;
 }
 
-/* Remove number input arrows */
 .quantity-input {
-    -moz-appearance: textfield; /* Firefox */
+    -moz-appearance: textfield;
 }
+
 .quantity-input::-webkit-outer-spin-button,
 .quantity-input::-webkit-inner-spin-button {
     -webkit-appearance: none;

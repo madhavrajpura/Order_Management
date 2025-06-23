@@ -6,7 +6,7 @@
         <i class="fa-solid fa-cart-plus fa-4x text-muted mb-3"></i>
         <h4 class="text-muted">Your Cart is empty</h4>
         <p class="text-muted">Start shopping by adding items into the catalog!</p>
-        <a href="@Url.Action("Dashboard", "User")" class="btn solid-btn mt-3">Continue Shopping</a>
+        <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Continue Shopping</a>
     </div>
 }
 else
@@ -22,7 +22,7 @@ else
                         <div class="ms-3 flex-grow-1">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h5 class="card-title text-dark fw-bold">@item.ItemName</h5> <i
-                                    class="fa-solid fa-trash-can remove-btn cursorPointer" data-cart-id="@item.Id"></i>
+                                    class="fa-solid fa-trash-can remove-btn cursorPointer" data-cart-id="@item.Id" data-item-id="@item.ItemId"></i>
                             </div>
                             <p class="card-text text-muted">Price per unit : <span
                                     class="fw-bold">₹@item.Price.ToString("F2")</span></p>
@@ -42,6 +42,6 @@ else
     </div>
     <div id="cartSummary" class="mt-5 p-3 bg-white shadow rounded">
         <h4 class="custom-text-color">Total Amount : <span id="totalAmount" class="fw-bold">₹0.00</span></h4>
-        <button class="btn solid-btn mt-3" onclick="alert('Place Order')">Place Order</button>
+        <button class="btn solid-btn mt-3" onclick="showOrderConfirmationModal()">Place Order</button>
     </div>
 }

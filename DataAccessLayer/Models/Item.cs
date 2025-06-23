@@ -54,8 +54,6 @@ public class Item
 
     [ForeignKey("DeletedBy")]
     public virtual User? DeletedByUser { get; set; }
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     public virtual ICollection<ItemImages> ItemImages { get; set; } = new List<ItemImages>();
-
 
 }

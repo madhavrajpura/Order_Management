@@ -8,20 +8,10 @@ public class WishListService : IWishListService
 {
     private readonly IWishlistRepository _wishlistRepo;
 
-    public WishListService(IWishlistRepository wishlistRepo)
-    {
-        _wishlistRepo = wishlistRepo;
-    }
+    public WishListService(IWishlistRepository wishlistRepo) =>  _wishlistRepo = wishlistRepo;
+    public async Task<bool> ToggleWishlistItem(int userId, int itemId) => await _wishlistRepo.ToggleWishlistItem(userId, itemId);
 
-    public async Task<bool> ToggleWishlistItem(int userId, int itemId)
-    {
-        return await _wishlistRepo.ToggleWishlistItem(userId, itemId);
-    }
-
-    public async Task<List<WishListViewModel>> GetUserWishlist(int userId)
-    {
-        return await _wishlistRepo.GetUserWishlist(userId);
-    }
+    public async Task<List<WishListViewModel>> GetUserWishlist(int userId) => await _wishlistRepo.GetUserWishlist(userId);
 
     public async Task<List<CombinedItemViewModel>> GetItemsWithWishlistStatus(int userId, List<ItemViewModel> items)
     {
@@ -38,8 +28,6 @@ public class WishListService : IWishListService
         return combinedItems;
     }
 
-    public async Task<bool> IsItemInWishlist(int userId, int itemId){
-        return await _wishlistRepo.IsItemInWishlist(userId,itemId);
-    }
+    public async Task<bool> IsItemInWishlist(int userId, int itemId) => await _wishlistRepo.IsItemInWishlist(userId,itemId);
 
 }

@@ -11,12 +11,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Item> Items { get; set; }
-    public DbSet<Order> Orders { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<UserNotification> UserNotifications { get; set; }
     public DbSet<ItemImages> ItemImages { get; set; }
     public DbSet<WishList> WishLists { get; set; }
     public DbSet<Cart> Carts { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -26,18 +27,19 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Role>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Item>().HasKey(table => new { table.Id });
-        modelBuilder.Entity<Order>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Notification>().HasKey(table => new { table.Id });
         modelBuilder.Entity<UserNotification>().HasKey(table => new { table.Id });
         modelBuilder.Entity<ItemImages>().HasKey(table => new { table.Id });
         modelBuilder.Entity<WishList>().HasKey(table => new { table.Id });
         modelBuilder.Entity<Cart>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<Order>().HasKey(table => new { table.Id });
+        modelBuilder.Entity<OrderItem>().HasKey(table => new { table.Id });
 
-        modelBuilder.Entity<User>()
-            .HasOne(u => u.Role)
-            .WithMany(r => r.Users)
-            .HasForeignKey(u => u.RoleId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // modelBuilder.Entity<User>()
+        //     .HasOne(u => u.Role)
+        //     .WithMany(r => r.Users)
+        //     .HasForeignKey(u => u.RoleId)
+        //     .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Item>()
             .HasOne(i => i.CreatedByUser)
@@ -80,11 +82,42 @@ public class ApplicationDbContext : DbContext
             .IsRequired(false);
 
         modelBuilder.Entity<Order>()
+            .HasMany(o => o.OrderItems)
+            .WithOne(o => o.Orders)
+            .HasForeignKey(o => o.OrderId);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(o => o.Orders)
+            .WithMany(o => o.OrderItems)
+            .HasForeignKey(o => o.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OrderItem>()
             .HasOne(o => o.Items)
-            .WithMany(i => i.Orders)
+            .WithMany()
             .HasForeignKey(o => o.ItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(o => o.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(o => o.CreatedBy)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(o => o.UpdatedByUser)
+            .WithMany()
+            .HasForeignKey(o => o.UpdatedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(o => o.DeletedByUser)
+            .WithMany()
+            .HasForeignKey(o => o.DeletedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+       
         // modelBuilder.Entity<ItemImages>()
         // .HasOne(o => o.CreatedByUser)
         // .WithMany(u => u.Items)
@@ -108,10 +141,16 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Item>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Item>().Property(p => p.IsDelete).HasDefaultValue(false);
 
-        modelBuilder.Entity<Order>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        modelBuilder.Entity<Order>().Property(p => p.OrderDate).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
         modelBuilder.Entity<Order>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Order>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Order>().Property(p => p.IsDelete).HasDefaultValue(false);
+        modelBuilder.Entity<Order>().Property(p => p.IsDelivered).HasDefaultValue(false);
+
+        modelBuilder.Entity<OrderItem>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        modelBuilder.Entity<OrderItem>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<OrderItem>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<OrderItem>().Property(p => p.IsDelete).HasDefaultValue(false);
 
         modelBuilder.Entity<Notification>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
         modelBuilder.Entity<Notification>().Property(p => p.IsActive).HasDefaultValue(true);

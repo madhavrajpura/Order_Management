@@ -9,4 +9,7 @@ public interface IUserRepository
     User GetUserByEmail(string email);
     Task<bool> IsEmailExists(string email);
     Task<bool> IsUsernameExists(string Username);
+    bool ChangePassword(ChangePasswordViewModel changepassword, string Email);
+    bool UpdateUserProfile(UserViewModel user, string Email);
+    List<UserViewModel> GetUserProfileDetails(string Email);
 }

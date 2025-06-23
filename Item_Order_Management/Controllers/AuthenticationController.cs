@@ -17,6 +17,8 @@ public class AuthenticationController : Controller
         _jwtService = jwtService;
     }
 
+    #region Login
+
     [HttpGet]
     public IActionResult Login()
     {
@@ -30,7 +32,7 @@ public class AuthenticationController : Controller
             {
                 if (User.IsInRole("User"))
                 {
-                    return RedirectToAction("Dashboard", "User");
+                    return RedirectToAction("Dashboard", "Items");
                 }
                 return RedirectToAction("Dashboard", "Admin");
             }
@@ -42,6 +44,46 @@ public class AuthenticationController : Controller
         }
         return View();
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Login(UserViewModel model)
+    {
+        string? verification_token = await _userService.Login(model);
+
+        CookieOptions option = new CookieOptions();
+        option.Expires = DateTime.Now.AddHours(30);
+
+        if (verification_token != null)
+        {
+            Response.Cookies.Append("JWTToken", verification_token, option);
+
+            string? RoleName = _jwtService.GetClaimValue(verification_token, "role");
+
+            if (RoleName == "User")
+            {
+                TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
+                return RedirectToAction("Dashboard", "Items");
+            }
+            TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
+            return RedirectToAction("Dashboard", "Admin");
+        }
+
+        TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;
+        return RedirectToAction("Login", "Authentication");
+    }
+
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("JWTToken");
+        Response.Headers["Clear-Site-Data"] = "\"cache\", \"cookies\", \"storage\"";
+        TempData["SuccessMessage"] = NotificationMessage.LogoutSuccess;
+
+        return RedirectToAction("Login", "Authentication");
+    }
+
+    #endregion
+
+    #region Register
 
     [HttpGet]
     public IActionResult Register()
@@ -80,39 +122,6 @@ public class AuthenticationController : Controller
         }
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Login(UserViewModel model)
-    {
-        string? verification_token = await _userService.Login(model);
-
-        CookieOptions option = new CookieOptions();
-        option.Expires = DateTime.Now.AddHours(30);
-
-        if (verification_token != null)
-        {
-            Response.Cookies.Append("JWTToken", verification_token, option);
-
-            string? RoleName = _jwtService.GetClaimValue(verification_token, "role");
-
-            if (RoleName == "User")
-            {
-                TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
-                return RedirectToAction("Dashboard", "User");
-            }
-            TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
-            return RedirectToAction("Dashboard", "Admin");
-        }
-
-        TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;
-        return RedirectToAction("Login", "Authentication");
-    }
-
-    public IActionResult Logout()
-    {
-        Response.Cookies.Delete("JWTToken");
-        Response.Headers["Clear-Site-Data"] = "\"cache\", \"cookies\", \"storage\"";
-        TempData["SuccessMessage"] = NotificationMessage.LogoutSuccess;
-
-        return RedirectToAction("Login", "Authentication");
-    }
+    #endregion
+    
 }

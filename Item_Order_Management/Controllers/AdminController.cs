@@ -20,6 +20,8 @@ public class AdminController : Controller
         _notificationService = notificationService;
     }
 
+    #region Dashboard
+
     public IActionResult Dashboard()
     {
         // check if Token exist or not
@@ -54,6 +56,10 @@ public class AdminController : Controller
         return PartialView("_AdminNavbar", NotifyVM);
     }
 
+    #endregion
+
+    #region Notification
+
     [HttpPost]
     public async Task<IActionResult> MarkAsRead(int userNotificationId)
     {
@@ -73,6 +79,8 @@ public class AdminController : Controller
         List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
         return PartialView("_NotificationList", notifications);
     }
+
+    #endregion
 
     #region Items CRUD
 

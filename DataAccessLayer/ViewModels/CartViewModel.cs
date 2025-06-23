@@ -9,5 +9,5 @@ public class CartViewModel
     public string ItemName { get; set; } = null!;
     public decimal Price { get; set; }
     public string ThumbnailImageUrl { get; set; } = null!;
-    public int Quantity { get; set; } // Managed client-side 
+    public int Quantity { get; set; } 
 }

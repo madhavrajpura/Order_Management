@@ -46,7 +46,7 @@
                 <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
                 <h4 class="text-muted">Your wishlist is empty</h4>
                 <p class="text-muted">Add items to your wishlist to see them here</p>
-                <a href="@Url.Action("Dashboard", "User")" class="btn solid-btn mt-3">Browse Items</a>
+                <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Browse Items</a>
             </div>
         }
     </div>
@@ -55,6 +55,7 @@
 @section Scripts {
     <script>
 
+        // Function To toggle Wishlist Items
         function toggleWishlist(event, element) {
             event.preventDefault();
             event.stopPropagation();
@@ -62,7 +63,7 @@
             const itemId = $(element).data('item-id');
 
             $.ajax({
-                url: "/User/ToggleWishlistItem",
+                url: "/Items/ToggleWishlistItem",
                 type: 'POST',
                 data: { itemId: itemId },
                 success: function (response) {
@@ -72,13 +73,13 @@
 
                             if ($('#wishlistItems .col-12').length === 0) {
                                 $('#wishlist-content').html(`
-                                                            <div class="text-center py-5">
-                                                                <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
-                                                                <h4 class="text-muted">Your wishlist is empty</h4>
-                                                                <p class="text-muted">Add items to your wishlist to see them here</p>
-                                                                <a href="@Url.Action("Dashboard", "User")" class="btn solid-btn mt-3">Browse Items</a>
-                                                            </div>
-                                                        `);
+                                                                <div class="text-center py-5">
+                                                                    <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
+                                                                    <h4 class="text-muted">Your wishlist is empty</h4>
+                                                                    <p class="text-muted">Add items to your wishlist to see them here</p>
+                                                                    <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Browse Items</a>
+                                                                </div>
+                                                            `);
                             }
                         });
                     }
@@ -92,7 +93,7 @@
         $(document).ready(function () {
             // Load navbar
             $.ajax({
-                url: "/User/GetUserNavbarData",
+                url: "/Items/GetUserNavbarData",
                 type: "GET",
                 success: function (data) {
                     $("#Navbar").html(data);
@@ -107,7 +108,7 @@
     <script>
         function addToCart(itemId) {
             $.ajax({
-                url: "/User/AddToCart",
+                url: "/Items/AddToCart",
                 type: "POST",
                 data: { itemId: itemId },
                 success: function (response) {

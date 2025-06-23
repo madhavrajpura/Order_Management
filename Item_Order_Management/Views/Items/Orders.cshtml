@@ -1,0 +1,129 @@
+@model List<DataAccessLayer.ViewModels.OrderViewModel>
+
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div id="Navbar" class="shadow-lg position-fixed w-100"></div>
+
+<div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="custom-text-color fw-bold">My Orders</h2>
+        </div>
+    </div>
+    
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fa-solid fa-box-open fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Orders Found</h4>
+            <p class="text-muted">Start shopping to place your first order!</p>
+            <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Continue Shopping</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var order in Model)
+            {
+                @* var canEditOrDelete = (DateTime.Now - order.OrderDate).TotalDays <= 2; *@
+                <div class="col-12">
+                    <div class="card border-0 shadow">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold">Order # : @order.OrderId</span>
+                                <span class="text-muted ms-3">Placed on : @order.OrderDate.ToString("MMM dd, yyyy")</span>
+                            </div>
+                            @* <div>
+                                @if (canEditOrDelete)
+                                {
+                                    <button class="btn btn-danger btn-sm delete-order" data-order-id="@order.OrderId">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </button>
+                                }
+                            </div> *@
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Sub Total</th>
+                                            @* @if (canEditOrDelete)
+                                            {
+                                                <th>Actions</th>
+                                            } *@
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in order.OrderItems)
+                                        {
+                                            <tr>
+                                                <td>@item.ItemName</td>
+                                                <td>
+                                                    @* @if (canEditOrDelete)
+                                                    {
+                                                        <div class="d-flex align-items-center">
+                                                            <button class="btn hollow-btn quantity-btn minus me-2" data-item-id="@item.OrderItemId">-</button>
+                                                            <input type="number" class="form-control quantity-input text-center" value="@item.Quantity" style="width: 70px;" min="1" data-item-id="@item.OrderItemId">
+                                                            <button class="btn hollow-btn quantity-btn plus ms-2" data-item-id="@item.OrderItemId">+</button>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    { *@
+                                                        @item.Quantity
+                                                    @* } *@
+                                                </td>
+                                                <td>₹@item.Price.ToString("F2")</td>
+                                                <td>₹@(item.Price * item.Quantity)</td>
+                                                @* @if (canEditOrDelete)
+                                                {
+                                                    <td>
+                                                        <button class="btn btn-primary btn-sm update-quantity" data-item-id="@item.OrderItemId">Update</button>
+                                                    </td>
+                                                } *@
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end">
+                                <h4>Total : <span class="fw-bold">₹@order.TotalAmount.ToString("F2")</span></h4>
+                                @if (order.IsDelivered)
+                                {
+                                    <span class="badge bg-success">Delivered</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">Pending</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Load navbar
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    console.error("Error loading navbar");
+                }
+            });
+        });
+    </script>
+}

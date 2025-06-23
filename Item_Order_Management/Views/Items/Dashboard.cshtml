@@ -51,9 +51,10 @@
         let itemsIsLoading = false;
         let itemsHasMore = true;
 
+        // Function to Load Navbar
         function loadNavbar() {
             $.ajax({
-                url: "/User/GetUserNavbarData",
+                url: "/Items/GetUserNavbarData",
                 type: "GET",
                 success: function (data) {
                     $("#Navbar").html(data);
@@ -64,6 +65,7 @@
             });
         }
 
+        // Function to load the Items
         function loadItemsForTab(append = true) {
 
             if (itemsIsLoading || !itemsHasMore) return;
@@ -71,7 +73,7 @@
             $("#loading").removeClass("d-none");
 
             $.ajax({
-                url: "/User/GetItemList",
+                url: "/Items/GetItemList",
                 type: "GET",
                 data: { pageNumber: itemsCurrentPage, search: itemsSearchText, pageSize: itemsPageSize, sortColumn: itemsSortColumn, sortDirection: itemsSortDirection },
                 success: function (data) {
@@ -100,7 +102,7 @@
             });
         }
 
-
+        // Function To toggle Wishlist Items
         function toggleWishlist(event, element) {
 
             event.preventDefault();
@@ -109,7 +111,7 @@
             const itemId = $(element).data('item-id');
             const isFavourite = $(element).hasClass('fa-solid');
             $.ajax({
-                url: '@Url.Action("ToggleWishlistItem", "User")',
+                url: '@Url.Action("ToggleWishlistItem", "Items")',
                 type: 'POST',
                 data: { itemId: itemId },
                 success: function (response) {
@@ -129,36 +131,9 @@
             });
         }
 
-        /*
-    function placeOrderFromItem(itemId) {
-    $.ajax({
-        url: "/User/PlaceOrderFromItem",
-        type: "POST",
-        data: { itemId: itemId },
-        success: function (response) {
-            if (response.success) {
-                if (typeof callSuccessToaster === 'function') {
-                    callSuccessToaster(response.message);
-                }
-                window.location.href = "/User/MyOrders";
-            } else {
-                if (typeof callErrorToaster === 'function') {
-                    callErrorToaster(response.message);
-                }
-            }
-        },
-        error: function () {
-            if (typeof callErrorToaster === 'function') {
-                callErrorToaster("Failed to place order");
-            }
-        }
-    });
-    }
-        */
-
         $(document).ready(function () {
 
-            // Add click handler for wishlist items
+            // Click handler for wishlist items
             $(document).on('click', '.fa-heart', function (e) {
                 toggleWishlist(e, this);
             });

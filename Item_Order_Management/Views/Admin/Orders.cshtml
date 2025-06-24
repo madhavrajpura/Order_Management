@@ -1,0 +1,213 @@
+@model DataAccessLayer.ViewModels.OrderViewModel
+
+@{
+    ViewData["Title"] = "Orders";
+}
+
+<div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="custom-text-color fw-bold">View Orders</h2>
+        </div>
+    </div>
+    <div class="table-main-div table-responsive p-3 bg-white shadow-lg"
+        style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
+
+        <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 col-lg-8">
+
+            <div class="h-100 w-100">
+                <input type="text" class="form-control p-3 h-100 dt-input border" id="searchbtn" placeholder="Search" />
+                <i class="fa-solid fa-magnifying-glass search-icon-style-order "></i>
+            </div>
+
+            <div class="form-floating w-100">
+                <select id="Filter" class="form-select p-2">
+
+                </select>
+            </div>
+
+            <div class="form-floating w-100">
+                <select id="Status" class="form-select p-2">
+                    <option value="pending">Pending</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+            </div>
+
+            <button class="solid-btn p-3 h-100 rounded border-0 text-nowrap" id="exportBtn" onclick="ExportBtn()">
+                <i class="fa-solid fa-share-from-square"></i> Export
+            </button>
+
+        </div>
+
+        <!-- Start Item List -->
+        <div class="container-fluid p-0 pe-md-4 pe-3">
+            <div class="table-main-div table-responsive p-3 bg-white ms-md-4 ms-3 me-0 shadow-lg"
+                style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
+
+                <table id="table" class="table">
+                    <thead>
+                        <tr class="border border-top-0 border-end-0 border-start-0 border-dark">
+                            <th scope="col" class="fw-bold text-start text-nowrap">Order ID # <i
+                                    class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-id" data-column="ID"
+                                    data-direction="asc"></i></th>
+                            <th scope="col" class="fw-bold text-start text-nowrap">Order Date <i
+                                    class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-date" data-column="Date"
+                                    data-direction="asc"></i>
+                            </th>
+                            <th scope="col" class="fw-bold text-start text-nowrap">Total Amount<i
+                                    class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-amount"
+                                    data-column="Amount" data-direction="asc"></i></th>
+                            <th scope="col" class="fw-bold text-start text-nowrap">Status</th>
+
+                            <th scope="col" class="fw-bold text-start text-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="OrderTableBody"></tbody>
+                </table>
+
+            </div>
+
+            <div class="pagination-main-div shadow d-flex justify-content-end gap-2 p-3 pt-0 bg-white ps-3 ms-md-4 ms-3 pe-3"
+                style="border-bottom-right-radius: 10px; border-bottom-left-radius: 10px;">
+                <span class="pt-2">Items Per page:</span>
+                <select id="itemselect">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                </select>
+                <span class="pt-2 ps-1" id="pagination-info"></span>
+                <button id="left-arrow" class="btn border border-dark bg-light ps-2">
+                    < </button>
+                        <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
+            </div>
+        </div>
+        <!-- End Item List -->
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+
+        // Initialization
+        let currentPage = 1;
+        let pageSize = $("#itemselect").val();
+        let searchText = "";
+        let sortColumn = "ID";
+        let sortDirection = "asc";
+        let Status = $("#Status").val();
+
+        // LoadOrders Function
+        function LoadOrders(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc", Status = "") {
+            $.ajax({
+                url: "/Admin/GetOrderList",
+                type: "GET",
+                data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status },
+                success: function (data) {
+
+                    $("#ItemTableBody").html(data);
+
+                    currentPage = page;
+                    pageSize = parseInt(pageSize);
+
+                    var totalRecords = parseInt($("#totalRecords").val()) || 0;
+                    var startItem = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+                    var endItem = Math.min(currentPage * pageSize, totalRecords);
+
+                    $("#pagination-info").text("Showing " + startItem + " - " + endItem + " of " + totalRecords);
+                    $("#left-arrow").prop("disabled", currentPage === 1);
+                    $("#right-arrow").prop("disabled", currentPage * pageSize >= totalRecords);
+                },
+                error: function () {
+                    callErrorToaster("Ajax Error Loading data");
+                }
+            });
+        }
+
+        function markAsDelivered(orderId) {
+            $.ajax({
+                url: "/Admin/MarkOrderStatus",
+                type: "GET",
+                data: { orderId: orderId },
+                success: function (data) {
+                    if (data.success) {
+                        callSuccessToaster(data.text);
+                        LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                    }
+                    else {
+                        callErrorToaster(data.text);
+                    }
+                },
+                error: function () {
+                    callErrorToaster("Ajax Error Loading data");
+                }
+            });
+        }
+
+
+        $(document).ready(function () {
+            // Initial table load
+            LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+
+            // Search
+            $("#searchbtn").on("keyup", function () {
+                searchText = $(this).val().trim();
+                currentPage = 1;
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            });
+
+            // Right arrow
+            $("#right-arrow").on("click", function () {
+                if (!$(this).prop("disabled")) {
+                    currentPage++;
+                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                }
+            });
+
+            // Left arrow
+            $("#left-arrow").on("click", function () {
+                if (!$(this).prop("disabled")) {
+                    currentPage--;
+                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                }
+            });
+
+            // Item per Page
+            $("#itemselect").on("change", function () {
+                pageSize = $(this).val();
+                currentPage = 1;
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            });
+
+            // Sorting By ID
+            $("#sortable-id").on("click", function () {
+                sortColumn = $(this).data("column");
+                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
+                $(this).attr("data-direction", sortDirection);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            });
+
+            // Sorting By Date
+            $("#sortable-date").on("click", function () {
+                sortColumn = $(this).data("column");
+                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
+                $(this).attr("data-direction", sortDirection);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            });
+
+            // Sorting By Amount
+            $("#sortable-amount").on("click", function () {
+                sortColumn = $(this).data("column");
+                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
+                $(this).attr("data-direction", sortDirection);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            });
+
+            // Order Status
+            $("#Status").on("change", function () {
+                Status = $(this).val();
+                currentPage = 1;
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            });
+        });
+    </script>
+}

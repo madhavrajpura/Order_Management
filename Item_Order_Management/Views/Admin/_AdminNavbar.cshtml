@@ -1,14 +1,14 @@
 @using DataAccessLayer.ViewModels
 @model List<NotificationViewModel>
 
-<div class="container-fluid p-3 d-flex justify-content-between shadow">
+<div class="container-fluid p-3 d-flex bg-white justify-content-between shadow">
     <div class="d-flex">
-        <span class="fs-4 fw-bold text-decoration-none text-dark pe-3">Item Order Management</span>
+        <span class="fs-3 fw-bold text-decoration-none custom-text-color pe-3 pt-2">Item Order Management</span>
         <div class="p-2 ps-3 pt-1">
-            <a class="fs-5 text-decoration-none text-dark" asp-action="Dashboard" asp-controller="Admin">Items</a>
+            <a class="btn hollow-btn fs-5 text-decoration-none custom-text-color" asp-action="Dashboard" asp-controller="Admin">Items</a>
         </div>
         <div class="p-2 ps-3 pt-1">
-            <a class="fs-5 text-decoration-none text-dark" asp-action="Dashboard" asp-controller="Admin">Orders</a>
+            <a class="btn hollow-btn fs-5 text-decoration-none custom-text-color" asp-action="Orders" asp-controller="Admin">Orders</a>
         </div>
     </div>
     <div class="d-flex">

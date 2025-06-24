@@ -2,22 +2,26 @@
 using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Item_Order_Management.Controllers;
 
+[Authorize(Roles = "Admin")]
 public class AdminController : Controller
 {
     private readonly IItemsService _itemService;
     private readonly IJWTService _JWTService;
     private readonly IUserService _userService;
     private readonly INotificationService _notificationService;
-    public AdminController(IItemsService itemService, IJWTService JWTService, IUserService userService, INotificationService notificationService)
+    private readonly IOrderService _orderService;
+    public AdminController(IItemsService itemService, IJWTService JWTService, IUserService userService, INotificationService notificationService, IOrderService orderService)
     {
         _itemService = itemService;
         _JWTService = JWTService;
         _userService = userService;
         _notificationService = notificationService;
+        _orderService = orderService;
     }
 
     #region Dashboard
@@ -161,6 +165,79 @@ public class AdminController : Controller
         return Json(deleteStatus
             ? new { success = true, text = NotificationMessage.DeleteSuccess.Replace("{0}", "Item") }
             : new { success = false, text = NotificationMessage.DeleteFailure.Replace("{0}", "Item") });
+    }
+
+    #endregion
+
+    #region Orders
+
+    [HttpGet]
+    public async Task<IActionResult> Orders()
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _JWTService.GetClaimsFromToken(token);
+        int userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
+            return RedirectToAction("Login", "Authentication");
+        }
+
+        return View();
+    }
+
+    public async Task<IActionResult> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "")
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _JWTService.GetClaimsFromToken(token);
+        int userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
+            return RedirectToAction("Login", "Authentication");
+        }
+
+        PaginationViewModel<OrderViewModel>? OrderList = _orderService.GetOrderList(search,sortColumn,sortDirection,pageNumber,pageSize,Status);
+        return PartialView("_OrderList", OrderList);
+
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> OrderDetails(int orderid)
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _JWTService.GetClaimsFromToken(token);
+        int userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
+            return RedirectToAction("Login", "Authentication");
+        }
+
+        OrderViewModel? orders = await _orderService.GetOrderById(orderid);
+        return View(orders);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> MarkOrderStatus(int orderId)
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _JWTService.GetClaimsFromToken(token);
+        int userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
+            return RedirectToAction("Login", "Authentication");
+        }
+
+        bool orders = await _orderService.MarkOrderStatus(orderId);
+
+        if (orders) return Json(new { success = true, text = "Order Marked as Completed" });
+        return Json(new { success = false, text = "Failed to mark order" });
     }
 
     #endregion

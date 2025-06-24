@@ -46,6 +46,24 @@ input[type=checkbox]:checked {
   background-color: rgb(25, 77, 78) !important;
 }
 
+.input-fields {
+  width: 90% !important;
+  height: 50px;
+}
+
+.eye-button {
+  margin: -29px !important;
+}
+
+.validation-span {
+  /* margin-top: -3000px !important; */
+  margin: -270px !important;
+}
+
+.validation-color{
+  color: rgb(218, 0, 0) !important;
+}
+
 .solid-btn {
   background-color: rgb(48, 117, 119) !important;
   color: white !important;
@@ -70,7 +88,7 @@ input[type=checkbox]:checked {
 
 
 .text-size {
-  font-size: 14px;
+  font-size: 14px !important;
 }
 
 input:focus {
@@ -126,65 +144,75 @@ input:focus {
 
 .truncate-text {
   display: -webkit-box;
-  -webkit-line-clamp: 1; /* Number of lines to show */
+  -webkit-line-clamp: 1;
+  /* Number of lines to show */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.dashboard-color{
+.dashboard-color {
   background-color: rgba(198, 253, 255, 0.596);
 }
 
-.User-dasrboard{
-  padding-top : 120px !important;
+.User-dasrboard {
+  padding-top: 120px !important;
 }
 
-#Navbar{
+#Navbar {
   z-index: 2;
 }
 
 .quantity-input {
-    -moz-appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 .quantity-input::-webkit-outer-spin-button,
 .quantity-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 @media (max-width: 768px) {
-    .col-md-5, .col-md-7 {
-        flex: 0 0 100%;
-        max-width: 100%;
-    }
-    .img-fluid {
-        max-height: 350px !important;
-    }
-    .card-body h2 {
-        font-size: 1.5rem !important;
-    }
-    .card-body .fs-5 {
-        font-size: 1.2rem !important;
-    }
-    .btn {
-        padding: 0.5rem 1rem !important;
-        font-size: 0.9rem !important;
-    }
+
+  .col-md-5,
+  .col-md-7 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .img-fluid {
+    max-height: 350px !important;
+  }
+
+  .card-body h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .card-body .fs-5 {
+    font-size: 1.2rem !important;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
 }
 
 @media (max-width: 576px) {
-    .img-fluid {
-        max-height: 250px !important;
-    }
-    .card-body h2 {
-        font-size: 1.3rem !important;
-    }
-    .card-body .fs-5 {
-        font-size: 1rem !important;
-    }
-    .badge {
-        font-size: 0.8rem !important;
-    }
+  .img-fluid {
+    max-height: 250px !important;
+  }
+
+  .card-body h2 {
+    font-size: 1.3rem !important;
+  }
+
+  .card-body .fs-5 {
+    font-size: 1rem !important;
+  }
+
+  .badge {
+    font-size: 0.8rem !important;
+  }
 }

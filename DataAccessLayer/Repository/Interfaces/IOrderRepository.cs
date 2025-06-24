@@ -5,8 +5,9 @@ namespace DataAccessLayer.Repository.Interfaces;
 
 public interface IOrderRepository
 {
-Task<bool> CreateOrderAsync(Order order);    
-Task<List<Order>> GetUserOrdersAsync(int userId);
-// Task<Order> GetOrderByIdAsync(int orderId, int userId);
+    Task<bool> CreateOrderAsync(Order order, List<OrderItem> orderItems);
+    Task<List<Order>> GetUserOrdersAsync(int userId);
+    IQueryable<Order> GetOrderList();
+    Task<bool> MarkOrderStatus(int orderId);
 
 }

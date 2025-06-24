@@ -1,0 +1,46 @@
+@using DataAccessLayer.ViewModels
+@model PaginationViewModel<OrderViewModel>
+
+@if (Model.Items.Count == 0)
+{
+    <td><i class="fa-solid fa-box-open fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No Orders Found</h4>
+    </td>
+}
+else
+{
+    @foreach (var order in Model.Items)
+    {
+        <tr>
+            <td># @order.OrderId</td>
+            <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
+            <td>₹@order.TotalAmount.ToString("F2")</td>
+            <td>
+                @if (order.IsDelivered)
+                {
+                    <span class="badge bg-success fw-light">Delivered</span>
+                }
+                else
+                {
+                    <span class="badge fw-light"
+                        style="color: rgb(0, 100, 139); background-color: rgba(71, 203, 255, 0.336);">Pending</span>
+                }
+            </td>
+            <td>
+                <!-- View Button -->
+                <a class="text-decoration-none text-dark" asp-action="OrderDetails" asp-controller="Admin"
+                    asp-route-orderid="@order.OrderId">
+                    <i class="bi bi-eye fs-5 pe-4 cursorPointer" title="View Order Details"></i>
+                </a>
+
+                <!-- Tick Mark Button -->
+                @if (!order.IsDelivered)
+                {
+                    <i class="bi bi-check2-all fs-5 cursorPointer" title="Mark As Complete"
+                        onclick="markAsDelivered(@order.OrderId)"></i>
+                }
+            </td>
+        </tr>
+    }
+}
+<input type="hidden" id="totalRecords" value="@Model.TotalCount" />

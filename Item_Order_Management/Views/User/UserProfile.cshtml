@@ -1,0 +1,113 @@
+@model DataAccessLayer.ViewModels.UserViewModel
+@{
+    ViewData["Title"] = "UserProfile";
+    var DefaultImage = Url.Content("~/images/Default_pfp.svg.png");
+    var OriginalImage = Model.ImageURL;
+    var UpdatedImage = string.IsNullOrEmpty(OriginalImage) ? DefaultImage : OriginalImage; 
+}
+
+<div class="d-flex flex-column px-xl-4 px-md-3 px-3 py-5 gap-3" style="padding-top: 6% !important;">
+
+    <div class="d-flex justify-content-between">
+        <h1 class="fw-bold fs-3 custom-text-color">My Profile</h1>
+    </div>
+
+    <!-- Update Profile Form  -->
+    <form class="d-flex flex-column bg-white rounded shadow-lg" asp-action="UserProfile" asp-controller="Items" enctype="multipart/form-data">
+
+        <!-- Background Image  -->
+        <div class="row">
+            <img src="~/images/profile_div_bg.jpg" style=" height: 60px;" />
+        </div>
+
+        <!-- profile pic -->
+        <div class="row p-3">
+
+            <div class="position-relative ps-4">
+
+                <img id="user-profile" src="@UpdatedImage" class="" height="95px" width="95px" alt=""
+                    style="position: absolute; margin-top: -40px; border-radius:50%;">
+
+                <label for="profile-img">
+                    <img src="~/images/camera.svg" class="ms-3 position-absolute bg-white p-1 border border-dark"
+                        alt="" style="left:73px; top:30px; border-radius: 50%;" width="25px" height="25px" />
+                </label>
+                <div></div>
+                <input asp-for="@Model.ImageFile" type="file" class="form-control d-none" id="profile-img">
+            </div>
+            <div class="ps-md-5 pt-5 pt-md-0 ">
+
+                <div class="d-flex justify-content-md-between flex-md-row flex-column pt-4 pt-md-0 ps-md-5">
+                    <span class="fs-3 fw-bold ps-md-4">@Model.UserName</span>
+                    <span class="pe-md-5 pt-sm-3 pt-2">@Model.Email</span>
+                </div>
+
+            </div>
+        </div>
+        <div class="p-3">
+
+            <!-- UserName & Email -->
+            <div class="d-flex flex-sm-row flex-column gap-sm-3 gap-0">
+                <div class="form-floating mb-3 col">
+                    <input asp-for="UserName" type="text" class="form-control" id="floatingInput" placeholder="Name*">
+                    <label asp-for="UserName" for="floatingInput" class="fs-6 text-secondary">Name*</label>
+                    <span asp-validation-for="UserName" class="validate text-danger ms-1 mt-2"></span>
+                </div>
+                <div class="form-floating mb-3 col">
+                    <input asp-for="Email" type="hidden" class="form-control" id="floatingInput" placeholder="Email*">
+                    <input asp-for="Email" type="text" class="form-control" id="floatingInput" placeholder="Email*"
+                        disabled>
+                    <label asp-for="Email" for="floatingInput" class="fs-6 text-secondary">Email</label>
+                    <span asp-validation-for="Email" class="validate text-danger ms-1 mt-2"></span>
+                </div>
+
+            </div>
+
+            <!-- PhoneNumber & Address -->
+            <div class="d-flex flex-sm-row flex-column gap-sm-3 gap-0">
+                <div class="form-floating mb-3 col">
+                    <input asp-for="PhoneNumber" type="number" class="form-control" id="floatingInput"
+                        placeholder="Phone Number*" pattern="0-9">
+                    <label asp-for="PhoneNumber" for="floatingInput" class="fs-6 text-secondary">Phone
+                        Number*</label>
+                    <span asp-validation-for="PhoneNumber" class=" validate text-danger ms-1 mt-2"></span>
+                </div>
+                <div class="form-floating col">
+                    <div class="form-floating mb-3 col">
+                        <input asp-for="Address" type="text" class="form-control" id="floatingInput"
+                            placeholder="Address" pattern="0-9">
+                        <label asp-for="Address" for="floatingInput" class="fs-6 text-secondary">Address</label>
+                        <span asp-validation-for="Address" class=" validate text-danger ms-1 mt-2"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update & Cancel Buttons -->
+            <div class="d-flex justify-content-end gap-2">
+                <button type="submit" class="btn solid-btn">Update</button>
+                <a asp-action="Dashboard" asp-controller="Items" type="button"
+                    class="btn btn-light hollow-btn">Cancel</a>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<partial name="_ValidationScriptsPartial" />
+
+@section Scripts {
+
+    @* Profile Image show *@
+    <script>
+        $("#profile-img").change(function () {
+            const file = this.files[0];
+            if (file) {
+                const fileReader = new FileReader();
+                fileReader.onload = function (event) {
+                    $("#user-profile").attr("src", event.target.result);
+                };
+                fileReader.readAsDataURL(file);
+            }
+        });
+    </script>
+}

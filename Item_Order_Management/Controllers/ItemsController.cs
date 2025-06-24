@@ -252,7 +252,6 @@ public class ItemsController : Controller
         var claims = _jwtService.GetClaimsFromToken(token);
         var userId = _userService.GetUserIdFromToken(token);
 
-
         OrderViewModel orderVM = JsonSerializer.Deserialize<OrderViewModel>(orderData);
 
         if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
@@ -263,13 +262,6 @@ public class ItemsController : Controller
         var result = await _orderService.CreateOrderAsync(userId, orderVM);
         if (result)
         {
-            var cartItems = await _cartService.GetCartItems(userId);
-
-            foreach (var cartItem in cartItems)
-            {
-                await _cartService.RemoveFromCart(cartItem.Id, userId);
-            }
-
             return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
         }
 
@@ -278,89 +270,6 @@ public class ItemsController : Controller
 
     #endregion
 
-    public IActionResult UserProfile()
-    {
-        string? token = Request.Cookies["JWTToken"];
-        string? Email = _jwtService.GetClaimValue(token, "email");
-
-        List<UserViewModel>? data = _userService.GetUserProfileDetails(Email);
-        return View(data[0]);
-    }
-
-    [HttpPost]
-    public IActionResult UserProfile(UserViewModel user)
-    {
-        string? token = Request.Cookies["JWTToken"];
-        string? userEmail = _jwtService.GetClaimValue(token, "email");
-
-        if (user.ImageFile != null)
-        {
-            string[]? extension = user.ImageFile.FileName.Split(".");
-            if (extension[extension.Length - 1] == "jpg" || extension[extension.Length - 1] == "jpeg" || extension[extension.Length - 1] == "png")
-            {
-                string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-                string fileName = ImageTemplate.GetFileName(user.ImageFile, path);
-                user.ImageURL = $"/uploads/{fileName}";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = NotificationMessage.ImageFormat;
-                return RedirectToAction("AddUser", "User", new { Email = user.Email });
-            }
-        }
-
-
-        _userService.UpdateUserProfile(user, userEmail);
-
-        CookieOptions options = new CookieOptions();
-        options.Expires = DateTime.Now.AddMinutes(60);
-        if (user.ImageURL != null)
-        {
-            Response.Cookies.Append("profileImage", user.ImageURL, options);
-        }
-        Response.Cookies.Append("username", user.UserName, options);
-
-        TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Profile");
-        return RedirectToAction("UserProfile");
-    }
-
-    #region ChangePassword
-    public IActionResult ChangePassword()
-    {
-        return View();
-    }
-
-    [HttpPost]
-    public IActionResult ChangePassword(ChangePasswordViewModel changepassword)
-
-    {
-        string? token = Request.Cookies["JWTToken"];
-        string? userEmail = _jwtService.GetClaimValue(token, "email");
-
-
-        if (changepassword.CurrentPassword == changepassword.NewPassword)
-        {
-            TempData["ErrorMessage"] = "Current Password and New Password cannot be same";
-            return View();
-        }
-        else
-        {
-            changepassword.CurrentPassword = Encryption.EncryptPassword(changepassword.CurrentPassword);
-            changepassword.NewPassword = Encryption.EncryptPassword(changepassword.NewPassword);
-            bool password_verify = _userService.ChangePassword(changepassword, userEmail);
-
-            if (password_verify)
-            {
-                TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Password");
-                return RedirectToAction("Dashboard", "Items");
-            }
-            else
-            {
-                TempData["ErrorMessage"] = NotificationMessage.UpdateFailure.Replace("{0}", "Password");
-                return View();
-            }
-        }
-    }
-    #endregion
+    
 
 }

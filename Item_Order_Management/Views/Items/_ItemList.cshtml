@@ -17,8 +17,6 @@
                         onclick="toggleWishlist(event, this)" data-item-id="@item.ItemId"
                         title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
                 </div>
-                @* <img src="@item.ThumbnailImageUrl" class="card-img-top rounded mb-3" style="height: 150px; object-fit:
-            contain;"> *@
                 <img src="@item.ThumbnailImageUrl" class="card-img-top rounded img-fluid mb-3 cursor-pointer"
                     style="height: 180px; object-fit: contain;"
                     onclick="window.location.href='@Url.Action("ItemDetails", "Items", new { itemId = item.ItemId })'">

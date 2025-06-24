@@ -17,15 +17,18 @@ public class User
     public string Username { get; set; } = null!;
 
     [Required]
-    [Column("Phone")]
-    public int Phone { get; set; }
-
-    [Column("Image")]
-    public string? Image { get; set; }
-
-    [Required]
     [Column("Password")]
     public string Password { get; set; } = null!;
+
+    [Column("ImageURL")]
+    public string? ImageURL { get; set; } = "/images/Default_pfp.svg.png";
+
+    [Required]
+    [Column("PhoneNumber")]
+    public long PhoneNumber { get; set; }
+
+    [Column("Address")]
+    public string? Address { get; set; }
 
     [Required]
     [Column("Email")]

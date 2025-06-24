@@ -19,10 +19,9 @@ public class UserRepository : IUserRepository
             User? user = new User();
             user.Username = model.UserName;
             user.Email = model.Email;
-            user.Phone = model.Phone;
-            user.Image = model.ImageURL;
             user.RoleId = model.RoleId;
             user.Password = model.Password;
+            user.PhoneNumber = model.PhoneNumber;
             user.CreatedAt = DateTime.Now;
             await _db.Users.AddAsync(user);
             await _db.SaveChangesAsync();
@@ -115,21 +114,20 @@ public class UserRepository : IUserRepository
         }
     }
 
-
     public bool UpdateUserProfile(UserViewModel user, string Email)
     {
         try
         {
-            User userdetails = _db.Users.FirstOrDefault(x => x.Email == Email);
+            User userdetails = GetUserByEmail(Email);
+
             userdetails.Username = user.UserName;
             userdetails.Email = user.Email;
-
+            userdetails.Address = user.Address;
             if (user.ImageFile != null)
             {
-                userdetails.Image = user.ImageURL;
+                userdetails.ImageURL = user.ImageURL;
             }
-
-            userdetails.Phone = user.Phone;
+            userdetails.PhoneNumber = user.PhoneNumber;
 
             _db.Update(userdetails);
             _db.SaveChanges();
@@ -150,12 +148,28 @@ public class UserRepository : IUserRepository
             {
                 UserName = x.Username,
                 Email = x.Email,
-                ImageURL = x.Image,
-                Phone = x.Phone
+                ImageURL = x.ImageURL,
+                PhoneNumber = x.PhoneNumber,
+                Address = x.Address
             }
         ).ToList();
 
         return data;
+    }
+
+    public bool ResetPassword(User userData)
+    {
+        try
+        {
+            _db.Update(userData);
+            _db.SaveChanges();
+            return true;
+        }
+        catch (Exception Exception)
+        {
+            Console.WriteLine("Exception Occured : ", Exception.Message);
+            return false;
+        }
     }
 
 }

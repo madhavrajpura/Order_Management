@@ -4,12 +4,8 @@
     ViewData["Title"] = "Admin Page";
 }
 
-<div class="bg-body-tertiary" id="Navbar">
-
-</div>
-
 <!-- Start Main Content -->
-<div class="container-fluid m-0 p-0">
+<div class="container-fluid m-0 p-0 dashboard-color min-vh-100 User-dasrboard" >
 
     <!-- Start Upper Div -->
     <div class="d-sm-flex justify-content-between p-md-4 p-3 pb-2 pt-5">
@@ -17,10 +13,10 @@
         <div class="search-div d-flex align-items-center justify-content-end gap-2">
             <div class="search-button">
                 <input type="text" id="searchbtn" placeholder="Search by Name, Price"
-                    class="p-2 border rounded text-truncate">
+                    class="p-2 border rounded text-truncate shadow">
             </div>
             <div class="add-Item-button">
-                <button class="btn SaveItemId solid-btn text-light p-2 text-size text-nowrap" data-bs-toggle="modal"
+                <button class="btn SaveItemId solid-btn text-light p-2 text-size text-nowrap shadow" data-bs-toggle="modal"
                     title="Add Item" data-bs-target="#SaveItemModal" data-id="0">+ Add Item</button>
             </div>
         </div>
@@ -172,16 +168,7 @@
 
         // Load Navbar
         function LoadAdminNavbar() {
-            $.ajax({
-                url: "/Admin/GetAdminNavbarData",
-                type: "GET",
-                success: function (data) {
-                    $("#Navbar").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Ajax Error Loading data");
-                }
-            });
+            
         }
 
         // START READY

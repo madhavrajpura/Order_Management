@@ -1,0 +1,64 @@
+@using DataAccessLayer.ViewModels
+@model OrderViewModel;
+
+<div class="container-fluid p-5 ps-4 pe-4 dashboard-color min-vh-100" style="padding-top: 7% !important;">
+    <div class="align-items-center bg-white shadow-lg rounded p-3">
+        <div class="d-flex justify-content-between">
+            <div class="custom-text-color fs-3 fw-bold">Order Details</div>
+            <div>
+                <a class="btn hollow-btn" asp-action="Orders" asp-controller="Admin">Back</a>
+            </div>
+        </div>
+        <div class="d-flex justify-content-start gap-5">
+            <p class="pt-2 text-muted"><strong class="text-dark">Order Id : </strong>#@Model.OrderId </p>
+            <p class="pt-2 text-muted ps-5"><strong class="text-dark">Placed On :
+                </strong>@Model.OrderDate.ToString("MMM dd, yyyy")</p>
+            <p class="pt-2 text-muted ps-5"><strong class="me-2 text-dark">Status : </strong>@if (Model.IsDelivered)
+                {
+                    <span class="badge bg-success fw-light">Delivered</span>
+                }
+                else
+                {
+                    <span class="badge bg-primary fw-light">Pending</span>
+                }
+            </p>
+        </div>
+        <p class="text-muted"><strong class="text-dark">Customer Name : </strong>@Model.CustomerName</p>
+        <p class="text-success fw-bold"><strong class="text-dark">Total Amount : </strong>₹ @Model.TotalAmount</p>
+
+        <div class="p-3 shadow rounded">
+            <div class="row">
+                <div class="col-md-12">
+                    <table class="table">
+                        <thead>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Sub Total</th>
+                        </thead>
+
+                        <tbody class="fw-bold text-muted">
+                            @foreach (var orderdetail in Model.OrderItems)
+                            {
+                                <tr>
+                                    <td>@orderdetail.ItemName</td>
+                                    <td>@orderdetail.Quantity</td>
+                                    <td>₹ @orderdetail.Price</td>
+                                    <td>₹ @(orderdetail.Price * orderdetail.Quantity)</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="text-dark">
+                                    Total :  <span class="text-success">₹ @Model.TotalAmount</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

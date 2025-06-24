@@ -2,8 +2,6 @@
 @using BusinessLogicLayer.Services.Interfaces
 @model DataAccessLayer.ViewModels.ItemViewModel
 
-<div id="Navbar" class="shadow-lg position-fixed w-100"></div>
-
 <div class="container-fluid p-4 dashboard-color min-vh-100">
     <div class="row pt-5 justify-content-center" style="margin-top: 100px !important;">
         <div class="col-12 col-md-10 col-lg-8">
@@ -119,20 +117,5 @@
                 }
             });
         }
-
-        $(document).ready(function () {
-            // Load navbar
-            $.ajax({
-                url: "/Items/GetUserNavbarData",
-                type: "GET",
-                success: function (data) {
-                    console.log("asdsdadads")
-                    $("#Navbar").html(data);
-                },
-                error: function () {
-                    console.error("Error loading navbar");
-                }
-            });
-        });
     </script>
 }

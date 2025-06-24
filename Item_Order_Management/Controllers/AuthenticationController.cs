@@ -56,6 +56,8 @@ public class AuthenticationController : Controller
         if (verification_token != null)
         {
             Response.Cookies.Append("JWTToken", verification_token, option);
+            Response.Cookies.Append("ProfileImage", _userService.GetProfileImage(verification_token), option);
+            Response.Cookies.Append("UserName", _userService.GetUserName(verification_token), option);
 
             string? RoleName = _jwtService.GetClaimValue(verification_token, "role");
 
@@ -75,6 +77,8 @@ public class AuthenticationController : Controller
     public IActionResult Logout()
     {
         Response.Cookies.Delete("JWTToken");
+        Response.Cookies.Delete("ProfileImage");
+        Response.Cookies.Delete("UserName");
         Response.Headers["Clear-Site-Data"] = "\"cache\", \"cookies\", \"storage\"";
         TempData["SuccessMessage"] = NotificationMessage.LogoutSuccess;
 
@@ -123,5 +127,103 @@ public class AuthenticationController : Controller
     }
 
     #endregion
-    
+
+    public string GetEmail(string Email)
+    {
+        ForgotPasswordViewModel forgotPasswordViewModel = new ForgotPasswordViewModel();
+        forgotPasswordViewModel.Email = Email;
+        TempData["Email"] = Email;
+        return Email;
+    }
+
+    #region ForgotPassword
+    public IActionResult ForgotPassword()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel forgotpassword)
+    {
+        UserViewModel? user = new UserViewModel();
+        user.Email = forgotpassword.Email;
+        bool CheckEmailExists = await _userService.IsEmailExists(user.Email);
+
+        if (!CheckEmailExists)
+        {
+            TempData["ErrorMessage"] = NotificationMessage.DoesNotExist.Replace("{0}", "Email");
+            return View("ForgotPassword");
+        }
+
+        string? getpassword = _userService.GetPassword(user.Email);
+        if (!string.IsNullOrEmpty(getpassword))
+        {
+
+            string? resetLink = Url.Action("ResetPassword", "Authentication", new { reset_token = _jwtService.GenerateResetToken(user.Email, getpassword) }, Request.Scheme);
+            bool sendEmail = await _userService.SendEmail(forgotpassword, resetLink);
+            if (sendEmail)
+            {
+                TempData["SuccessMessage"] = NotificationMessage.EmailSentSuccessfully;
+                return RedirectToAction("Login","Authentication");
+            }
+            else
+            {
+                TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
+                return View("ForgotPassword");
+            }
+        }
+        TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
+        return View("ForgotPassword");
+    }
+    #endregion
+
+    #region ResetPassword
+    public IActionResult ResetPassword(string reset_token)
+    {
+        string? reset_email = _jwtService.GetClaimValue(reset_token, "email");
+        string? reset_password = _jwtService.GetClaimValue(reset_token, "password");
+        string? Db_Password = _userService.GetPassword(reset_email);
+
+        if (Db_Password == reset_password)
+        {
+            ResetPasswordViewModel resetPassData = new ResetPasswordViewModel();
+            resetPassData.Email = _jwtService.GetClaimValue(reset_token, "email");
+            return View(resetPassData);
+        }
+        TempData["ErrorMessage"] = NotificationMessage.ResetPasswordChangedError;
+        return RedirectToAction("Login", "Authentication");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel resetPassword)
+    {
+        if (ModelState.IsValid)
+        {
+            bool IsEmailExistsStatus = await _userService.IsEmailExists(resetPassword.Email);
+
+            if (!IsEmailExistsStatus)
+            {
+                TempData["ErrorMessage"] = NotificationMessage.DoesNotExist.Replace("{0}", "Email");
+                return View("ResetPassword");
+            }
+
+            if (resetPassword.Password == resetPassword.ConfirmPassword)
+            {
+                bool checkresetpassword = await _userService.ResetPassword(resetPassword);
+                if (checkresetpassword)
+                {
+                    TempData["SuccessMessage"] = NotificationMessage.PasswordChanged;
+                    return RedirectToAction("Login");
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = NotificationMessage.PasswordChangeFailed;
+                    return View("ResetPassword");
+                }
+            }
+        }
+        return View("ResetPassword");
+    }
+    #endregion
+
 }

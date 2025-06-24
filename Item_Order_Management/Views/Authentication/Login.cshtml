@@ -4,7 +4,8 @@
     Layout = "_LoginLayout";
 }
 
-<div class="container-fluid" style="height:100vh; background-image: url('/images/backgroundImage.jpg'); background-size: cover; background-position: center;">
+<div class="container-fluid"
+    style="height:100vh; background-image: url('/images/backgroundImage.jpg'); background-size: cover; background-position: center;">
 
     <div class="login-main-div d-flex row align-content-center justify-content-center" style="height:100vh;">
 
@@ -17,33 +18,35 @@
                 <h3 class="fw-bold custom-text-color fs-2">Login</h3>
             </div>
             <!--End Login Text -->
-            
+
             <!--Start Login Form-->
             <form asp-action="Login" asp-controller="Authentication" class="login-form w-100 pb-4" method="post">
 
                 <!-- Email -->
                 <div class="mb-4 form-group ps-5">
-                    <input asp-for="Email" type="email" class="input form-control d-inline"
-                        style="width: 90% !important; height: 50px;" id="Email" placeholder="Email*" />
-                    <i class="bi bi-person-fill" style="margin: -29px;"></i>
+                    <input asp-for="Email" type="email" class="input-fields input form-control d-inline" id="Email"
+                        placeholder="Email*" />
+                    <i class="bi bi-person-fill eye-button"></i>
                     <div class="pe-5">
-                        <span asp-validation-for="Email" class="text-size"
-                            style="color: rgb(218, 0, 0) !important;"></span>
+                        <span asp-validation-for="Email" class="text-size validation-color"></span>
                     </div>
                 </div>
 
                 <!-- Password -->
                 <div class="mb-4 form-group ps-5">
-                    <input asp-for="Password" class="form-control input d-inline" type="password" id="pass-inp"
-                        style="width: 90% !important;  height: 50px;" placeholder="Password*" autocomplete="off" />
-                    <i class="bi bi-eye-slash-fill" style="margin: -29px;" id="togglePassword"></i>
+                    <input asp-for="Password" class="input-fields form-control input d-inline" type="password"
+                        id="pass-inp" placeholder="Password*" autocomplete="off" />
+                    <i class="bi bi-eye-slash-fill eye-button" id="togglePassword"></i>
                     <div class="pe-5">
-                        <span asp-validation-for="Password" class="text-size"
-                            style="color: rgb(218, 0, 0) !important;"></span>
+                        <span asp-validation-for="Password" class="text-size validation-color"></span>
                     </div>
                 </div>
 
-                @* <input type="hidden" asp-for="RoleId" value="3" /> *@
+                <div class="mb-2 text-end form-group pe-5">
+                    <a id="forgot-password" class="cursorPointer" style="color: rgb(11, 77, 77);">Forgot
+                        Password?</a>
+                </div>
+
 
                 <!-- Login -->
                 <div class="d-grid form-group ps-5 pe-5 pt-4">
@@ -53,7 +56,8 @@
 
                 <!-- Register -->
                 <div class="d-flex justify-content-center mt-3">
-                    <span class="user-text">Don't have an account? <a asp-action="Register" asp-controller="Authentication"
+                    <span class="user-text">Don't have an account? <a asp-action="Register"
+                            asp-controller="Authentication"
                             class="text-decoration custom-text-color ps-2 fw-bold">Register Here</a></span>
                 </div>
 
@@ -66,3 +70,31 @@
     </div>
 
 </div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+
+        $(document).ready(function () {
+
+            $("#forgot-password").on("click", function () {
+
+                var Email = $("#Email").val();
+                console.log("Email", Email);
+
+                $.ajax({
+                    type: "POST",
+                    url: "/Authentication/GetEmail",
+                    data: { Email: Email },
+                    success: function (response) {
+                        window.location.href = "@Url.Action("ForgotPassword", "Authentication")";
+                    },
+                    error: function (response) {
+                        callErrorToaster("Email not found");
+                    }
+                });
+            });
+        });
+    </script>
+}

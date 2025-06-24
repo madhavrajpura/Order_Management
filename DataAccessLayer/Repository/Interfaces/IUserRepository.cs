@@ -12,4 +12,5 @@ public interface IUserRepository
     bool ChangePassword(ChangePasswordViewModel changepassword, string Email);
     bool UpdateUserProfile(UserViewModel user, string Email);
     List<UserViewModel> GetUserProfileDetails(string Email);
+    bool ResetPassword(User userData);
 }

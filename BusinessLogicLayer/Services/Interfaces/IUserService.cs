@@ -13,4 +13,10 @@ public interface IUserService
     bool ChangePassword(ChangePasswordViewModel changepassword, string Email);
     bool UpdateUserProfile(UserViewModel user, string Email);
     List<UserViewModel> GetUserProfileDetails(string Email);
+    string GetProfileImage(string token);
+    string GetUserName(string token);
+    string GetPassword(string Email);
+    Task<bool> SendEmail(ForgotPasswordViewModel forgotpassword, string resetLink);
+    Task<bool> ResetPassword(ResetPasswordViewModel resetPassword);
+
 }

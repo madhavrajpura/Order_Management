@@ -20,7 +20,14 @@
 
 <body>
     <header>
-
+        @if (User.IsInRole("User"))
+        {
+            <div id="Navbar" class="shadow-lg position-fixed w-100"></div>
+        }
+        else if (User.IsInRole("Admin"))
+        {
+            <div class="shadow-lg position-fixed w-100" id="AdminNavbar"></div>
+        }
     </header>
     <div class="container-fluid p-0">
         <main role="main" class="">
@@ -28,26 +35,30 @@
         </main>
     </div>
 
-    <div class="modal fade" id="orderConfirmationModal" tabindex="-1" aria-labelledby="orderConfirmationModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                <h5 class="modal-title fw-bold fs-4" id="orderConfirmationModalLabel">Order Summary</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="orderItemsList"></div>
-                    <hr>
-                <h4 class="text-end">Grand Total : <span id="modalTotalAmount" class="fw-bold text-success">₹0.00</span>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn solid-btn" id="confirmOrderBtn">Place Order</button>
+    @if (User.IsInRole("User"))
+    {
+        <div class="modal fade" id="orderConfirmationModal" tabindex="-1" aria-labelledby="orderConfirmationModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold fs-4" id="orderConfirmationModalLabel">Order Summary</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="orderItemsList"></div>
+                        <hr>
+                        <h4 class="text-end">Grand Total : <span id="modalTotalAmount"
+                                class="fw-bold text-success">₹0.00</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn solid-btn" id="confirmOrderBtn">Place Order</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 
     @* Logout Model *@
 
@@ -59,12 +70,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex justify-content-center"><img src="/images/toppng.com-warning-icon-2400x2400.png"
-                            style="width: 30px;" alt=""></div>
-                    <p class="fw-bold text-secondary text-center">Are you sure you want Logout ?</p>
+                    <div class="d-flex justify-content-center"> <i
+                            class="fa-solid fa-triangle-exclamation fa-3x text-warning"></i>
+                    </div>
+                    <p class=" text-secondary text-center pt-3">Are you sure you want Logout ?</p>
                 </div>
                 <div class="modal-footer d-flex justify-content-center">
-                    <a asp-action="Logout" asp-controller="Authentication" type="button" class="btn solid-btn fw-bold">Yes</a>
+                    <a asp-action="Logout" asp-controller="Authentication" type="button"
+                        class="btn solid-btn fw-bold">Yes</a>
                     <a type="button" class="btn btn-light fw-bold hollow-btn" data-bs-dismiss="modal">No</a>
                 </div>
             </div>
@@ -72,7 +85,7 @@
     </div>
 
 
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
@@ -98,6 +111,31 @@
                 toastr.error(errorMessage);
             }
 
+        });
+
+        $(document).ready(function () {
+            // Load navbar
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    console.error("Error loading navbar");
+                }
+            });
+
+            $.ajax({
+                url: "/Admin/GetAdminNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#AdminNavbar").html(data);
+                },
+                error: function () {
+                    callErrorToaster("Ajax Error Loading data");
+                }
+            });
         });
     </script>
 

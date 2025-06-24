@@ -2,8 +2,6 @@
     ViewData["Title"] = "User Dashboard";
 }
 
-<div id="Navbar" class="shadow-lg position-fixed w-100"></div>
-
 <div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
     <div class="row mb-4">
         <div class="col-12 col-md-6">
@@ -51,20 +49,6 @@
         let itemsIsLoading = false;
         let itemsHasMore = true;
 
-        // Function to Load Navbar
-        function loadNavbar() {
-            $.ajax({
-                url: "/Items/GetUserNavbarData",
-                type: "GET",
-                success: function (data) {
-                    $("#Navbar").html(data);
-                },
-                error: function () {
-                    console.error("Error loading navbar");
-                }
-            });
-        }
-
         // Function to load the Items
         function loadItemsForTab(append = true) {
 
@@ -78,7 +62,6 @@
                 data: { pageNumber: itemsCurrentPage, search: itemsSearchText, pageSize: itemsPageSize, sortColumn: itemsSortColumn, sortDirection: itemsSortDirection },
                 success: function (data) {
 
-                    console.log("Item")
                     if (append) {
                         $("#itemList").append(data);
                     } else {
@@ -97,7 +80,7 @@
                 error: function () {
                     itemsIsLoading = false;
                     $("#loading").addClass("d-none");
-                    console.error("Error loading items");
+                    callErrorToaster("Error Loading Data");
                 }
             });
         }
@@ -126,7 +109,7 @@
                     }
                 },
                 error: function () {
-                    alert('Failed to update wishlist');
+                    callErrorToaster("Error Loading Data");
                 }
             });
         }
@@ -137,8 +120,6 @@
             $(document).on('click', '.fa-heart', function (e) {
                 toggleWishlist(e, this);
             });
-
-            loadNavbar();
 
             loadItemsForTab(false);
 

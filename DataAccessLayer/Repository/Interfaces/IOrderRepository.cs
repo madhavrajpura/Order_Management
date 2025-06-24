@@ -7,7 +7,8 @@ public interface IOrderRepository
 {
     Task<bool> CreateOrderAsync(Order order, List<OrderItem> orderItems);
     Task<List<Order>> GetUserOrdersAsync(int userId);
-    IQueryable<Order> GetOrderList();
+    IQueryable<OrderViewModel> GetOrderList();
+    IQueryable<Order> GetOrderListByModel();
     Task<bool> MarkOrderStatus(int orderId);
 
 }

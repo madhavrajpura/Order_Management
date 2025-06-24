@@ -18,5 +18,6 @@ public interface IUserService
     string GetPassword(string Email);
     Task<bool> SendEmail(ForgotPasswordViewModel forgotpassword, string resetLink);
     Task<bool> ResetPassword(ResetPasswordViewModel resetPassword);
+    List<User> GetAllUsers();
 
 }

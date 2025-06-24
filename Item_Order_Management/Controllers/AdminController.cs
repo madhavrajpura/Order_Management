@@ -187,19 +187,19 @@ public class AdminController : Controller
         return View();
     }
 
-    public async Task<IActionResult> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "")
+    public async Task<IActionResult> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "",int userId = 0)
     {
         string? token = Request.Cookies["JWTToken"];
         var claims = _JWTService.GetClaimsFromToken(token);
-        int userId = _userService.GetUserIdFromToken(token);
+        int UserId = _userService.GetUserIdFromToken(token);
 
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
         {
             TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
             return RedirectToAction("Login", "Authentication");
         }
 
-        PaginationViewModel<OrderViewModel>? OrderList = _orderService.GetOrderList(search,sortColumn,sortDirection,pageNumber,pageSize,Status);
+        PaginationViewModel<OrderViewModel>? OrderList = await _orderService.GetOrderList(search, sortColumn, sortDirection, pageNumber, pageSize, Status,userId);
         return PartialView("_OrderList", OrderList);
 
     }
@@ -241,5 +241,24 @@ public class AdminController : Controller
     }
 
     #endregion
+
+    // CHANGED: Added action to fetch users for dropdown
+    [HttpGet]
+    public IActionResult GetAllUsers()
+    {
+        try
+        {
+            var users = _userService.GetAllUsers()
+                .Select(u => new { id = u.Id, name = u.Username })
+                .OrderBy(u => u.name)
+                .ToList();
+            return Json(users);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetUsers: {ex.Message}");
+            return StatusCode(500, "Internal server error");
+        }
+    }
 
 }

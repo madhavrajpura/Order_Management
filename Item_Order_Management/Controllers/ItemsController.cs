@@ -138,29 +138,28 @@ public class ItemsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddToCart(int itemId)
+    public async Task<IActionResult> AddToCart(int itemId, int quantity = 1)
     {
         string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
+        var claims = _jwtService.GetClaimsFromToken(token);
+        var userId = _userService.GetUserIdFromToken(token);
 
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
         {
             TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
             return RedirectToAction("Login", "Authentication");
         }
 
         ItemViewModel? item = _itemService.GetItemById(itemId);
-
         if (item == null) return Json(new { success = false, message = "Item not found" });
 
-        bool isAdded = await _cartService.AddToCart(UserId, itemId);
+        // CHANGED: Pass quantity to AddToCart
+        bool isAdded = await _cartService.AddToCart(userId, itemId, quantity);
         if (isAdded)
         {
-            return Json(new { success = true, message = "Item added into cart" });
+            return Json(new { success = true, message = "Item added to cart" });
         }
-        return Json(new { success = false, message = "Item is already present into cart" });
+        return Json(new { success = false, message = "Item is already present in cart" });
     }
 
     [HttpGet]
@@ -197,6 +196,75 @@ public class ItemsController : Controller
         await _cartService.RemoveFromCart(cartId, UserId);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return PartialView("_CartItems", cartItems);
+    }
+
+    // CHANGED: Added action to update cart quantity
+    [HttpPost]
+    public async Task<IActionResult> UpdateCartQuantity(int cartId, int quantity)
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _jwtService.GetClaimsFromToken(token);
+        var userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            return Json(new { success = false, message = NotificationMessage.TokenExpired });
+        }
+
+        // CHANGED: Removed price-based validations, only check for minimum quantity
+        if (quantity < 1)
+        {
+            return Json(new { success = false, message = "Quantity must be at least 1" });
+        }
+
+        var result = await _cartService.UpdateCartQuantity(cartId, userId, quantity);
+        if (result)
+        {
+            return Json(new { success = true, message = "Quantity updated successfully" });
+        }
+        return Json(new { success = false, message = "Failed to update quantity" });
+    }
+
+    // CHANGED: Added action to add all wishlist items to cart
+    [HttpPost]
+    public async Task<IActionResult> AddAllFromWishlistToCart()
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _jwtService.GetClaimsFromToken(token);
+        var userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            return Json(new { success = false, message = NotificationMessage.TokenExpired });
+        }
+
+        var result = await _cartService.AddAllFromWishlistToCart(userId);
+        if (result)
+        {
+            return Json(new { success = true, message = "All wishlist items added to cart" });
+        }
+        return Json(new { success = false, message = "Failed to add items to cart" });
+    }
+
+    // CHANGED: Added action for Buy Now
+    [HttpPost]
+    public async Task<IActionResult> BuyNow(int itemId, int quantity = 1)
+    {
+        string? token = Request.Cookies["JWTToken"];
+        var claims = _jwtService.GetClaimsFromToken(token);
+        var userId = _userService.GetUserIdFromToken(token);
+
+        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
+        {
+            return Json(new { success = false, message = NotificationMessage.TokenExpired });
+        }
+
+        var result = await _orderService.CreateOrderFromItemAsync(userId, itemId, quantity);
+        if (result)
+        {
+            return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
+        }
+        return Json(new { success = false, message = "Failed to place order" });
     }
 
     #endregion
@@ -269,7 +337,4 @@ public class ItemsController : Controller
     }
 
     #endregion
-
-    
-
 }

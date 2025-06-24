@@ -29,18 +29,29 @@ public class CartRepository : ICartRepository
         }
     }
 
-    public async Task<bool> AddToCart(int userId, int itemId)
+    public async Task<bool> AddToCart(int userId, int itemId, int quantity = 1)
     {
         try
         {
             if (userId == 0 || itemId == 0) return false;
-            var cart = new Cart
+            var existingCartItem = await GetCartItem(userId, itemId);
+            if (existingCartItem != null)
             {
-                UserId = userId,
-                ItemId = itemId,
-                CreatedAt = DateTime.Now
-            };
-            _db.Carts.Add(cart);
+                // CHANGED: Increment quantity if item exists
+                existingCartItem.Quantity += quantity;
+                _db.Carts.Update(existingCartItem);
+            }
+            else
+            {
+                var cart = new Cart
+                {
+                    UserId = userId,
+                    ItemId = itemId,
+                    Quantity = quantity, // CHANGED: Use provided quantity
+                    CreatedAt = DateTime.Now
+                };
+                _db.Carts.Add(cart);
+            }
             await _db.SaveChangesAsync();
             return true;
         }
@@ -49,8 +60,6 @@ public class CartRepository : ICartRepository
             Console.WriteLine($"Error in AddToCart: {ex.Message}");
             throw new Exception("Error in AddToCart", ex);
         }
-
-
     }
 
     public async Task<List<CartViewModel>> GetCartItems(int userId)
@@ -67,7 +76,7 @@ public class CartRepository : ICartRepository
                     ItemName = c.Item.Name,
                     Price = c.Item.Price,
                     ThumbnailImageUrl = c.Item.ItemImages.Select(i => i.ImageURL).FirstOrDefault() ?? string.Empty,
-                    Quantity = 1 // Default quantity, managed client-side
+                    Quantity = c.Quantity // CHANGED: Use persisted quantity
                 })
                 .ToListAsync();
         }
@@ -84,13 +93,11 @@ public class CartRepository : ICartRepository
         try
         {
             var cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
-
             if (cartItem != null)
             {
                 _db.Carts.Remove(cartItem);
                 await _db.SaveChangesAsync();
             }
-            
             await transaction.CommitAsync();
             return true;
         }
@@ -99,6 +106,61 @@ public class CartRepository : ICartRepository
             await transaction.RollbackAsync();
             Console.WriteLine($"Error in RemoveFromCart: {ex.Message}");
             throw new Exception("Error in RemoveFromCart", ex);
+        }
+    }
+
+    // CHANGED: Added method to update cart quantity
+    public async Task<bool> UpdateCartQuantity(int cartId, int userId, int quantity)
+    {
+        try
+        {
+            var cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
+            if (cartItem == null) return false;
+
+            cartItem.Quantity = quantity;
+            _db.Carts.Update(cartItem);
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in UpdateCartQuantity: {ex.Message}");
+            throw new Exception("Error updating cart quantity", ex);
+        }
+    }
+
+    // CHANGED: Added method to add all wishlist items to cart
+    public async Task<bool> AddAllFromWishlistToCart(int userId)
+    {
+        try
+        {
+            var wishlistItems = await _db.WishLists
+                .Where(w => w.LikedBy == userId)
+                .Select(w => w.ItemId)
+                .ToListAsync();
+
+            foreach (var itemId in wishlistItems)
+            {
+                var existingCartItem = await GetCartItem(userId, itemId);
+                if (existingCartItem == null)
+                {
+                    var cart = new Cart
+                    {
+                        UserId = userId,
+                        ItemId = itemId,
+                        Quantity = 1, // Default quantity for wishlist items
+                        CreatedAt = DateTime.Now
+                    };
+                    _db.Carts.Add(cart);
+                }
+            }
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in AddAllFromWishlistToCart: {ex.Message}");
+            throw new Exception("Error adding wishlist items to cart", ex);
         }
     }
 }

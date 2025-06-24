@@ -29,7 +29,13 @@
                             <h5 class="text-dark fw-semibold">Price:</h5>
                             <p class="fs-5 text-success fw-bold">₹@Model.Price.ToString("F2")</p>
                         </div>
-
+                        <!-- Quantity Input -->
+                        <div class="d-flex align-items-center mt-3">
+                            <button class="btn hollow-btn quantity-btn minus me-2">-</button>
+                            <input type="number" class="form-control quantity-input text-center" value="1"
+                                style="width: 70px;" min="1" id="quantity-input">
+                            <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
+                        </div>
                         @if (!string.IsNullOrWhiteSpace(Model.Details))
                         {
                             <div class="mt-4">
@@ -45,16 +51,14 @@
                             <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
                                 <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
                             </button>
-                            <button class="btn solid-btn px-3">
-                                Buy Now
-                            </button>
+                            <!-- CHANGED: Updated Buy Now to trigger modal -->
+                            <button class="btn solid-btn px-3" onclick="showBuyNowModal(@Model.ItemId)">Buy Now</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 @functions {
@@ -69,10 +73,23 @@
 
 @section Scripts {
     <script>
+        // Quantity Button Handlers
+        $(document).ready(function () {
+            $(".quantity-btn").on("click", function () {
+                const inputTag = $(this).siblings(".quantity-input");
+                let qty = parseInt(inputTag.val());
+                if (isNaN(qty)) qty = 1; // Reset to 1 if invalid
 
-        // Function To toggle Wishlist Items
+                if ($(this).hasClass("plus")) {
+                    qty += 1;
+                } else {
+                    qty = qty > 1 ? qty - 1 : 1;
+                }
+                inputTag.val(qty);
+            });
+        });
+
         function toggleWishlist(event, element) {
-
             event.preventDefault();
             event.stopPropagation();
 
@@ -94,17 +111,17 @@
                     }
                 },
                 error: function () {
-                    alert('Failed to update wishlist');
+                    callErrorToaster('Failed to update wishlist');
                 }
             });
         }
-        
-        // Function To Add items into Cart
+
         function addToCart(itemId) {
+            const quantity = parseInt($("#quantity-input").val());
             $.ajax({
                 url: "/Items/AddToCart",
                 type: "POST",
-                data: { itemId: itemId },
+                data: { itemId: itemId, quantity: quantity },
                 success: function (response) {
                     if (response.success) {
                         callSuccessToaster("Item added to cart!");
@@ -115,6 +132,65 @@
                 error: function () {
                     callErrorToaster("Failed to add item to cart");
                 }
+            });
+        }
+
+        // CHANGED: Added function to show Buy Now modal
+        function showBuyNowModal(itemId) {
+            const quantity = parseInt($("#quantity-input").val());
+            const itemName = '@Model.ItemName';
+            const price = @Model.Price;
+
+            const orderItems = [{
+                OrderItemId: 0,
+                OrderId: 0,
+                ItemId: itemId,
+                ItemName: itemName,
+                Price: price,
+                Quantity: quantity
+            }];
+
+            let itemsHtml = `<table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="text-nowrap">Item Name</th>
+                                    <th class="text-nowrap">Quantity</th>
+                                    <th class="text-nowrap">Unit Price (₹)</th>
+                                    <th class="text-nowrap">Sub Total (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="text-nowrap">${itemName}</td>
+                                    <td class="text-nowrap">${quantity}</td>
+                                    <td class="text-nowrap">${price.toFixed(2)}</td>
+                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
+                                </tr>
+                            </tbody>
+                        </table>`;
+
+            $("#orderItemsList").html(itemsHtml);
+            $("#modalTotalAmount").text(`₹${(price * quantity).toFixed(2)}`);
+            $("#orderConfirmationModal").modal('show');
+
+            $("#confirmOrderBtn").off('click').on('click', function () {
+                $.ajax({
+                    url: "/Items/BuyNow",
+                    type: "POST",
+                    data: { itemId: itemId, quantity: quantity },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#orderConfirmationModal").modal('hide');
+                            callSuccessToaster(response.message);
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to place order");
+                    }
+                });
             });
         }
     </script>

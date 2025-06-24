@@ -20,6 +20,10 @@ public class Cart
     public int UserId { get; set; }
 
     [Required]
+    [Column("Quantity")]
+    public int Quantity { get; set; }
+
+    [Required]
     [Column("CreatedAt")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

@@ -190,4 +190,9 @@ public class UserService : IUserService
 
     }
 
+    public List<User> GetAllUsers()
+    {
+        return _userRepository.GetAllUsers();
+    }
+
 }

@@ -161,7 +161,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            _db.Update(userData);
+            _db.Update(userData);   
             _db.SaveChanges();
             return true;
         }
@@ -171,5 +171,11 @@ public class UserRepository : IUserRepository
             return false;
         }
     }
+
+    public List<User> GetAllUsers()
+    {
+        return _db.Users.Where(u => !u.IsDelete).ToList();
+    }
+
 
 }

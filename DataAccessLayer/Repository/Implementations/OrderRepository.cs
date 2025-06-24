@@ -92,8 +92,29 @@ public class OrderRepository : IOrderRepository
                     OrderId = order.Id,
                     OrderDate = order.OrderDate,
                     TotalAmount = order.TotalAmount,
+                    IsDelivered = order.IsDelivered
                 })
                 .OrderByDescending(o => o.OrderDate) ?? Enumerable.Empty<OrderViewModel>().AsQueryable();
+
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetUserOrdersAsync: {ex.Message}");
+            throw;
+        }
+    }
+
+    public IQueryable<Order> GetOrderListByModel()
+    {
+        try
+        {
+            var data = _db.Orders.Include(o => o.CreatedByUser)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Items)
+                .Where(o => !o.IsDelete)
+                .OrderByDescending(o => o.OrderDate)
+                .AsQueryable();
 
             return data;
         }

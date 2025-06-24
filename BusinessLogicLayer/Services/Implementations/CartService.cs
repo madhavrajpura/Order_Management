@@ -6,20 +6,37 @@ namespace BusinessLogicLayer.Services.Implementations;
 
 public class CartService : ICartService
 {
-    private readonly ICartRepository _cartRepo;
-    public CartService(ICartRepository cartRepo) => _cartRepo = cartRepo;
+    private readonly ICartRepository _cartRepository;
 
-    public async Task<bool> AddToCart(int userId, int itemId)
+    public CartService(ICartRepository cartRepository)
     {
-        var existingCartItem = await _cartRepo.GetCartItem(userId, itemId);
-        if (existingCartItem != null) return false;
-
-        await _cartRepo.AddToCart(userId, itemId);
-        return true;
+        _cartRepository = cartRepository;
     }
 
-    public async Task<List<CartViewModel>> GetCartItems(int userId) =>  await _cartRepo.GetCartItems(userId);
+    public async Task<bool> AddToCart(int userId, int itemId, int quantity = 1)
+    {
+        return await _cartRepository.AddToCart(userId, itemId, quantity);
+    }
 
-    public async Task<bool> RemoveFromCart(int cartId, int userId) => await _cartRepo.RemoveFromCart(cartId, userId);
+    public async Task<List<CartViewModel>> GetCartItems(int userId)
+    {
+        return await _cartRepository.GetCartItems(userId);
+    }
 
+    public async Task<bool> RemoveFromCart(int cartId, int userId)
+    {
+        return await _cartRepository.RemoveFromCart(cartId, userId);
+    }
+
+    // CHANGED: Added implementation for updating cart quantity
+    public async Task<bool> UpdateCartQuantity(int cartId, int userId, int quantity)
+    {
+        return await _cartRepository.UpdateCartQuantity(cartId, userId, quantity);
+    }
+
+    // CHANGED: Added implementation for adding all wishlist items to cart
+    public async Task<bool> AddAllFromWishlistToCart(int userId)
+    {
+        return await _cartRepository.AddAllFromWishlistToCart(userId);
+    }
 }

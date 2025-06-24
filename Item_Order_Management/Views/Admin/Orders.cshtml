@@ -13,21 +13,21 @@
     <div class="table-main-div table-responsive p-3 bg-white shadow-lg"
         style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
 
-        <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 col-lg-8">
-
-            <div class="h-100 w-100">
-                <input type="text" class="form-control p-3 h-100 dt-input border" id="searchbtn" placeholder="Search" />
-                <i class="fa-solid fa-magnifying-glass search-icon-style-order "></i>
+        <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 pb-5">
+            <div class="h-100 w-25">
+                <input type="text" class="form-control p-3 h-100 d-inline border" id="searchbtn" placeholder="Search by Price, ID" />
             </div>
 
-            <div class="form-floating w-100">
-                <select id="Filter" class="form-select p-2">
-
+            <!-- CHANGED: Added user filter dropdown -->
+            <div class="form-floating w-25">
+                <select id="UserFilter" class="form-select p-2">
+                    <option value="">All Users</option>
                 </select>
             </div>
 
-            <div class="form-floating w-100">
+            <div class="form-floating w-25">
                 <select id="Status" class="form-select p-2">
+                    <option value="">All</option>
                     <option value="pending">Pending</option>
                     <option value="delivered">Delivered</option>
                 </select>
@@ -36,14 +36,12 @@
             <button class="solid-btn p-3 h-100 rounded border-0 text-nowrap" id="exportBtn" onclick="ExportBtn()">
                 <i class="fa-solid fa-share-from-square"></i> Export
             </button>
-
         </div>
 
         <!-- Start Item List -->
         <div class="container-fluid p-0 pe-md-4 pe-3">
             <div class="table-main-div table-responsive p-3 bg-white ms-md-4 ms-3 me-0 shadow-lg"
                 style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
-
                 <table id="table" class="table">
                     <thead>
                         <tr class="border border-top-0 border-end-0 border-start-0 border-dark">
@@ -58,13 +56,11 @@
                                     class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-amount"
                                     data-column="Amount" data-direction="asc"></i></th>
                             <th scope="col" class="fw-bold text-start text-nowrap">Status</th>
-
                             <th scope="col" class="fw-bold text-start text-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="OrderTableBody"></tbody>
                 </table>
-
             </div>
 
             <div class="pagination-main-div shadow d-flex justify-content-end gap-2 p-3 pt-0 bg-white ps-3 ms-md-4 ms-3 pe-3"
@@ -76,9 +72,8 @@
                     <option value="15">15</option>
                 </select>
                 <span class="pt-2 ps-1" id="pagination-info"></span>
-                <button id="left-arrow" class="btn border border-dark bg-light ps-2">
-                    < </button>
-                        <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
+                <button id="left-arrow" class="btn border border-dark bg-light ps-2"><</button>
+                <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
             </div>
         </div>
         <!-- End Item List -->
@@ -87,7 +82,6 @@
 
 @section Scripts {
     <script>
-
         // Initialization
         let currentPage = 1;
         let pageSize = $("#itemselect").val();
@@ -95,30 +89,46 @@
         let sortColumn = "ID";
         let sortDirection = "asc";
         let Status = $("#Status").val();
+        // CHANGED: Added userId variable
+        let userId = "";
 
-        // LoadOrders Function
-        function LoadOrders(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc", Status = "") {
+        // CHANGED: Function to load users into dropdown
+        function loadUsers() {
+            $.ajax({
+                url: "/Admin/GetAllUsers",
+                type: "GET",
+                success: function (data) {
+                    let options = '<option value="">All Users</option>';
+                    data.forEach(user => {
+                        options += `<option value="${user.id}">${user.name}</option>`;
+                    });
+                    $("#UserFilter").html(options);
+                },
+                error: function () {
+                    callErrorToaster("Failed to load users");
+                }
+            });
+        }
+
+        // CHANGED: Updated LoadOrders to include userId
+        function LoadOrders(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc", Status = "", userId = "") {
             $.ajax({
                 url: "/Admin/GetOrderList",
                 type: "GET",
-                data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status },
+                data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status, userId },
                 success: function (data) {
-
-                    $("#ItemTableBody").html(data);
-
+                    $("#OrderTableBody").html(data);
                     currentPage = page;
                     pageSize = parseInt(pageSize);
-
                     var totalRecords = parseInt($("#totalRecords").val()) || 0;
                     var startItem = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
                     var endItem = Math.min(currentPage * pageSize, totalRecords);
-
                     $("#pagination-info").text("Showing " + startItem + " - " + endItem + " of " + totalRecords);
                     $("#left-arrow").prop("disabled", currentPage === 1);
                     $("#right-arrow").prop("disabled", currentPage * pageSize >= totalRecords);
                 },
                 error: function () {
-                    callErrorToaster("Ajax Error Loading data");
+                    callErrorToaster("Ajax Error Loading data ordersss");
                 }
             });
         }
@@ -131,9 +141,8 @@
                 success: function (data) {
                     if (data.success) {
                         callSuccessToaster(data.text);
-                        LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
-                    }
-                    else {
+                        LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                    } else {
                         callErrorToaster(data.text);
                     }
                 },
@@ -143,23 +152,24 @@
             });
         }
 
-
         $(document).ready(function () {
+            // CHANGED: Load users on page load
+            loadUsers();
             // Initial table load
-            LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+            LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
 
             // Search
             $("#searchbtn").on("keyup", function () {
                 searchText = $(this).val().trim();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
             // Right arrow
             $("#right-arrow").on("click", function () {
                 if (!$(this).prop("disabled")) {
                     currentPage++;
-                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
                 }
             });
 
@@ -167,7 +177,7 @@
             $("#left-arrow").on("click", function () {
                 if (!$(this).prop("disabled")) {
                     currentPage--;
-                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
                 }
             });
 
@@ -175,7 +185,7 @@
             $("#itemselect").on("change", function () {
                 pageSize = $(this).val();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
             // Sorting By ID
@@ -183,7 +193,7 @@
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
             // Sorting By Date
@@ -191,7 +201,7 @@
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
             // Sorting By Amount
@@ -199,14 +209,21 @@
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
             // Order Status
             $("#Status").on("change", function () {
                 Status = $(this).val();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+            });
+
+            // CHANGED: User filter change event
+            $("#UserFilter").on("change", function () {
+                userId = $(this).val();
+                currentPage = 1;
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
         });
     </script>

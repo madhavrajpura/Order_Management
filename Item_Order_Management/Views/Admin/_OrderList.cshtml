@@ -3,8 +3,8 @@
 
 @if (Model.Items.Count == 0)
 {
-    <td><i class="fa-solid fa-box-open fa-4x text-muted mb-3"></i>
-        <h4 class="text-muted">No Orders Found</h4>
+    <td class="text-danger text-center" colspan="5">
+        No Orders Found
     </td>
 }
 else
@@ -18,7 +18,8 @@ else
             <td>
                 @if (order.IsDelivered)
                 {
-                    <span class="badge bg-success fw-light">Delivered</span>
+                    <span class="badge fw-light"
+                        style="color: rgb(0, 139, 67); background-color: rgba(71, 255, 117, 0.336);">Delivered</span>
                 }
                 else
                 {

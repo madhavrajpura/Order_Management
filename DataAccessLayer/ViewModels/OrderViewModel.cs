@@ -9,6 +9,7 @@ public class OrderViewModel
     public DateTime? DeliveryDate { get; set; }
     public bool IsDelivered { get; set; }
     public bool IsDelete { get; set; }
+    public int CreatedByUser { get; set; }
     public List<OrderItemViewModel> OrderItems { get; set; } = new List<OrderItemViewModel>();
 
 }

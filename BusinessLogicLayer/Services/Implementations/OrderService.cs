@@ -10,11 +10,13 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepo;
     private readonly ICartRepository _cartRepo;
+    private readonly IItemsService _itemsService;
 
-    public OrderService(IOrderRepository orderRepo, ICartRepository cartRepo)
+    public OrderService(IOrderRepository orderRepo, ICartRepository cartRepo, IItemsService itemsService)
     {
         _orderRepo = orderRepo;
         _cartRepo = cartRepo;
+        _itemsService = itemsService;
     }
 
     public async Task<bool> CreateOrderAsync(int userId, OrderViewModel orderViewModel)
@@ -115,32 +117,34 @@ public class OrderService : IOrderService
     //     };
     // }    
 
-    public async Task<PaginationViewModel<OrderViewModel>> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "")
+    public async Task<PaginationViewModel<OrderViewModel>> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "",int userId = 0)
     {
-        IQueryable<Order>? query = _orderRepo.GetOrderList();
+        var query = _orderRepo.GetOrderList();
 
         // Apply search 
         if (!string.IsNullOrEmpty(search))
         {
             string lowerSearchTerm = search.ToLower();
             query = query.Where(u =>
-                u.Id.ToString().ToLower().Contains(lowerSearchTerm) ||
-                u.TotalAmount.ToString().Contains(lowerSearchTerm) ||
+                u.OrderId.ToString().ToLower().Contains(lowerSearchTerm) ||
+                u.TotalAmount.ToString().Contains(lowerSearchTerm)
             );
         }
 
         // Apply filter
-        if (!string.IsNullOrEmpty(Status) && Status != "All Status")
-        {
-            query = query;
-        }
-        else if (Status == "pending")
+        if (Status == "pending")
         {
             query = query.Where(o => !o.IsDelivered);
         }
-        else
+        else if (Status == "delivered")
         {
             query = query.Where(o => o.IsDelivered);
+        }
+
+        // CHANGED: Apply userId filter
+        if (userId > 0)
+        {
+            query = query.Where(o => o.CreatedByUser == userId);
         }
 
         // Get total records count (before pagination)
@@ -150,7 +154,7 @@ public class OrderService : IOrderService
         switch (sortColumn)
         {
             case "ID":
-                query = sortDirection == "asc" ? query.OrderBy(u => u.Id) : query.OrderByDescending(u => u.Id);
+                query = sortDirection == "asc" ? query.OrderBy(u => u.OrderId) : query.OrderByDescending(u => u.OrderId);
                 break;
             case "Date":
                 query = sortDirection == "asc" ? query.OrderBy(u => u.OrderDate) : query.OrderByDescending(u => u.OrderDate);
@@ -168,7 +172,7 @@ public class OrderService : IOrderService
 
     public async Task<OrderViewModel> GetOrderById(int OrderId)
     {
-        var Orders = await _orderRepo.GetOrderList();
+        var Orders = _orderRepo.GetOrderListByModel();
 
         if (Orders == null) return new OrderViewModel();
 
@@ -203,6 +207,30 @@ public class OrderService : IOrderService
         return await _orderRepo.MarkOrderStatus(orderId);
     }
 
+    // CHANGED: Added implementation for Buy Now
+    public async Task<bool> CreateOrderFromItemAsync(int userId, int itemId, int quantity)
+    {
+        var item = _itemsService.GetItemById(itemId);
+        if (item == null) return false;
 
+        var order = new Order
+        {
+            CreatedBy = userId,
+            OrderDate = DateTime.Now,
+            TotalAmount = item.Price * quantity,
+        };
+
+        var orderItem = new OrderItem
+        {
+            ItemId = itemId,
+            Price = item.Price,
+            ItemName = item.ItemName,
+            CreatedBy = userId,
+            CreatedAt = DateTime.Now,
+            Quantity = quantity
+        };
+
+        return await _orderRepo.CreateOrderAsync(order, new List<OrderItem> { orderItem });
+    }
 
 }

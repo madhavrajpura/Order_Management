@@ -146,6 +146,59 @@
         });
     </script>
 
+    <script>
+        function AjaxResponseHandler(response) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(response, 'text/html');
+            var title = doc.title;
+            console.log(title)
+            if (title === "Login - Item_Order_Management" || title === "Register - Item_Order_Management") {
+                window.location.href = '@Url.Action("Login", "Login")';
+            } else if (title === "Business - Item_Order_Management") {
+                window.location.href = '@Url.Action("Index", "Business")';
+            }
+            else if (title === "InternalServerError" || title === "Forbidden" || title === "UnAuthorize" || title === "PageNotFound") {
+                var url = `/ErrorPage/${title}`;
+                window.location.href = url;
+            }
+            else if (title === "InternalServerError - Item_Order_Management" || title === "Forbidden - Item_Order_Management" || title === "Unauthorize - Item_Order_Management" || title === "PageNotFound - Item_Order_Management") {
+                var url = `/ErrorPage/${title.split(" ")[0].toString().trim()}`;
+                window.location.href = url;
+            }
+            else {
+                callErrorToaster('Unexpected response format.');
+            }
+        }
+
+        function IsHtmlDocument(response) {
+            if (response.statusCode) {
+                return;
+            }
+            if ((response.trim().indexOf('<!DOCTYPE html>') === 0) || (response.trim().indexOf('<html>') === 0)) {
+                AjaxResponseHandle(response);
+            }
+        }
+
+        $(document).ready(function () {
+            // 1. Show toaster if TempData contains error (normal request)
+
+            // 2. Global AJAX error catcher
+            $(document).ajaxComplete(function (event, xhr, settings) {
+                if (xhr.getResponseHeader("X-Error") == "true") {
+                    const response = xhr.responseJSON;
+                    if (response && response.error) {
+                        callErrorToaster(response.error);
+                        $('.btn-close').click();
+                    } else {
+                        callErrorToaster('An unexpected error occurred.');
+                        $('.btn-close').click();
+                    }
+                }
+            });
+
+        });
+    </script>
+
     <partial name="_Toaster" />
     <partial name="_ValidationScriptsPartial" />
 

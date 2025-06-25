@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using BusinessLogicLayer.Helper;
 
 namespace Item_Order_Management.MiddleWare;
 
@@ -27,7 +28,7 @@ public class ExceptionHandler
     private async Task HandleExceptions(HttpContext context, Exception exception)
     {
         HttpStatusCode code;
-        string message = Messages.ExceptionMessage;
+        string message = NotificationMessage.SomethingWentWrong;
 
         code = context.Response.StatusCode switch
         {
@@ -39,7 +40,7 @@ public class ExceptionHandler
         };
         
 
-        _logger.LogError(exception, Messages.UnhandledExceptionMessage);
+        _logger.LogError(exception, NotificationMessage.UnhandledExceptionMessage);
 
         bool isAjax = context.Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
@@ -71,7 +72,7 @@ public class ExceptionHandler
             }
             else
             {
-                _logger.LogWarning(Messages.ResponseStartedLogWarning);
+                _logger.LogWarning(NotificationMessage.ResponseStartedLogWarning);
                 context.Response.StatusCode = (int)code;
                 await context.Response.WriteAsync(message);
             }

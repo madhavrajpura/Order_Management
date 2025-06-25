@@ -29,5 +29,7 @@ public class NotificationMessage
     public const string PasswordChangeFailed = "Failed to change the password. Please try again.";
     public const string SomethingWentWrong = "Something went worng. Please try again.";
     public const string OrderCompleteMarkFailure = "Failed to mark order";
+    public const string UnhandledExceptionMessage = "An unhandled exception occurred.";
+    public const string ResponseStartedLogWarning = "Response already started, cannot Redirect.";
 
 }

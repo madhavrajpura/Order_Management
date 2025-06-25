@@ -60,13 +60,13 @@ public class ItemsRepository : IItemsRepository
         }
     }
 
-    public bool SaveItem(ItemViewModel itemVM, int UserId)
+    public async Task<bool> SaveItem(ItemViewModel itemVM, int UserId)
     {
         if (itemVM == null) return false;
 
         if (itemVM.ItemId == 0)
         {
-            using var transaction = _db.Database.BeginTransaction();
+            using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
                 Item newItem = new Item
@@ -78,8 +78,8 @@ public class ItemsRepository : IItemsRepository
                     CreatedAt = DateTime.Now,
                     CreatedBy = UserId
                 };
-                _db.Items.Add(newItem);
-                _db.SaveChanges();
+                await _db.Items.AddAsync(newItem);
+                await _db.SaveChangesAsync();
 
                 if (itemVM.ThumbnailImageFile != null)
                 {
@@ -91,25 +91,25 @@ public class ItemsRepository : IItemsRepository
                         CreatedAt = DateTime.Now,
                         CreatedBy = UserId
                     };
-                    _db.ItemImages.Add(thumbnailImage);
+                    await _db.ItemImages.AddAsync(thumbnailImage);
                 }
 
-                _db.SaveChanges();
-                transaction.Commit();
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
             catch
             {
-                transaction.Rollback();
+                await transaction.RollbackAsync();
                 return false;
             }
         }
         else
         {
-            using var transaction = _db.Database.BeginTransaction();
+            using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                Item? ExistingItem = _db.Items.FirstOrDefault(item => item.Id == itemVM.ItemId && !item.IsDelete);
+                Item? ExistingItem = await _db.Items.FirstOrDefaultAsync(item => item.Id == itemVM.ItemId && !item.IsDelete);
                 if (ExistingItem == null) return false;
 
                 ExistingItem.Name = itemVM.ItemName;
@@ -118,13 +118,13 @@ public class ItemsRepository : IItemsRepository
                 ExistingItem.UpdatedAt = DateTime.Now;
                 ExistingItem.UpdatedBy = UserId;
                 _db.Items.Update(ExistingItem);
-                _db.SaveChanges();
+                await _db.SaveChangesAsync();
 
                 // Handle thumbnail image
                 if (itemVM.ThumbnailImageFile != null)
                 {
-                    ItemImages? existingThumbnail = _db.ItemImages
-                        .FirstOrDefault(pi => pi.ItemId == ExistingItem.Id && pi.IsThumbnail);
+                    ItemImages? existingThumbnail = await _db.ItemImages
+                        .FirstOrDefaultAsync(pi => pi.ItemId == ExistingItem.Id && pi.IsThumbnail);
 
                     if (existingThumbnail != null)
                     {
@@ -135,32 +135,30 @@ public class ItemsRepository : IItemsRepository
                     }
                 }
 
-                _db.SaveChanges();
-                transaction.Commit();
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
             catch
             {
-                transaction.Rollback();
+                await transaction.RollbackAsync();
                 return false;
             }
         }
     }
 
-    public bool DeleteItem(int ItemId, int UserId)
+    public async Task<bool> DeleteItem(int ItemId, int UserId)
     {
         try
         {
-            Item? item = _db.Items.FirstOrDefault(item => item.Id == ItemId && !item.IsDelete);
-
-            // Notification notification = _db.Notifications.Where(item => item.)   
+            Item? item = await _db.Items.FirstOrDefaultAsync(item => item.Id == ItemId && !item.IsDelete);
 
             if (item != null)
             {
                 item.IsDelete = true;
                 item.DeletedAt = DateTime.Now;
                 item.DeletedBy = UserId;
-                _db.SaveChanges();
+                await _db.SaveChangesAsync();
                 return true;
             }
             return false;
@@ -173,12 +171,12 @@ public class ItemsRepository : IItemsRepository
         }
     }
 
-    public bool CheckItemExists(ItemViewModel itemVM)
+    public async Task<bool> CheckItemExists(ItemViewModel itemVM)
     {
         try
         {
-            if (itemVM.ItemId == 0) return _db.Items.Any(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete);
-            return _db.Items.Any(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete && x.Id != itemVM.ItemId);
+            if (itemVM.ItemId == 0) return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete);
+            return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete && x.Id != itemVM.ItemId);
         }
         catch (Exception ex)
         {

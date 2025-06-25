@@ -56,11 +56,10 @@ input[type=checkbox]:checked {
 }
 
 .validation-span {
-  /* margin-top: -3000px !important; */
   margin: -270px !important;
 }
 
-.validation-color{
+.validation-color {
   color: rgb(218, 0, 0) !important;
 }
 
@@ -109,6 +108,15 @@ input:focus {
   width: 13px;
   margin-left: 18px;
   margin-top: -30px;
+  position: relative;
+  font-size: x-small;
+}
+
+.Cart_Notify {
+  height: 13px;
+  width: 13px;
+  margin-left: 125px;
+  margin-top: -40px;
   position: relative;
   font-size: x-small;
 }

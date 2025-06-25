@@ -92,32 +92,7 @@ public class OrderService : IOrderService
         }).ToList();
     }
 
-    // public async Task<OrderViewModel> GetOrderByIdAsync(int orderId, int userId)
-    // {
-    //     var order = await _orderRepo.GetOrderByIdAsync(orderId, userId);
-    //     if (order == null) return null;
-
-    //     return new OrderViewModel
-    //     {
-    //         OrderId = order.Id,
-    //         OrderDate = order.OrderDate,
-    //         TotalAmount = order.TotalAmount,
-    //         DeliveryDate = order.DeliveryDate,
-    //         IsDelivered = order.IsDelivered,
-    //         IsDelete = order.IsDelete,
-    //         OrderItems = order.OrderItems.Where(oi => !oi.IsDelete).Select(oi => new OrderItemViewModel
-    //         {
-    //             OrderItemId = oi.Id,
-    //             OrderId = oi.OrderId,
-    //             ItemId = oi.ItemId,
-    //             ItemName = oi.ItemName,
-    //             Price = oi.Price,
-    //             Quantity = oi.Quantity
-    //         }).ToList()
-    //     };
-    // }    
-
-    public async Task<PaginationViewModel<OrderViewModel>> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "",int userId = 0)
+    public async Task<PaginationViewModel<OrderViewModel>> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "", int userId = 0)
     {
         var query = _orderRepo.GetOrderList();
 
@@ -127,7 +102,8 @@ public class OrderService : IOrderService
             string lowerSearchTerm = search.ToLower();
             query = query.Where(u =>
                 u.OrderId.ToString().ToLower().Contains(lowerSearchTerm) ||
-                u.TotalAmount.ToString().Contains(lowerSearchTerm)
+                u.TotalAmount.ToString().Contains(lowerSearchTerm) ||
+                u.CustomerName.Contains(lowerSearchTerm)
             );
         }
 
@@ -141,7 +117,6 @@ public class OrderService : IOrderService
             query = query.Where(o => o.IsDelivered);
         }
 
-        // CHANGED: Apply userId filter
         if (userId > 0)
         {
             query = query.Where(o => o.CreatedByUser == userId);
@@ -162,6 +137,9 @@ public class OrderService : IOrderService
             case "Amount":
                 query = sortDirection == "asc" ? query.OrderBy(u => u.TotalAmount) : query.OrderByDescending(u => u.TotalAmount);
                 break;
+            case "Name":
+                query = sortDirection == "asc" ? query.OrderBy(u => u.CustomerName) : query.OrderByDescending(u => u.CustomerName);
+                break;
         }
 
         // Apply pagination
@@ -170,7 +148,7 @@ public class OrderService : IOrderService
         return new PaginationViewModel<OrderViewModel>(items, totalCount, pageNumber, pageSize);
     }
 
-    public async Task<OrderViewModel> GetOrderById(int OrderId)
+    public async Task<OrderViewModel> GetOrderDetailById(int OrderId)
     {
         var Orders = _orderRepo.GetOrderListByModel();
 
@@ -183,6 +161,9 @@ public class OrderService : IOrderService
             OrderId = order.Id,
             OrderDate = order.OrderDate,
             CustomerName = order.CreatedByUser.Username,
+            Email = order.CreatedByUser.Email,
+            PhoneNumber = order.CreatedByUser.PhoneNumber,
+            Address = order.CreatedByUser.Address,
             TotalAmount = order.TotalAmount,
             DeliveryDate = order.DeliveryDate,
             IsDelivered = order.IsDelivered,
@@ -207,7 +188,6 @@ public class OrderService : IOrderService
         return await _orderRepo.MarkOrderStatus(orderId);
     }
 
-    // CHANGED: Added implementation for Buy Now
     public async Task<bool> CreateOrderFromItemAsync(int userId, int itemId, int quantity)
     {
         var item = _itemsService.GetItemById(itemId);

@@ -11,10 +11,10 @@ public class ItemViewModel
     [StringLength(100, ErrorMessage = "Item Name cannot exceed 100 characters.")]
     public string ItemName { get; set; } = null!;
 
-    [Required(ErrorMessage = "Price is required")]
+    [Required(ErrorMessage = " Price is required")]
     [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
     public decimal Price { get; set; }
-
+    
     public string? Details { get; set; }
 
     [Required(ErrorMessage = "Thumbnail image is required.")]
@@ -28,5 +28,4 @@ public class ItemViewModel
     public List<IFormFile>? AdditionalImagesFile { get; set; } = new List<IFormFile>();
 
     public DateTime CreatedAt { get; set; }
-
 }

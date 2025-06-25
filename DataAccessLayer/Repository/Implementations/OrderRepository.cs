@@ -51,7 +51,7 @@ public class OrderRepository : IOrderRepository
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Items)
                 .Where(o => o.CreatedBy == userId && !o.IsDelete)
-                .OrderByDescending(o => o.OrderDate)
+                .OrderByDescending(o => o.Id)
                 .ToListAsync();
             return data;
         }
@@ -61,23 +61,6 @@ public class OrderRepository : IOrderRepository
             throw;
         }
     }
-
-    // public async Task<Order> GetOrderByIdAsync(int orderId, int userId)
-    // {
-    //     try
-    //     {
-    //         var data = await _db.Orders
-    //             .Include(o => o.OrderItems)
-    //             .ThenInclude(oi => oi.Items)
-    //             .FirstOrDefaultAsync(o => o.Id == orderId && o.CreatedBy == userId && !o.IsDelete);
-    //         return data;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error in GetOrderByIdAsync: {ex.Message}");
-    //         throw;
-    //     }
-    // }
 
     public IQueryable<OrderViewModel> GetOrderList()
     {
@@ -92,9 +75,11 @@ public class OrderRepository : IOrderRepository
                     OrderId = order.Id,
                     OrderDate = order.OrderDate,
                     TotalAmount = order.TotalAmount,
-                    IsDelivered = order.IsDelivered
+                    IsDelivered = order.IsDelivered,
+                    CreatedByUser = order.CreatedBy,
+                    CustomerName = order.CreatedByUser.Username
                 })
-                .OrderByDescending(o => o.OrderDate) ?? Enumerable.Empty<OrderViewModel>().AsQueryable();
+                .OrderByDescending(o => o.OrderId) ?? Enumerable.Empty<OrderViewModel>().AsQueryable();
 
             return data;
         }
@@ -109,12 +94,11 @@ public class OrderRepository : IOrderRepository
     {
         try
         {
-            var data = _db.Orders.Include(o => o.CreatedByUser)
+            var data = _db.Orders.Include(o => o.CreatedByUser).ThenInclude(o => o.Role)
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Items)
-                .Where(o => !o.IsDelete)
-                .OrderByDescending(o => o.OrderDate)
-                .AsQueryable();
+                .Where(o => !o.IsDelete && (o.CreatedByUser.RoleId == 3))
+                .OrderByDescending(o => o.Id) ?? Enumerable.Empty<Order>().AsQueryable();
 
             return data;
         }
@@ -131,6 +115,7 @@ public class OrderRepository : IOrderRepository
         if (order == null) return false;
         order.IsDelivered = true;
         order.UpdatedAt = DateTime.Now;
+        order.DeliveryDate = DateTime.Now;
         _db.Orders.Update(order);
         await _db.SaveChangesAsync();
         return true;

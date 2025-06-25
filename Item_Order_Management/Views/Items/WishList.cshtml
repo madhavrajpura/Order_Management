@@ -36,12 +36,10 @@
                                 <p class="card-text text-dark">Price : <span
                                         class="text-success fw-bold">₹@item.Price.ToString("F2")</span></p>
                                 <p class="small text-muted truncate-text" title="@item.Details">@item.Details</p>
-                                <!-- CHANGED: Removed quantity input -->
                                 <div class="mt-3">
                                     <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
                                         <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
                                     </button>
-                                    <!-- CHANGED: Updated Buy Now to trigger modal -->
                                     <button class="btn solid-btn w-100" onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
                                 </div>
                             </div>
@@ -98,15 +96,15 @@
             });
         }
 
-        // CHANGED: Updated to remove quantity
         function addToCart(itemId) {
             $.ajax({
                 url: "/Items/AddToCart",
                 type: "POST",
-                data: { itemId: itemId, quantity: 1 }, // Default quantity
+                data: { itemId: itemId, quantity: 1 },
                 success: function (response) {
                     if (response.success) {
                         callSuccessToaster("Item added to cart!");
+                        LoadUserNavbar();
                     } else {
                         callErrorToaster(response.message);
                     }
@@ -117,7 +115,6 @@
             });
         }
 
-        // CHANGED: Added function to add all wishlist items to cart
         function addAllToCart() {
             $.ajax({
                 url: "/Items/AddAllFromWishlistToCart",
@@ -125,6 +122,7 @@
                 success: function (response) {
                     if (response.success) {
                         callSuccessToaster("All wishlist items added to cart!");
+                        LoadUserNavbar();
                     } else {
                         callErrorToaster(response.message);
                     }
@@ -135,9 +133,8 @@
             });
         }
 
-        // CHANGED: Added function to show Buy Now modal
         function showBuyNowModal(itemId, itemName, price) {
-            const quantity = 1; // Default quantity for Wishlist
+            const quantity = 1; 
             const orderItems = [{
                 OrderItemId: 0,
                 OrderId: 0,

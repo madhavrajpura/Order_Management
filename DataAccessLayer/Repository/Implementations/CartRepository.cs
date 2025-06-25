@@ -20,7 +20,8 @@ public class CartRepository : ICartRepository
         try
         {
             if (userId == 0 || itemId == 0) return null;
-            return await _db.Carts.FirstOrDefaultAsync(c => c.UserId == userId && c.ItemId == itemId);
+            var cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.UserId == userId && c.ItemId == itemId);
+            return cartItem ?? null; 
         }
         catch (Exception ex)
         {
@@ -37,7 +38,6 @@ public class CartRepository : ICartRepository
             var existingCartItem = await GetCartItem(userId, itemId);
             if (existingCartItem != null)
             {
-                // CHANGED: Increment quantity if item exists
                 existingCartItem.Quantity += quantity;
                 _db.Carts.Update(existingCartItem);
             }
@@ -47,7 +47,7 @@ public class CartRepository : ICartRepository
                 {
                     UserId = userId,
                     ItemId = itemId,
-                    Quantity = quantity, // CHANGED: Use provided quantity
+                    Quantity = quantity, 
                     CreatedAt = DateTime.Now
                 };
                 _db.Carts.Add(cart);
@@ -76,7 +76,7 @@ public class CartRepository : ICartRepository
                     ItemName = c.Item.Name,
                     Price = c.Item.Price,
                     ThumbnailImageUrl = c.Item.ItemImages.Select(i => i.ImageURL).FirstOrDefault() ?? string.Empty,
-                    Quantity = c.Quantity // CHANGED: Use persisted quantity
+                    Quantity = c.Quantity 
                 })
                 .ToListAsync();
         }
@@ -109,7 +109,6 @@ public class CartRepository : ICartRepository
         }
     }
 
-    // CHANGED: Added method to update cart quantity
     public async Task<bool> UpdateCartQuantity(int cartId, int userId, int quantity)
     {
         try
@@ -129,7 +128,6 @@ public class CartRepository : ICartRepository
         }
     }
 
-    // CHANGED: Added method to add all wishlist items to cart
     public async Task<bool> AddAllFromWishlistToCart(int userId)
     {
         try
@@ -148,7 +146,7 @@ public class CartRepository : ICartRepository
                     {
                         UserId = userId,
                         ItemId = itemId,
-                        Quantity = 1, // Default quantity for wishlist items
+                        Quantity = 1, 
                         CreatedAt = DateTime.Now
                     };
                     _db.Carts.Add(cart);

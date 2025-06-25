@@ -89,7 +89,7 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public bool ChangePassword(ChangePasswordViewModel changepassword, string Email)
+    public async Task<bool> ChangePassword(ChangePasswordViewModel changepassword, string Email)
     {
         try
         {
@@ -100,7 +100,7 @@ public class UserRepository : IUserRepository
                 {
                     userdetails.Password = changepassword.NewPassword;
                     _db.Update(userdetails);
-                    _db.SaveChanges();
+                    await _db.SaveChangesAsync();
                     return true;
                 }
                 return false;
@@ -114,7 +114,7 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public bool UpdateUserProfile(UserViewModel user, string Email)
+    public async Task<bool> UpdateUserProfile(UserViewModel user, string Email)
     {
         try
         {
@@ -130,7 +130,7 @@ public class UserRepository : IUserRepository
             userdetails.PhoneNumber = user.PhoneNumber;
 
             _db.Update(userdetails);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
             return true;
         }
         catch
@@ -140,9 +140,9 @@ public class UserRepository : IUserRepository
 
     }
 
-    public List<UserViewModel> GetUserProfileDetails(string Email)
+    public async Task<UserViewModel> GetUserProfileDetails(string Email)
     {
-        List<UserViewModel>? data = _db.Users.Where(x => x.Email == Email)
+        UserViewModel? data = await _db.Users.Where(x => x.Email == Email)
         .Select(
             x => new UserViewModel
             {
@@ -152,17 +152,17 @@ public class UserRepository : IUserRepository
                 PhoneNumber = x.PhoneNumber,
                 Address = x.Address
             }
-        ).ToList();
+        ).FirstOrDefaultAsync();
 
         return data;
     }
 
-    public bool ResetPassword(User userData)
+    public async Task<bool> ResetPassword(User userData)
     {
         try
         {
             _db.Update(userData);   
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
             return true;
         }
         catch (Exception Exception)
@@ -174,7 +174,7 @@ public class UserRepository : IUserRepository
 
     public List<User> GetAllUsers()
     {
-        return _db.Users.Where(u => !u.IsDelete).ToList();
+        return _db.Users.Where(u => !u.IsDelete && u.RoleId == 3).ToList();
     }
 
 

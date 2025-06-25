@@ -1,13 +1,18 @@
 using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rotativa.AspNetCore;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Item_Order_Management.Controllers;
 
+
+[Authorize(Roles = "Admin,User")]
 public class ItemsController : Controller
 {
     private readonly IItemsService _itemService;
@@ -33,8 +38,8 @@ public class ItemsController : Controller
     {
         if (Request.Cookies.ContainsKey("JWTToken"))
         {
-            string token = Request.Cookies["JWTToken"];
-            var claims = _jwtService.GetClaimsFromToken(token);
+            string? token = Request.Cookies["JWTToken"];
+            var claims = _jwtService.GetClaimsFromToken(token!);
             if (claims != null)
             {
                 return View();
@@ -55,9 +60,9 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> GetUserNavbarData()
     {
-        string token = Request.Cookies["JWTToken"];
-        var UserId = _userService.GetUserIdFromToken(token);
-        return PartialView("_UserNavbar", UserId);
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var CartItems = await _cartService.GetCartItems(UserId);
+        return PartialView("_UserNavbar", CartItems);
     }
 
     #endregion
@@ -67,16 +72,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> Wishlist()
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<WishListViewModel>? wishlistItems = await _wishListService.GetUserWishlist(UserId);
         return View(wishlistItems);
     }
@@ -84,17 +80,7 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> ToggleWishlistItem(int itemId)
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         bool result = await _wishListService.ToggleWishlistItem(UserId, itemId);
         return Json(new { success = true, isFavourite = result });
     }
@@ -102,16 +88,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> IsItemInWishlist(int itemId)
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         bool isFavourite = await _wishListService.IsItemInWishlist(UserId, itemId);
         return Json(new { isFavourite });
     }
@@ -123,16 +100,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> Cart()
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return View(cartItems);
     }
@@ -140,21 +108,11 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> AddToCart(int itemId, int quantity = 1)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _jwtService.GetClaimsFromToken(token);
-        var userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         ItemViewModel? item = _itemService.GetItemById(itemId);
         if (item == null) return Json(new { success = false, message = "Item not found" });
 
-        // CHANGED: Pass quantity to AddToCart
-        bool isAdded = await _cartService.AddToCart(userId, itemId, quantity);
+        bool isAdded = await _cartService.AddToCart(UserId, itemId, quantity);
         if (isAdded)
         {
             return Json(new { success = true, message = "Item added to cart" });
@@ -165,17 +123,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> GetCartItems()
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return PartialView("_CartItems", cartItems);
     }
@@ -183,41 +131,21 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> RemoveFromCart(int cartId)
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cartService.RemoveFromCart(cartId, UserId);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return PartialView("_CartItems", cartItems);
     }
 
-    // CHANGED: Added action to update cart quantity
     [HttpPost]
     public async Task<IActionResult> UpdateCartQuantity(int cartId, int quantity)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _jwtService.GetClaimsFromToken(token);
-        var userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = NotificationMessage.TokenExpired });
-        }
-
-        // CHANGED: Removed price-based validations, only check for minimum quantity
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         if (quantity < 1)
         {
             return Json(new { success = false, message = "Quantity must be at least 1" });
         }
-
-        var result = await _cartService.UpdateCartQuantity(cartId, userId, quantity);
+        var result = await _cartService.UpdateCartQuantity(cartId, UserId, quantity);
         if (result)
         {
             return Json(new { success = true, message = "Quantity updated successfully" });
@@ -225,20 +153,11 @@ public class ItemsController : Controller
         return Json(new { success = false, message = "Failed to update quantity" });
     }
 
-    // CHANGED: Added action to add all wishlist items to cart
     [HttpPost]
     public async Task<IActionResult> AddAllFromWishlistToCart()
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _jwtService.GetClaimsFromToken(token);
-        var userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = NotificationMessage.TokenExpired });
-        }
-
-        var result = await _cartService.AddAllFromWishlistToCart(userId);
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var result = await _cartService.AddAllFromWishlistToCart(UserId);
         if (result)
         {
             return Json(new { success = true, message = "All wishlist items added to cart" });
@@ -246,20 +165,11 @@ public class ItemsController : Controller
         return Json(new { success = false, message = "Failed to add items to cart" });
     }
 
-    // CHANGED: Added action for Buy Now
     [HttpPost]
     public async Task<IActionResult> BuyNow(int itemId, int quantity = 1)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _jwtService.GetClaimsFromToken(token);
-        var userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = NotificationMessage.TokenExpired });
-        }
-
-        var result = await _orderService.CreateOrderFromItemAsync(userId, itemId, quantity);
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var result = await _orderService.CreateOrderFromItemAsync(UserId, itemId, quantity);
         if (result)
         {
             return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
@@ -272,23 +182,14 @@ public class ItemsController : Controller
     #region Item Detail
 
     [HttpGet]
-    public async Task<IActionResult> ItemDetails(int itemId)
+    public IActionResult ItemDetails(int itemId)
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
         var item = _itemService.GetItemById(itemId);
-
-        if (item == null) return RedirectToAction("Dashboard");
-
+        if (item == null)
+        {
+            TempData["ErrorMessage"] = NotificationMessage.SomethingWentWrong;
+            RedirectToAction("Dashboard");
+        }
         return View(item);
     }
 
@@ -299,35 +200,17 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> Orders()
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _jwtService.GetClaimsFromToken(token);
-        var userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        var orders = await _orderService.GetUserOrdersAsync(userId);
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var orders = await _orderService.GetUserOrdersAsync(UserId);
         return View(orders);
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateOrder(string orderData)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _jwtService.GetClaimsFromToken(token);
-        var userId = _userService.GetUserIdFromToken(token);
-
-        OrderViewModel orderVM = JsonSerializer.Deserialize<OrderViewModel>(orderData);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            return Json(new { success = false, message = NotificationMessage.TokenExpired });
-        }
-
-        var result = await _orderService.CreateOrderAsync(userId, orderVM);
+        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        OrderViewModel? orderVM = JsonSerializer.Deserialize<OrderViewModel>(orderData);
+        var result = await _orderService.CreateOrderAsync(UserId, orderVM!);
         if (result)
         {
             return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
@@ -336,5 +219,26 @@ public class ItemsController : Controller
         return Json(new { success = false, message = "Failed to place order" });
     }
 
+    public async Task<IActionResult> GenerateInvoicePDF(int orderid)
+    {
+        OrderViewModel? orderDetails = await _orderService.GetOrderDetailById(orderid);
+
+        if (orderDetails == null)
+        {
+            TempData["ErrorMessage"] = "Order not found.";
+            return RedirectToAction("Orders");
+        }
+
+        // return PartialView("Invoice", orderDetails);
+
+        ViewAsPdf PDF = new ViewAsPdf("Invoice", orderDetails)
+        {
+            FileName = "OrderInvoice.pdf"
+        };
+        return PDF;
+    }
+
+
     #endregion
+
 }

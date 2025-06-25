@@ -11,8 +11,9 @@ else
 {
     @foreach (var order in Model.Items)
     {
-        <tr>
+        <tr class="text-nowrap">
             <td># @order.OrderId</td>
+            <td>@order.CustomerName</td>
             <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
             <td>₹@order.TotalAmount.ToString("F2")</td>
             <td>

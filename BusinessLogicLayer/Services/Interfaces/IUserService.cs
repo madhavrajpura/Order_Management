@@ -10,9 +10,9 @@ public interface IUserService
     Task<bool> IsEmailExists(string email);
     Task<bool> IsUsernameExists(string Username);
     int GetUserIdFromToken(string token);
-    bool ChangePassword(ChangePasswordViewModel changepassword, string Email);
-    bool UpdateUserProfile(UserViewModel user, string Email);
-    List<UserViewModel> GetUserProfileDetails(string Email);
+    Task<bool> ChangePassword(ChangePasswordViewModel changepassword, string Email);
+    Task<bool> UpdateUserProfile(UserViewModel user, string Email);
+    Task<UserViewModel> GetUserProfileDetails(string Email);
     string GetProfileImage(string token);
     string GetUserName(string token);
     string GetPassword(string Email);

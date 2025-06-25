@@ -17,6 +17,7 @@ public class UserViewModel
     [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be of 10 digits only.")]
     public long PhoneNumber { get; set; }
 
+    [StringLength(100, ErrorMessage = "Address cannot exceed 100 characters.")]
     public string? Address { get; set; }
 
     public IFormFile? ImageFile { get; set; }
@@ -35,8 +36,10 @@ public class UserViewModel
     [RegularExpression(@"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$", ErrorMessage = "Password must contain at least one uppercase letter, one number, and one special character.")]
     public string Password { get; set; } = null!;
 
-
     [Required(AllowEmptyStrings = false, ErrorMessage = "Confirm Password is required")]
+    [MinLength(8, ErrorMessage = "Confirm Password must be at least 8 characters long.")]
+    [MaxLength(20, ErrorMessage = "Confirm Password cannot exceed 20 characters.")]
+    [RegularExpression(@"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$", ErrorMessage = "Confirm Password must contain at least one uppercase letter, one number, and one special character.")]
     [Compare("Password", ErrorMessage = "Passwords do not match.")]
     public string ConfirmPassword { get; set; } = null!;
 

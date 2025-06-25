@@ -10,7 +10,6 @@ public class UserController : Controller
     private readonly IUserService _userService;
     private readonly IJWTService _jwtService;
 
-
     public UserController(IUserService userService, IJWTService jwtService)
     {
         _userService = userService;
@@ -20,36 +19,19 @@ public class UserController : Controller
     #region User Profile
 
     [HttpGet]
-    public IActionResult UserProfile()
+    public async Task<IActionResult> UserProfileAsync()
     {
         string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        string? Email = _jwtService.GetClaimValue(token, "email");
-
-        if (claims == null || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        List<UserViewModel>? data = _userService.GetUserProfileDetails(Email);
-        return View(data[0]);
+        string? Email = _jwtService.GetClaimValue(token!, "email");
+        UserViewModel? ProfileData = await _userService.GetUserProfileDetails(Email!);
+        return View(ProfileData);
     }
 
     [HttpPost]
-    public IActionResult UserProfile(UserViewModel user)
+    public async Task<IActionResult> UserProfileAsync(UserViewModel user)
     {
         string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
-
-        string? Email = _jwtService.GetClaimValue(token, "email");
-
-        if (claims == null || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
+        string? Email = _jwtService.GetClaimValue(token!, "email");
 
         if (user.ImageFile != null)
         {
@@ -69,7 +51,7 @@ public class UserController : Controller
             }
         }
 
-        if (_userService.UpdateUserProfile(user, Email))
+        if (await _userService.UpdateUserProfile(user, Email!))
         {
             CookieOptions options = new CookieOptions();
             options.Expires = DateTime.Now.AddMinutes(60);
@@ -82,6 +64,7 @@ public class UserController : Controller
             TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Profile");
             return RedirectToAction("Dashboard", "Items");
         }
+        
         TempData["ErrorMessage"] = NotificationMessage.UpdateFailure.Replace("{0}", "Profile");
         return View();
     }
@@ -97,17 +80,16 @@ public class UserController : Controller
     }
 
     [HttpPost]
-    public IActionResult ChangePassword(ChangePasswordViewModel changepassword)
+    public async Task<IActionResult> ChangePasswordAsync(ChangePasswordViewModel changepassword)
     {
         string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
+        string? Email = _jwtService.GetClaimValue(token!, "email");
+        string? CurrentPassword = _userService.GetPassword(Email!);
 
-        string? Email = _jwtService.GetClaimValue(token, "email");
-
-        if (claims == null || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(token))
+        if (CurrentPassword != Encryption.EncryptPassword(changepassword.CurrentPassword))
         {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
+            TempData["ErrorMessage"] = "Current Password is not correct";
+            return View();
         }
 
         if (changepassword.CurrentPassword == changepassword.NewPassword)
@@ -119,7 +101,7 @@ public class UserController : Controller
         {
             changepassword.CurrentPassword = Encryption.EncryptPassword(changepassword.CurrentPassword);
             changepassword.NewPassword = Encryption.EncryptPassword(changepassword.NewPassword);
-            bool password_verify = _userService.ChangePassword(changepassword, Email);
+            bool password_verify = await _userService.ChangePassword(changepassword, Email!);
 
             if (password_verify)
             {

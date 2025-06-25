@@ -9,8 +9,30 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Serilog;
+using Rotativa.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Exception_Logs", "Exception_Log.txt");
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Error()
+    .Enrich.FromLogContext()
+    .WriteTo.File(
+        path: logFilePath,
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7, // Keep logs for 7 days
+        fileSizeLimitBytes: 50_000_000, // in bytes 50 MB
+        rollOnFileSizeLimit: true,
+        shared: true,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}{NewLine}{NewLine}"
+    )
+    .CreateLogger();
+
+// Replace built-in logger with Serilog
+builder.Logging.AddSerilog(Log.Logger);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -21,8 +43,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IItemsRepository, ItemsRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
-builder.Services.AddScoped<ICartRepository,CartRepository>();
-builder.Services.AddScoped<IOrderRepository,OrderRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 // Register Services
 builder.Services.AddScoped<IUserService, UserService>();
@@ -101,6 +123,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+app.UseRotativa();
 
 app.UseRouting();
 

@@ -28,13 +28,11 @@ public class CartService : ICartService
         return await _cartRepository.RemoveFromCart(cartId, userId);
     }
 
-    // CHANGED: Added implementation for updating cart quantity
     public async Task<bool> UpdateCartQuantity(int cartId, int userId, int quantity)
     {
         return await _cartRepository.UpdateCartQuantity(cartId, userId, quantity);
     }
 
-    // CHANGED: Added implementation for adding all wishlist items to cart
     public async Task<bool> AddAllFromWishlistToCart(int userId)
     {
         return await _cartRepository.AddAllFromWishlistToCart(userId);

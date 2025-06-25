@@ -52,7 +52,6 @@ public class Order
 
     [ForeignKey("DeletedBy")]
     public virtual User? DeletedByUser { get; set; }
-
     public virtual ICollection<OrderItem>? OrderItems { get; set; }
 
 }

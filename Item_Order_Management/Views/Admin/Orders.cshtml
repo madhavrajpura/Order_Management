@@ -15,16 +15,18 @@
 
         <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 pb-5">
             <div class="h-100 w-25">
-                <input type="text" class="form-control p-3 h-100 d-inline border" id="searchbtn" placeholder="Search by Price, ID" />
+                <input type="text" class="form-control p-3 h-100 d-inline border" id="searchbtn"
+                    placeholder="Search by Price, ID" />
             </div>
 
-            <!-- CHANGED: Added user filter dropdown -->
+            <!-- User Filter Dropdown -->
             <div class="form-floating w-25">
                 <select id="UserFilter" class="form-select p-2">
                     <option value="">All Users</option>
                 </select>
             </div>
 
+            <!-- Status Filter Dropdown -->
             <div class="form-floating w-25">
                 <select id="Status" class="form-select p-2">
                     <option value="">All</option>
@@ -47,6 +49,9 @@
                         <tr class="border border-top-0 border-end-0 border-start-0 border-dark">
                             <th scope="col" class="fw-bold text-start text-nowrap">Order ID # <i
                                     class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-id" data-column="ID"
+                                    data-direction="asc"></i>
+                            <th scope="col" class="fw-bold text-start text-nowrap">Customer Name <i
+                                    class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-name" data-column="Name"
                                     data-direction="asc"></i></th>
                             <th scope="col" class="fw-bold text-start text-nowrap">Order Date <i
                                     class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-date" data-column="Date"
@@ -72,8 +77,9 @@
                     <option value="15">15</option>
                 </select>
                 <span class="pt-2 ps-1" id="pagination-info"></span>
-                <button id="left-arrow" class="btn border border-dark bg-light ps-2"><</button>
-                <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
+                <button id="left-arrow" class="btn border border-dark bg-light ps-2">
+                    <</button>
+                        <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
             </div>
         </div>
         <!-- End Item List -->
@@ -86,13 +92,12 @@
         let currentPage = 1;
         let pageSize = $("#itemselect").val();
         let searchText = "";
-        let sortColumn = "ID";
+        let sortColumn = "";
         let sortDirection = "asc";
         let Status = $("#Status").val();
-        // CHANGED: Added userId variable
         let userId = "";
 
-        // CHANGED: Function to load users into dropdown
+        // Function to load users into dropdown
         function loadUsers() {
             $.ajax({
                 url: "/Admin/GetAllUsers",
@@ -110,7 +115,7 @@
             });
         }
 
-        // CHANGED: Updated LoadOrders to include userId
+        // Function to Load Orders 
         function LoadOrders(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc", Status = "", userId = "") {
             $.ajax({
                 url: "/Admin/GetOrderList",
@@ -153,8 +158,10 @@
         }
 
         $(document).ready(function () {
-            // CHANGED: Load users on page load
+
+            // Load users on page load
             loadUsers();
+
             // Initial table load
             LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
 
@@ -196,6 +203,15 @@
                 LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
+            // Sorting By Customer Name
+            $("#sortable-name").on("click", function () {
+                sortColumn = $(this).data("column");
+                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
+                $(this).attr("data-direction", sortDirection);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+            });
+
+
             // Sorting By Date
             $("#sortable-date").on("click", function () {
                 sortColumn = $(this).data("column");
@@ -219,7 +235,7 @@
                 LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
             });
 
-            // CHANGED: User filter change event
+            // User filter
             $("#UserFilter").on("change", function () {
                 userId = $(this).val();
                 currentPage = 1;

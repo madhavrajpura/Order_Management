@@ -28,7 +28,6 @@
                     <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
                         <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
                     </button>
-                    <!-- CHANGED: Updated Buy Now to trigger modal -->
                     <button class="btn solid-btn w-100"
                         onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
                 </div>
@@ -47,16 +46,17 @@
     }
 }
 
-    <script>
-    // CHANGED: Updated addToCart to include default quantity
+<script>
+    // Function to add item into Cart
     function addToCart(itemId) {
         $.ajax({
             url: "/Items/AddToCart",
             type: "POST",
-            data: { itemId: itemId, quantity: 1 }, // Default quantity
+            data: { itemId: itemId, quantity: 1 },
             success: function (response) {
                 if (response.success) {
                     callSuccessToaster("Item added to cart!");
+                    LoadUserNavbar();
                 } else {
                     callErrorToaster(response.message);
                 }
@@ -93,9 +93,9 @@
         });
     }
 
-    // CHANGED: Replaced buyNow with showBuyNowModal using BuyNow endpoint
+    // Function to show Order Summary on Buy Now
     function showBuyNowModal(itemId, itemName, price) {
-        const quantity = 1; // Default quantity for Item List
+        const quantity = 1;
         const orderItems = [{
             OrderItemId: 0,
             OrderId: 0,
@@ -148,4 +148,4 @@
             });
         });
     }
-    </script>
+</script>

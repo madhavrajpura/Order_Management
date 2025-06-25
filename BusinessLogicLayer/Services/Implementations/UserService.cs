@@ -68,19 +68,19 @@ public class UserService : IUserService
         return 0;
     }
 
-    public bool ChangePassword(ChangePasswordViewModel changepassword, string Email)
+    public async Task<bool> ChangePassword(ChangePasswordViewModel changepassword, string Email)
     {
-        return _userRepository.ChangePassword(changepassword, Email);
+        return await _userRepository.ChangePassword(changepassword, Email);
     }
 
-    public bool UpdateUserProfile(UserViewModel user, string Email)
+    public async Task<bool> UpdateUserProfile(UserViewModel user, string Email)
     {
-        return _userRepository.UpdateUserProfile(user, Email);
+        return await _userRepository.UpdateUserProfile(user, Email);
     }
 
-    public List<UserViewModel> GetUserProfileDetails(string Email)
+    public async Task<UserViewModel> GetUserProfileDetails(string Email)
     {
-        return _userRepository.GetUserProfileDetails(Email);
+        return await _userRepository.GetUserProfileDetails(Email);
     }
 
     public string GetProfileImage(string token)
@@ -124,15 +124,17 @@ public class UserService : IUserService
     public async Task<bool> SendEmail(ForgotPasswordViewModel forgotpassword, string resetLink)
     {
         string email = forgotpassword.Email;
+        User? user = _userRepository.GetUserByEmail(email);
+        string userName = user.Username;
         if (email != null)
         {
             try
             {
-                MailAddress senderEmail = new MailAddress("tatvasoft.pca155@outlook.com", "sender");
+                MailAddress senderEmail = new MailAddress(_configuration["smtp:SenderEmail"], "sender");
                 MailAddress receiverEmail = new MailAddress(forgotpassword.Email, "reciever");
-                string password = "P}N^{z-]7Ilp";
+                string password = _configuration["smtp:Password"];
                 string sub = "Forgot Password";
-                string body = EmailTemplate.ResetPasswordEmail(resetLink);
+                string body = EmailTemplate.ResetPasswordEmail(resetLink,userName);
                 SmtpClient smtp = new SmtpClient
                 {
                     Host = _configuration["smtp:Host"],
@@ -177,7 +179,7 @@ public class UserService : IUserService
                 }
 
                 data.Password = Encryption.EncryptPassword(resetPassword.Password);
-                if (_userRepository.ResetPassword(data)) return true;
+                if (await _userRepository.ResetPassword(data)) return true;
 
                 return false;
             }
@@ -187,7 +189,6 @@ public class UserService : IUserService
         {
             throw;
         }
-
     }
 
     public List<User> GetAllUsers()

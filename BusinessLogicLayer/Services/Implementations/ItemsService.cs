@@ -42,10 +42,10 @@ public class ItemsService : IItemsService
 
     public ItemViewModel GetItemById(int ItemId) => _itemRepository.GetItemById(ItemId);
 
-    public bool SaveItem(ItemViewModel itemVM,int UserId) => _itemRepository.SaveItem(itemVM,UserId);
+    public async Task<bool> SaveItem(ItemViewModel itemVM,int UserId) => await _itemRepository.SaveItem(itemVM,UserId);
 
-    public bool DeleteItem(int ItemId,int UserId) => _itemRepository.DeleteItem(ItemId,UserId);
+    public async Task<bool> DeleteItem(int ItemId,int UserId) => await _itemRepository.DeleteItem(ItemId,UserId);
 
-    public bool CheckItemExists(ItemViewModel itemVM) => _itemRepository.CheckItemExists(itemVM);
+    public async Task<bool> CheckItemExists(ItemViewModel itemVM) => await _itemRepository.CheckItemExists(itemVM);
 
 }

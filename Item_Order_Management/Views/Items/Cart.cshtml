@@ -86,6 +86,7 @@
                         if (response.success) {
                             $("#orderConfirmationModal").modal('hide');
                             callSuccessToaster(response.message);
+                            LoadUserNavbar();
                             window.location.href = response.redirectUrl;
                         } else {
                             callErrorToaster(response.message);
@@ -126,7 +127,6 @@
             $("#totalAmount").text(`₹${total.toFixed(2)}`);
         }
 
-        // CHANGED: Added function to update cart quantity
         function updateCartQuantity(cartId, quantity) {
             $.ajax({
                 url: "/Items/UpdateCartQuantity",
@@ -138,12 +138,13 @@
                         updateTotalAmount();
                     } else {
                         callErrorToaster(response.message);
-                        loadCartItems(); // Reload to reset to server state
+                        loadCartItems();
+                        LoadUserNavbar()
                     }
                 },
                 error: function () {
                     callErrorToaster("Failed to update quantity");
-                    loadCartItems(); // Reload to reset to server state
+                    loadCartItems(); 
                 }
             });
         }
@@ -151,11 +152,10 @@
         $(document).ready(function () {
             loadCartItems();
 
-            // CHANGED: Updated quantity button handler, removed price-based validations
             $(document).on("click", ".quantity-btn", function () {
                 const inputTag = $(this).siblings(".quantity-input");
                 let qty = parseInt(inputTag.val());
-                if (isNaN(qty)) qty = 1; // Reset to 1 if invalid
+                if (isNaN(qty)) qty = 1; 
                 const cardTag = $(this).closest(".cart-item");
                 const cartId = cardTag.find(".remove-btn").data("cart-id");
 
@@ -169,8 +169,6 @@
                 updateCartQuantity(cartId, qty);
             });
 
-            // CHANGED: Removed the quantity input change event handler
-
             // Remove Button 
             $(document).on("click", ".remove-btn", function () {
                 const cartId = $(this).data("cart-id");
@@ -181,6 +179,7 @@
                     success: function (data) {
                         $("#cartItems").html(data);
                         updateTotalAmount();
+                        LoadUserNavbar();
                     },
                     error: function () {
                         callErrorToaster("Failed to remove item");

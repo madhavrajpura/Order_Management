@@ -30,6 +30,7 @@
                 <div class="form-floating col mb-3">
                     <input type="text" class="form-control" id="Details" asp-for="@Model.Details" placeholder="Details">
                     <label for="Details" class="text-black-50">Details</label>
+                    <span asp-validation-for="@Model.Details" class="text-danger text-size"></span>
                 </div>
             </div>
 
@@ -70,7 +71,7 @@
 <script>
 
     $(document).ready(function () {
-        // Handle File Selection for Thumbnail and Additional Images
+        // Handle File Selection for Thumbnail 
         $("#uploadThumbnailFile").change(function () {
             const file = this.files[0];
             if (file) {

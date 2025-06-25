@@ -32,6 +32,11 @@
                                 <span class="fw-bold">Order # : @order.OrderId</span>
                                 <span class="text-muted ms-3">Placed on : @order.OrderDate.ToString("MMM dd, yyyy")</span>
                             </div>
+                            @if(order.IsDelivered){
+                            <div>
+                                <a class="btn solid-btn" asp-action="GenerateInvoicePDF" asp-action="Items" asp-route-orderid="@order.OrderId"><i class="fa-solid fa-download pe-2"></i>Invoice</a>
+                            </div>
+                            }
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -60,14 +65,15 @@
                                 </table>
                             </div>
                             <div class="text-end">
-                                <h4>Total : <span class="fw-bold">₹@order.TotalAmount.ToString("F2")</span></h4>
+                                <h4>Total : <span class="fw-bold text-success">₹@order.TotalAmount.ToString("F2")</span></h4>
                                 @if (order.IsDelivered)
                                 {
-                                    <span class="badge bg-success">Delivered</span>
-                                }
+                                    <span class="badge fw-bold fs-6"
+                        style="color: rgb(0, 139, 67); background-color: rgba(71, 255, 117, 0.336);">Delivered</span>                                }
                                 else
                                 {
-                                    <span class="badge bg-info">Pending</span>
+                                    <span class="badge fw-bold fs-6"
+                        style="color: rgb(0, 100, 139); background-color: rgba(71, 203, 255, 0.336);">Pending</span>
                                 }
                             </div>
                         </div>

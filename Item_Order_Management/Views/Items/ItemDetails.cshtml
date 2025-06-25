@@ -78,7 +78,7 @@
             $(".quantity-btn").on("click", function () {
                 const inputTag = $(this).siblings(".quantity-input");
                 let qty = parseInt(inputTag.val());
-                if (isNaN(qty)) qty = 1; // Reset to 1 if invalid
+                if (isNaN(qty)) qty = 1; 
 
                 if ($(this).hasClass("plus")) {
                     qty += 1;
@@ -135,7 +135,6 @@
             });
         }
 
-        // CHANGED: Added function to show Buy Now modal
         function showBuyNowModal(itemId) {
             const quantity = parseInt($("#quantity-input").val());
             const itemName = '@Model.ItemName';

@@ -3,7 +3,7 @@
     ViewData["Title"] = "UserProfile";
     var DefaultImage = Url.Content("~/images/Default_pfp.svg.png");
     var OriginalImage = Model.ImageURL;
-    var UpdatedImage = string.IsNullOrEmpty(OriginalImage) ? DefaultImage : OriginalImage; 
+    var UpdatedImage = string.IsNullOrEmpty(OriginalImage) ? DefaultImage : OriginalImage;
 }
 
 <div class="d-flex flex-column px-xl-4 px-md-3 px-3 py-5 gap-3" style="padding-top: 6% !important;">
@@ -13,7 +13,8 @@
     </div>
 
     <!-- Update Profile Form  -->
-    <form class="d-flex flex-column bg-white rounded shadow-lg" asp-action="UserProfile" asp-controller="User" enctype="multipart/form-data">
+    <form class="d-flex flex-column bg-white rounded shadow-lg" asp-action="UserProfile" asp-controller="User"
+        enctype="multipart/form-data">
 
         <!-- Background Image  -->
         <div class="row">
@@ -29,8 +30,8 @@
                     style="position: absolute; margin-top: -40px; border-radius:50%;">
 
                 <label for="profile-img">
-                    <img src="~/images/camera.svg" class="ms-3 position-absolute bg-white p-1 border border-dark"
-                        alt="" style="left:73px; top:30px; border-radius: 50%;" width="25px" height="25px" />
+                    <img src="~/images/camera.svg" class="ms-3 position-absolute bg-white p-1 border border-dark" alt=""
+                        style="left:73px; top:30px; border-radius: 50%;" width="25px" height="25px" />
                 </label>
                 <div></div>
                 <input asp-for="@Model.ImageFile" type="file" class="form-control d-none" id="profile-img">
@@ -67,7 +68,8 @@
             <div class="d-flex flex-sm-row flex-column gap-sm-3 gap-0">
                 <div class="form-floating mb-3 col">
                     <input asp-for="PhoneNumber" type="number" class="form-control" id="floatingInput"
-                        placeholder="Phone Number*" pattern="0-9">
+                        placeholder="Phone Number*" maxlength="10" pattern="\d{10}"
+                        title="Please enter exactly 10 digits">
                     <label asp-for="PhoneNumber" for="floatingInput" class="fs-6 text-secondary">Phone
                         Number*</label>
                     <span asp-validation-for="PhoneNumber" class=" validate text-danger ms-1 mt-2"></span>

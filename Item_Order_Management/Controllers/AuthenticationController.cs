@@ -27,7 +27,6 @@ public class AuthenticationController : Controller
             string? token = Request.Cookies["JWTToken"];
             System.Security.Claims.ClaimsPrincipal? claims = _jwtService.GetClaimsFromToken(token!);
 
-
             if (claims != null)
             {
                 if (User.IsInRole("User"))
@@ -128,6 +127,8 @@ public class AuthenticationController : Controller
 
     #endregion
 
+    #region ForgotPassword
+
     public string GetEmail(string Email)
     {
         ForgotPasswordViewModel forgotPasswordViewModel = new ForgotPasswordViewModel();
@@ -135,8 +136,6 @@ public class AuthenticationController : Controller
         TempData["Email"] = Email;
         return Email;
     }
-
-    #region ForgotPassword
     public IActionResult ForgotPassword()
     {
         return View();
@@ -160,7 +159,7 @@ public class AuthenticationController : Controller
         {
 
             string? resetLink = Url.Action("ResetPassword", "Authentication", new { reset_token = _jwtService.GenerateResetToken(user.Email, getpassword) }, Request.Scheme);
-            bool sendEmail = await _userService.SendEmail(forgotpassword, resetLink);
+            bool sendEmail = await _userService.SendEmail(forgotpassword, resetLink!);
             if (sendEmail)
             {
                 TempData["SuccessMessage"] = NotificationMessage.EmailSentSuccessfully;
@@ -175,6 +174,7 @@ public class AuthenticationController : Controller
         TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
         return View("ForgotPassword");
     }
+    
     #endregion
 
     #region ResetPassword
@@ -187,7 +187,7 @@ public class AuthenticationController : Controller
         if (Db_Password == reset_password)
         {
             ResetPasswordViewModel resetPassData = new ResetPasswordViewModel();
-            resetPassData.Email = _jwtService.GetClaimValue(reset_token, "email");
+            resetPassData.Email = _jwtService.GetClaimValue(reset_token, "email") ?? string.Empty;
             return View(resetPassData);
         }
         TempData["ErrorMessage"] = NotificationMessage.ResetPasswordChangedError;
@@ -224,6 +224,7 @@ public class AuthenticationController : Controller
         }
         return View("ResetPassword");
     }
+    
     #endregion
 
 }

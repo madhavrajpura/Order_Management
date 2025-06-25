@@ -114,28 +114,35 @@
         });
 
         $(document).ready(function () {
-            // Load navbar
-            $.ajax({
-                url: "/Items/GetUserNavbarData",
-                type: "GET",
-                success: function (data) {
-                    $("#Navbar").html(data);
-                },
-                error: function () {
-                    console.error("Error loading navbar");
-                }
-            });
 
-            $.ajax({
-                url: "/Admin/GetAdminNavbarData",
-                type: "GET",
-                success: function (data) {
-                    $("#AdminNavbar").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Ajax Error Loading data");
-                }
-            });
+            LoadUserNavbar();
+            LoadAdminNavbar();
+            // Load navbar
+            function LoadUserNavbar() {
+                $.ajax({
+                    url: "/Items/GetUserNavbarData",
+                    type: "GET",
+                    success: function (data) {
+                        $("#Navbar").html(data);
+                    },
+                    error: function () {
+                        console.error("Error loading navbar");
+                    }
+                });
+            }
+
+            function LoadAdminNavbar() {
+                $.ajax({
+                    url: "/Admin/GetAdminNavbarData",
+                    type: "GET",
+                    success: function (data) {
+                        $("#AdminNavbar").html(data);
+                    },
+                    error: function () {
+                        callErrorToaster("Ajax Error Loading data");
+                    }
+                });
+            }
         });
     </script>
 

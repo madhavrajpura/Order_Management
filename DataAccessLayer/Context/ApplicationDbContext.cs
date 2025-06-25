@@ -144,6 +144,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Order>().Property(p => p.OrderDate).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
         modelBuilder.Entity<Order>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Order>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<Order>().Property(p => p.DeliveryDate).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<Order>().Property(p => p.IsDelete).HasDefaultValue(false);
         modelBuilder.Entity<Order>().Property(p => p.IsDelivered).HasDefaultValue(false);
 

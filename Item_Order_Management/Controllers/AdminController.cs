@@ -1,9 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Security.Claims;
 using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rotativa.AspNetCore;
 
 namespace Item_Order_Management.Controllers;
 
@@ -28,34 +30,12 @@ public class AdminController : Controller
 
     public IActionResult Dashboard()
     {
-        // check if Token exist or not
-        if (Request.Cookies.ContainsKey("JWTToken"))
-        {
-            string? token = Request.Cookies["JWTToken"];
-            System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
-
-            if (claims != null)
-            {
-                // User is authenticated, proceed to the dashboard
-                return View();
-            }
-            else
-            {
-                // Invalid token, redirect to login
-                TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-                return RedirectToAction("Login", "Authentication");
-            }
-        }
-        return RedirectToAction("Login", "Authentication");
+        return View();
     }
 
-    public async Task<IActionResult> GetAdminNavbarData()
+    public IActionResult GetAdminNavbarData()
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<NotificationViewModel> NotifyVM = _notificationService.GetNotificationsById(UserId);
         return PartialView("_AdminNavbar", NotifyVM);
     }
@@ -68,20 +48,18 @@ public class AdminController : Controller
     public async Task<IActionResult> MarkAsRead(int userNotificationId)
     {
         await _notificationService.MarkNotificationAsRead(userNotificationId);
-        string? token = Request.Cookies["JWTToken"];
-        var userId = _userService.GetUserIdFromToken(token);
-        List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
-        return PartialView("_NotificationList", notifications);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        List<NotificationViewModel> NotificationList = _notificationService.GetNotificationsById(UserId);
+        return PartialView("_NotificationList", NotificationList);
     }
 
     [HttpPost]
     public async Task<IActionResult> MarkAllAsRead()
     {
-        string? token = Request.Cookies["JWTToken"];
-        var userId = _userService.GetUserIdFromToken(token);
-        await _notificationService.MarkAllNotificationsAsRead(userId);
-        List<NotificationViewModel> notifications = _notificationService.GetNotificationsById(userId);
-        return PartialView("_NotificationList", notifications);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        await _notificationService.MarkAllNotificationsAsRead(UserId);
+        List<NotificationViewModel> NotificationList = _notificationService.GetNotificationsById(UserId);
+        return PartialView("_NotificationList", NotificationList);
     }
 
     #endregion
@@ -103,21 +81,11 @@ public class AdminController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> SaveItem([FromForm] ItemViewModel ItemVM)
+    public async Task<IActionResult> SaveItemAsync([FromForm] ItemViewModel ItemVM)
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-        var UserId = _userService.GetUserIdFromToken(token);
-
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        if (_itemService.CheckItemExists(ItemVM))
+        if (await _itemService.CheckItemExists(ItemVM))
         {
             return Json(new { success = false, text = NotificationMessage.AlreadyExists.Replace("{0}", "Item") });
         }
@@ -140,7 +108,7 @@ public class AdminController : Controller
             }
         }
 
-        bool saveStatus = _itemService.SaveItem(ItemVM, UserId);
+        bool saveStatus = await _itemService.SaveItem(ItemVM, UserId);
         return Json(saveStatus
             ? new { success = true, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateSuccess.Replace("{0}", "Item") : NotificationMessage.UpdateSuccess.Replace("{0}", "Item") }
             : new { success = false, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateFailure.Replace("{0}", "Item") : NotificationMessage.UpdateFailure.Replace("{0}", "Item") });
@@ -149,19 +117,8 @@ public class AdminController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteItem(int ItemId)
     {
-        string? token = Request.Cookies["JWTToken"];
-        System.Security.Claims.ClaimsPrincipal? claims = _JWTService.GetClaimsFromToken(token!);
-
-        var UserId = _userService.GetUserIdFromToken(token);
-
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        bool deleteStatus = _itemService.DeleteItem(ItemId, UserId);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        bool deleteStatus = await _itemService.DeleteItem(ItemId, UserId);
         return Json(deleteStatus
             ? new { success = true, text = NotificationMessage.DeleteSuccess.Replace("{0}", "Item") }
             : new { success = false, text = NotificationMessage.DeleteFailure.Replace("{0}", "Item") });
@@ -172,93 +129,42 @@ public class AdminController : Controller
     #region Orders
 
     [HttpGet]
-    public async Task<IActionResult> Orders()
+    public IActionResult Orders()
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _JWTService.GetClaimsFromToken(token);
-        int userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
         return View();
     }
 
-    public async Task<IActionResult> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "",int userId = 0)
+    public async Task<IActionResult> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "", int UserId = 0)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _JWTService.GetClaimsFromToken(token);
-        int UserId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || UserId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        PaginationViewModel<OrderViewModel>? OrderList = await _orderService.GetOrderList(search, sortColumn, sortDirection, pageNumber, pageSize, Status,userId);
+        PaginationViewModel<OrderViewModel>? OrderList = await _orderService.GetOrderList(search, sortColumn, sortDirection, pageNumber, pageSize, Status, UserId);
         return PartialView("_OrderList", OrderList);
-
     }
 
     [HttpGet]
     public async Task<IActionResult> OrderDetails(int orderid)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _JWTService.GetClaimsFromToken(token);
-        int userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        OrderViewModel? orders = await _orderService.GetOrderById(orderid);
+        OrderViewModel? orders = await _orderService.GetOrderDetailById(orderid);
         return View(orders);
     }
 
     [HttpGet]
     public async Task<IActionResult> MarkOrderStatus(int orderId)
     {
-        string? token = Request.Cookies["JWTToken"];
-        var claims = _JWTService.GetClaimsFromToken(token);
-        int userId = _userService.GetUserIdFromToken(token);
-
-        if (claims == null || userId == 0 || string.IsNullOrEmpty(token))
-        {
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-
-        bool orders = await _orderService.MarkOrderStatus(orderId);
-
-        if (orders) return Json(new { success = true, text = "Order Marked as Completed" });
-        return Json(new { success = false, text = "Failed to mark order" });
+        bool OrderStatus = await _orderService.MarkOrderStatus(orderId);
+        if (OrderStatus) return Json(new { success = true, text = NotificationMessage.OrderCompleteMark });
+        return Json(new { success = false, text = NotificationMessage.OrderCompleteMarkFailure });
     }
 
     #endregion
 
-    // CHANGED: Added action to fetch users for dropdown
     [HttpGet]
     public IActionResult GetAllUsers()
     {
-        try
-        {
-            var users = _userService.GetAllUsers()
-                .Select(u => new { id = u.Id, name = u.Username })
-                .OrderBy(u => u.name)
-                .ToList();
-            return Json(users);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetUsers: {ex.Message}");
-            return StatusCode(500, "Internal server error");
-        }
+        var UserList = _userService.GetAllUsers()
+            .Select(u => new { id = u.Id, name = u.Username })
+            .OrderBy(u => u.name)
+            .ToList();
+        return Json(UserList);
     }
 
 }

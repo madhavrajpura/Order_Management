@@ -6,7 +6,7 @@ public interface IItemsRepository
 {
     IQueryable<ItemViewModel> GetAllItem();
     ItemViewModel GetItemById(int ItemId);
-    Task<bool> SaveItem(ItemViewModel itemVM, int UserId);
+    Task<bool> SaveItem(ItemViewModel itemVM, int UserId, List<string> NewAdditionalImagesURL);
     Task<bool> DeleteItem(int ItemId, int UserId);
     Task<bool> CheckItemExists(ItemViewModel itemVM);
 }

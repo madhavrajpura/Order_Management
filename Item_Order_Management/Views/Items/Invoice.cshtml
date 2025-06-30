@@ -15,9 +15,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            @* padding: 30px; *@
             background: #f5f8fa;
-            @* color: #333; *@
         }
 
         .container {
@@ -62,13 +60,6 @@
             box-sizing: border-box;
             padding-left: 100px;
         }
-
-        @* .details {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        } *@
 
         .box {
             width: 48%;
@@ -197,7 +188,6 @@
                     <span><strong>Order Date :</strong> @Model.OrderDate.ToString("dd MMM yyyy")</span>
                     <span><strong>Delivery Date :</strong> @(Model.DeliveryDate.HasValue ?
                         Model.DeliveryDate.Value.ToString("dd MMM yyyy") : "N/A")</span>
-                    <span><strong>Status :</strong> @(Model.IsDelivered ? "Delivered" : "Pending")</span>
                 </div>
             </div>
         </div>
@@ -221,13 +211,7 @@
                         var total = (item.Price * item.Quantity);
                         <tr>
                             <td class="font-class">@srNo</td>
-                            <td class="font-class">
-                                @* @if (!string.IsNullOrEmpty(item.ImageURL))
-                        {
-                        <img src="@item.ImageURL" alt="Item Image" class="item-image" />
-                        } *@
-                                @item.ItemName
-                            </td>
+                            <td class="font-class">@item.ItemName</td>
                             <td class="font-class">@item.Quantity</td>
                             <td class="font-class">@item.Price.ToString("C")</td>
                             <td class="font-class">@total.ToString("C")</td>

@@ -161,7 +161,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            _db.Update(userData);   
+            _db.Update(userData);
             await _db.SaveChangesAsync();
             return true;
         }

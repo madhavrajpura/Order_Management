@@ -7,52 +7,86 @@
         <div class="col-12 col-md-10 col-lg-8">
             <div class="card shadow-lg border-0 rounded-4 h-100 bg-white">
                 <div class="row g-0">
-                    <!-- Item Image -->
-                    <div class="col-md-5 p-2 d-flex align-items-center justify-content-center rounded-start">
-                        <img src="@Model.ThumbnailImageUrl" alt="@Model.ItemName" class="img-fluid rounded"
-                            style="max-height: 450px; object-fit: contain;">
+                    <!-- Item Image Carousel -->
+                    <div class="col-md-5 p-2 pt-4 pb-4 d-flex align-items-center justify-content-center rounded-start">
+                        <div id="ImageCarousal" class="carousel slide" data-bs-ride="carousel"
+                            style="width: 80% !important; height: 100% !important;">
+                            <div class="carousel-inner d-flex align-content-center">
+                                @if (!string.IsNullOrEmpty(Model.ThumbnailImageUrl))
+                                {
+                                    <div class="carousel-item active">
+                                        <img src="@Model.ThumbnailImageUrl" data-zoom-image="@Model.ThumbnailImageUrl"
+                                            class="ItemImage" alt="Item Image"
+                                            style="width: 100% !important; height: 350px !important;" />
+                                    </div>
+                                }
+                                @foreach (var imageUrl in Model.AdditionalImagesUrl)
+                                {
+                                    <div class="carousel-item">
+                                        <img src="@imageUrl" data-zoom-image="@imageUrl" class="ItemImage"
+                                            alt="Additional Image"
+                                            style="width: 100% !important; height: 350px !important;" />
+                                    </div>
+                                }
+                            </div>
+
+                            @if (Model.AdditionalImagesUrl.Count > 0)
+                            {
+                                <button class="carousel-control-prev bg-dark" type="button" data-bs-target="#ImageCarousal"
+                                    data-bs-slide="prev" style="height: 50px !important; margin-top: 150px;">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next bg-dark" type="button" data-bs-target="#ImageCarousal"
+                                    data-bs-slide="next" style="height: 50px !important; margin-top: 150px;">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                            }
+                        </div>
                     </div>
 
                     <!-- Item Info -->
                     <div class="col-md-7">
                         <div class="card-body p-4">
                             <div class="position-absolute m-2" style="top:10px; right:20px">
-                            @{
-                                var isFavourite = await CheckIfFavourite(Model.ItemId);
-                            }
-                            <i class="@(isFavourite ? "fa-solid text-danger" : "fa-regular") fa-heart fs-4 cursor-pointer"
-                                onclick="toggleWishlist(event, this)" data-item-id="@Model.ItemId"
-                                title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
-                        </div>
-                        <h2 class="card-title fw-bold custom-text-color mb-3">@Model.ItemName</h2>
-                        <div class="my-3">
-                            <h5 class="text-dark fw-semibold">Price:</h5>
-                            <p class="fs-5 text-success fw-bold">₹@Model.Price.ToString("F2")</p>
-                        </div>
-                        <!-- Quantity Input -->
-                        <div class="d-flex align-items-center mt-3">
-                            <button class="btn hollow-btn quantity-btn minus me-2">-</button>
-                            <input type="number" class="form-control quantity-input text-center" value="1"
-                                style="width: 70px;" min="1" id="quantity-input">
-                            <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(Model.Details))
-                        {
-                            <div class="mt-4">
-                                <h5 class="text-dark fw-semibold">Details:</h5>
-                                <p class="text-muted">@Model.Details</p>
+                                @{
+                                    var isFavourite = await CheckIfFavourite(Model.ItemId);
+                                }
+                                <i class="@(isFavourite ? "fa-solid text-danger" : "fa-regular") fa-heart fs-4 cursor-pointer"
+                                    onclick="toggleWishlist(event, this)" data-item-id="@Model.ItemId"
+                                    title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
                             </div>
-                        }
+                            <h2 class="card-title fw-bold custom-text-color mb-3">@Model.ItemName</h2>
+                            <div class="my-3">
+                                <h5 class="text-dark fw-semibold">Price:</h5>
+                                <p class="fs-5 text-success fw-bold">@Model.Price.ToString("C")</p>
+                            </div>
+                            <!-- Quantity Input -->
+                            <div class="d-flex align-items-center mt-3">
+                                <button class="btn hollow-btn quantity-btn minus me-2">-</button>
+                                <input type="number" class="form-control quantity-input text-center" value="1"
+                                    style="width: 70px;" min="1" id="quantity-input">
+                                <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Model.Details))
+                            {
+                                <div class="mt-4">
+                                    <h5 class="text-dark fw-semibold">Details:</h5>
+                                    <p class="text-muted">@Model.Details</p>
+                                </div>
+                            }
 
-                        <div class="d-flex justify-content-end mt-4 gap-2">
-                            <a asp-action="Dashboard" asp-controller="Items" class="btn hollow-btn px-3">
-                                <i class="fa fa-arrow-left me-1"></i> Back to List
-                            </a>
-                            <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
-                                <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
-                            </button>
-                            <!-- CHANGED: Updated Buy Now to trigger modal -->
-                            <button class="btn solid-btn px-3" onclick="showBuyNowModal(@Model.ItemId)">Buy Now</button>
+                            <div class="d-flex justify-content-end mt-4 gap-2">
+                                <a asp-action="Dashboard" asp-controller="Items" class="btn hollow-btn px-3">
+                                    <i class="fa fa-arrow-left me-1"></i> Back to List
+                                </a>
+                                <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
+                                    <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                                </button>
+                                <button class="btn solid-btn px-3" onclick="showBuyNowModal(@Model.ItemId)">Buy
+                                    Now</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -72,13 +106,49 @@
 }
 
 @section Scripts {
+
     <script>
+
+        // Function to Load User Navbar.
+        function LoadUserNavbar() {
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    callErrorToaster("Error loading navbar");
+                }
+            });
+        }
+
         // Quantity Button Handlers
         $(document).ready(function () {
+
+            function initElevateZoomOnActive() {
+                // Remove previous zoom overlays and data
+                $('.zoomContainer').remove();
+                $('.ItemImage').removeData('elevateZoom').unbind('.elevateZoom');
+
+                // Initialize elevateZoom only on the active image
+                $('.carousel-item.active .ItemImage').elevateZoom({
+                    zoomType: "inner",
+                    lensShape: "round",
+                    lensSize: 450
+                });
+            }
+
+            initElevateZoomOnActive();
+            
+            $('#ImageCarousal').on('slid.bs.carousel', function () {
+                initElevateZoomOnActive();
+            });
+
             $(".quantity-btn").on("click", function () {
                 const inputTag = $(this).siblings(".quantity-input");
                 let qty = parseInt(inputTag.val());
-                if (isNaN(qty)) qty = 1; 
+                if (isNaN(qty)) qty = 1;
 
                 if ($(this).hasClass("plus")) {
                     qty += 1;
@@ -89,6 +159,7 @@
             });
         });
 
+        // Function to toggle the wishlist item
         function toggleWishlist(event, element) {
             event.preventDefault();
             event.stopPropagation();
@@ -116,6 +187,7 @@
             });
         }
 
+        // Function to add the item to the Cart
         function addToCart(itemId) {
             const quantity = parseInt($("#quantity-input").val());
             $.ajax({
@@ -125,6 +197,7 @@
                 success: function (response) {
                     if (response.success) {
                         callSuccessToaster("Item added to cart!");
+                        LoadUserNavbar();
                     } else {
                         callErrorToaster(response.message);
                     }
@@ -135,6 +208,7 @@
             });
         }
 
+        // Function to Buy particular item
         function showBuyNowModal(itemId) {
             const quantity = parseInt($("#quantity-input").val());
             const itemName = '@Model.ItemName';
@@ -150,23 +224,23 @@
             }];
 
             let itemsHtml = `<table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th class="text-nowrap">Item Name</th>
-                                    <th class="text-nowrap">Quantity</th>
-                                    <th class="text-nowrap">Unit Price (₹)</th>
-                                    <th class="text-nowrap">Sub Total (₹)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="text-nowrap">${itemName}</td>
-                                    <td class="text-nowrap">${quantity}</td>
-                                    <td class="text-nowrap">${price.toFixed(2)}</td>
-                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
-                                </tr>
-                            </tbody>
-                        </table>`;
+                                                                                                                                                                                                                            <thead>
+                                                                                                                                                                                                                                <tr>
+                                                                                                                                                                                                                                    <th class="text-nowrap">Item Name</th>
+                                                                                                                                                                                                                                    <th class="text-nowrap">Quantity</th>
+                                                                                                                                                                                                                                    <th class="text-nowrap">Unit Price (₹)</th>
+                                                                                                                                                                                                                                    <th class="text-nowrap">Sub Total (₹)</th>
+                                                                                                                                                                                                                                </tr>
+                                                                                                                                                                                                                            </thead>
+                                                                                                                                                                                                                            <tbody>
+                                                                                                                                                                                                                                <tr>
+                                                                                                                                                                                                                                    <td class="text-nowrap">${itemName}</td>
+                                                                                                                                                                                                                                    <td class="text-nowrap">${quantity}</td>
+                                                                                                                                                                                                                                    <td class="text-nowrap">${price.toFixed(2)}</td>
+                                                                                                                                                                                                                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
+                                                                                                                                                                                                                                </tr>
+                                                                                                                                                                                                                            </tbody>
+                                                                                                                                                                                                                        </table>`;
 
             $("#orderItemsList").html(itemsHtml);
             $("#modalTotalAmount").text(`₹${(price * quantity).toFixed(2)}`);
@@ -192,5 +266,6 @@
                 });
             });
         }
+
     </script>
 }

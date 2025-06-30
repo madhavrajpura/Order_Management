@@ -14,9 +14,10 @@ public class UserViewModel
     public string UserName { get; set; } = null!;
 
     [Required(ErrorMessage = "Phone number is required.")]
+    [Range(0000000000, 9999999999, ErrorMessage = "Phone number must be of 10 digits only.")]
     [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be of 10 digits only.")]
     public long PhoneNumber { get; set; }
-
+    
     [StringLength(100, ErrorMessage = "Address cannot exceed 100 characters.")]
     public string? Address { get; set; }
 

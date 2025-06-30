@@ -34,28 +34,28 @@
                 </div>
             </div>
 
-            <div class="col-12 border-1 p-1 d-flex justify-content-center flex-column text-center">
-                @if (!string.IsNullOrEmpty(Model.ThumbnailImageUrl))
-                {
-                    <div class="mb-2 position-relative d-inline-block">
-                        <img src="@Model.ThumbnailImageUrl" alt="Thumbnail Image" style="max-width: 60px; max-height: 60px;"
-                            data-image-id="thumbnail" />
-                        <button type="button"
-                            class="btn btn-sm btn-danger ms-3 remove-image position-absolute top-0 start-50"
-                            data-target="thumbnail">
-                            <i class="fa fa-times"></i>
-                        </button>
-                    </div>
-                }
-                <label for="uploadThumbnailFile" class="border border-dashed rounded p-3 text-center w-100"
-                    aria-label="Upload thumbnail image">
-                    <span class="d-flex flex-column justify-content-center align-items-center">
-                        <i class="fa-solid fa-cloud-arrow-up fs-2 text-secondary"></i>
-                        <span id="browseThumbnailFileText">Browse Thumbnail file</span>
-                    </span>
-                </label>
-                <input type="file" class="d-none" id="uploadThumbnailFile" accept="image/*"
-                    asp-for="@Model.ThumbnailImageFile" />
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="row mb-3 g-2" id="ThumbnailPreview"></div>
+                    <label for="ThumbnailFile" class="form-control text-center cursorPointer">
+                        <i class="fa-solid fa-cloud-arrow-up fs-5 text-black-50"></i>
+                        <p class="ImageText mb-0 text-black-50">Thumbnail Image</p>
+                    </label>
+                    <input type="file" class="offscreen file" id="ThumbnailFile" name="ThumbnailImageFile"
+                        asp-for="ThumbnailImageFile" accept="image/*" />
+                    <span asp-validation-for="ThumbnailImageFile" class="text-danger text-size"></span>
+                </div>
+                <!-- Item Images Upload -->
+                <div class="col-12">
+                    <div class="row mb-3 g-2" id="ItemPreview"></div>
+                    <label for="ItemImages" class="form-control text-center cursorPointer">
+                        <i class="fa-solid fa-cloud-arrow-up fs-5 text-black-50"></i>
+                        <p class="ImageText mb-0 text-black-50">Item Images</p>
+                    </label>
+                    <input type="file" class="offscreen file" name="AdditionalImagesFile" asp-for="AdditionalImagesFile"
+                        id="ItemImages" multiple accept="image/*" />
+                    <span asp-validation-for="AdditionalImagesFile" class="text-danger text-size"></span>
+                </div>
             </div>
 
             <div class="modal-footer">
@@ -69,60 +69,150 @@
 <partial name="_ValidationScriptsPartial" />
 
 <script>
+    ExistingImages = [...@Html.Raw(Json.Serialize(Model.AdditionalImagesUrl ?? new List<string>()))];
 
-    $(document).ready(function () {
-        // Handle File Selection for Thumbnail 
-        $("#uploadThumbnailFile").change(function () {
-            const file = this.files[0];
-            if (file) {
-                $("#browseThumbnailFileText").text(file.name);
-            }
+    NewImages = [];
+
+    function ShowImagePreview(src, onRemove) {
+        const col = $(`
+            <div class="col-auto d-flex justify-content-center">
+                <div class="img-wrapper position-relative ">
+                    <img src="${src}" class="img-thumbnail" style="max-height:100px;">
+                    <span class="remove-image position-absolute top-0 end-0 btn btn-danger btn-sm" 
+                         >&times;</span>
+                </div>
+            </div>
+        `);
+        col.find('.remove-image').click(function () {
+            col.remove();
+            onRemove();
+        });
+        return col;
+    }
+
+    function UpdateImagePreview() {
+        $('#ItemPreview').empty();
+
+        ExistingImages.forEach((url, i) => {
+            const preview = ShowImagePreview(url, () => {
+                ExistingImages.splice(i, 1);
+                UpdateImagePreview(); // Re-render after splice
+            });
+            $('#ItemPreview').append(preview);
         });
 
-    });
+        // Show Updated images
+        NewImages.forEach((file, i) => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = ShowImagePreview(e.target.result, () => {
+                    NewImages.splice(i, 1);
+                    UpdateImagePreview(); // Re-render after splice
+                });
+                $('#ItemPreview').append(preview);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
-    // Remove image functionality 
-    $(document).on("click", ".remove-image", function () {
 
-        let targetId = $(this).data("target");
+    $(document).ready(function () {
 
-        $(`img[data-image-id="${targetId}"]`).parent().remove();
-
-        if (targetId === "thumbnail") {
-            $("#uploadThumbnailFile").val("");
-            $("#browseThumbnailFileText").text("Browse Thumbnail file");
+        // Handle File Selection for Thumbnail 
+        const IsEditModal = @Model.ItemId != 0;
+        const ThumbnailURL = '@Model.ThumbnailImageUrl';
+        if (IsEditModal) {
+            UpdateImagePreview();
+            const preview = ShowImagePreview(ThumbnailURL, () => {
+                $('#ThumbnailPreview').empty();
+            });
+            $('#ThumbnailPreview').append(preview);
         }
 
-    });
+        // Allow only thumbnail image in Creating Modal not in editing
 
+        if (!IsEditModal) {
 
-    // POST method of Save Tax
-    $("#SaveItemForm").on("submit", function (e) {
+            $("#ThumbnailFile").rules("add", {
+                required: true,
+                messages: {
+                    required: "Thumbnail image is required."
+                }
+            });
 
-        e.preventDefault();
-
-        let form = $("#SaveItemForm");
-
-        if (form.valid()) {
-
-            let formData = new FormData(this);
-
-            $.ajax({
-                url: "/Admin/SaveItem",
-                type: "POST",
-                contentType: false,
-                processData: false,
-                data: formData,
-                success: function (data) {
-                    if (data.success) {
-                        callSuccessToaster(data.text);
-                        Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-                        $("#SaveItemModal").modal('hide');
-                    } else {
-                        callErrorToaster(data.text);
-                    }
+            $("#ItemImages").rules("add", {
+                required: true,
+                messages: {
+                    required: "At least one Item image is required."
                 }
             });
         }
+
+        $('#ThumbnailFile').change(function () {
+            const file = this.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                $('#ThumbnailPreview').empty().append(ShowImagePreview(e.target.result, () => {
+                    $('#ThumbnailFile').val('');
+                    $('#ThumbnailPreview').empty();
+                }));
+            };
+            reader.readAsDataURL(file);
+        });
+
+
+        // Handle product image selection
+        $('#ItemImages').change(function () {
+            const files = Array.from(this.files);
+            files.forEach(file => {
+                NewImages.push(file);
+            });
+            UpdateImagePreview();
+        });
+
+
+            // POST method of Save Tax
+            $("#SaveItemForm").on("submit", function (e) {
+
+                e.preventDefault();
+
+                let form = $("#SaveItemForm");
+
+                if (form.valid()) {
+
+                    $('#ItemImages').removeAttr('name');
+
+                    let formData = new FormData(this);
+
+                    // Append existing retained image URL
+                    ExistingImages.forEach(url => {
+                        formData.append('AdditionalImagesURL', url);
+                    });
+
+                    NewImages.forEach(file => {
+                        formData.append('AdditionalImagesFile', file);
+                    });
+
+                    $.ajax({
+                        url: "/Admin/SaveItem",
+                        type: "POST",
+                        contentType: false,
+                        processData: false,
+                        data: formData,
+                        success: function (data) {
+                            if (data.success) {
+                                callSuccessToaster(data.text);
+                                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
+                                $("#SaveItemModal").modal('hide');
+                            } else {
+                                callErrorToaster(data.text);
+                            }
+                        },
+                        error: function () {
+                            callErrorToaster("Error saving product.");
+                        }
+                    });
+                }
+            });
     });
 </script>

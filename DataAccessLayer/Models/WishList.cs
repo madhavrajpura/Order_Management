@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,7 +18,8 @@ public class WishList
     public int ItemId { get; set; }
 
     [Required]
-    [Column("LikedAt")]
+    [Column("LikedAt", TypeName = "timestamp without time zone")]
+    [DefaultValue("now()")]
     public DateTime LikedAt { get; set; } = DateTime.Now;
 
     [Required]

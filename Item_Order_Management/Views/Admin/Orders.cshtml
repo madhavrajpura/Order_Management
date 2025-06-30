@@ -13,41 +13,71 @@
     <div class="table-main-div table-responsive p-3 bg-white shadow-lg"
         style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
 
-        <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 pb-5">
+        <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 pb-3">
             <div class="h-100 w-25">
                 <input type="text" class="form-control p-3 h-100 d-inline border" id="searchbtn"
-                    placeholder="Search by Price, ID" />
+                    placeholder="Search by Price, No" />
             </div>
 
             <!-- User Filter Dropdown -->
             <div class="form-floating w-25">
-                <select id="UserFilter" class="form-select p-2">
-                    <option value="">All Users</option>
+                <select id="UserFilter" class="form-select">
+                    <option value="All">All Users</option>
                 </select>
+                <label>Filter by User</label>
             </div>
 
             <!-- Status Filter Dropdown -->
             <div class="form-floating w-25">
-                <select id="Status" class="form-select p-2">
-                    <option value="">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="delivered">Delivered</option>
+                <select id="Status" class="form-select">
+                    <option value="All">All</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Delivered">Delivered</option>
                 </select>
+                <label>Status</label>
             </div>
 
             <button class="solid-btn p-3 h-100 rounded border-0 text-nowrap" id="exportBtn" onclick="ExportBtn()">
                 <i class="fa-solid fa-share-from-square"></i> Export
             </button>
         </div>
+        <!-- Custom Date filter -->
+        <div class="d-flex flex-lg-row flex-column justify-content-between col pb-3">
+            <div class="fw-bold text-heading col-xl-6 col-lg-4"></div>
+            <div class="d-flex flex-sm-row flex-column justify-content-end align-items-center gap-2 col-xl-6 col-lg-8">
+                <div class="form-floating w-100">
+                    <input type="date" class="form-control" id="from-order-date" placeholder="dd-mm-yyyy" />
+                    <label>From Date</label>
+                </div>
+                <div class="form-floating w-100">
+                    <input type="date" class="form-control" id="to-order-date" placeholder="dd-mm-yyyy" />
+                    <label>To Date</label>
+                </div>
+                <button class="solid-btn p-3 px-4 h-100 rounded border-0 text-nowrap" id="search-order-btn">
+                    Search
+                </button>
+                <button class="hollow-btn p-3 px-4 border-0 h-100 rounded text-nowrap" id="clear-order-btn">
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex flex-lg-row flex-column justify-content-end col pb-4">
+            <button class="btn solid-btn" id="MarkAllBtn" title="Mark All As Complete" data-bs-toggle="modal"
+                data-bs-target="#MarkAllOrderModal" disabled><i
+                    class="bi bi-check2-all fs-4 pe-2 cursorPointer"></i>Mark all as Complete</button>
+        </div>
 
         <!-- Start Item List -->
-        <div class="container-fluid p-0 pe-md-4 pe-3">
-            <div class="table-main-div table-responsive p-3 bg-white ms-md-4 ms-3 me-0 shadow-lg"
+        <div class="container-fluid p-0">
+            <div class="table-main-div table-responsive p-3 bg-white me-0 shadow-lg"
                 style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
                 <table id="table" class="table">
                     <thead>
                         <tr class="border border-top-0 border-end-0 border-start-0 border-dark">
-                            <th scope="col" class="fw-bold text-start text-nowrap">Order ID # <i
+                            <th scope="col" class="fw-bold text-start text-nowrap"><input
+                                    class="form-check-input mt-0 me-3 fs-5" type="checkbox" id="order-main-checkbox"
+                                    onclick="MainCheckboxSelect()">Order No # <i
                                     class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-id" data-column="ID"
                                     data-direction="asc"></i>
                             <th scope="col" class="fw-bold text-start text-nowrap">Customer Name <i
@@ -68,7 +98,7 @@
                 </table>
             </div>
 
-            <div class="pagination-main-div shadow d-flex justify-content-end gap-2 p-3 pt-0 bg-white ps-3 ms-md-4 ms-3 pe-3"
+            <div class="pagination-main-div shadow d-flex justify-content-end gap-2 p-3 pt-0 bg-white ps-3  pe-3"
                 style="border-bottom-right-radius: 10px; border-bottom-left-radius: 10px;">
                 <span class="pt-2">Items Per page:</span>
                 <select id="itemselect">
@@ -78,11 +108,39 @@
                 </select>
                 <span class="pt-2 ps-1" id="pagination-info"></span>
                 <button id="left-arrow" class="btn border border-dark bg-light ps-2">
-                    <</button>
-                        <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
+                    <i class="fa-solid fa-angle-left"></i></button>
+                <button id="right-arrow" class="btn border border-dark bg-light ps-2"><i
+                        class="fa-solid fa-angle-right"></i></button>
             </div>
         </div>
         <!-- End Item List -->
+    </div>
+</div>
+
+
+<!-- Modals -->
+
+<!-- Mark Order Status Modal-->
+<div id="MarkAllOrderModal" class="modal fade" tabindex="-1" aria-labelledby="exampleModalLabel"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-secondary">Mark All Order Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="d-flex justify-content-center pt-2 pb-2">
+                <i class="fa-solid fa-triangle-exclamation fa-3x text-warning"></i>
+            </div>
+            <p class="fw-semibold text-secondary text-center mb-3 ps-2 pe-2">Are you sure you want to mark all this
+                Orders as Completed?
+            </p>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="submit" class="btn solid-btn" id="MarkAllOrderModal_YesButton"
+                    data-bs-dismiss="modal">Yes</button>
+                <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">No</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -96,6 +154,9 @@
         let sortDirection = "asc";
         let Status = $("#Status").val();
         let userId = "";
+        let fromDate = "";
+        let toDate = "";
+        const today = new Date().toISOString().split('T')[0];
 
         // Function to load users into dropdown
         function loadUsers() {
@@ -116,11 +177,11 @@
         }
 
         // Function to Load Orders 
-        function LoadOrders(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc", Status = "", userId = "") {
+        function LoadOrders(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc", Status = "", userId = "", fromDate = "", toDate = "") {
             $.ajax({
                 url: "/Admin/GetOrderList",
                 type: "GET",
-                data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status, userId },
+                data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate },
                 success: function (data) {
                     $("#OrderTableBody").html(data);
                     currentPage = page;
@@ -138,15 +199,16 @@
             });
         }
 
-        function markAsDelivered(orderId) {
+        // Function to Mark Order as delievered
+        function UpdateOrderStatus(orderId) {
             $.ajax({
-                url: "/Admin/MarkOrderStatus",
-                type: "GET",
+                url: "/Admin/UpdateOrderStatus",
+                type: "Post",
                 data: { orderId: orderId },
                 success: function (data) {
                     if (data.success) {
                         callSuccessToaster(data.text);
-                        LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                        LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
                     } else {
                         callErrorToaster(data.text);
                     }
@@ -157,26 +219,132 @@
             });
         }
 
+        // Orders Main checkbox tick  
+        function MainCheckboxSelect() {
+            var main_checkbox = document.getElementById("order-main-checkbox");
+            var sub_checkboxes = document.getElementsByClassName("order-sub-checkbox");
+            var MarkAllOrdersBtn = document.getElementById("#MarkAllBtn");
+            if (main_checkbox.checked) {
+                for (i = 0; i < sub_checkboxes.length; i++) {
+                    sub_checkboxes[i].checked = true;
+                }
+            }
+            if (!main_checkbox.checked) {
+                for (i = 0; i < sub_checkboxes.length; i++) {
+                    sub_checkboxes[i].checked = false;
+                }
+            }
+            toggleMarkAllBtn();
+        }
+
+        // Toggle Mass Delete Button for Orders
+        function toggleMarkAllBtn() {
+            var sub_checkboxes = document.getElementsByClassName("order-sub-checkbox");
+            var MarkAllOrdersBtn = document.getElementById("MarkAllBtn");
+            var anyChecked = false;
+
+            for (i = 0; i < sub_checkboxes.length; i++) {
+                if (sub_checkboxes[i].checked) {
+                    anyChecked = true;
+                    break;
+                }
+            }
+            MarkAllOrdersBtn.disabled = !anyChecked;
+        }
+
+        // Apply Toggle on sub_checkboxes of Orders
+        document.addEventListener('DOMContentLoaded', (event) => {
+            var sub_checkboxes = document.getElementsByClassName("order-sub-checkbox");
+            for (i = 0; i < sub_checkboxes.length; i++) {
+                sub_checkboxes[i].addEventListener('change', toggleMarkAllBtn);
+            }
+        });
+
+        // Checkbox tick Manage  
+        function CheckBoxTickManage() {
+            var main_checkbox = document.getElementById("order-main-checkbox");
+            var sub_checkboxes = document.getElementsByClassName("order-sub-checkbox");
+            flag = true;
+            for (i = 0; i < sub_checkboxes.length; i++) {
+                if (!sub_checkboxes[i].checked) {
+                    flag = false;
+                }
+            }
+            main_checkbox.checked = flag
+            toggleMarkAllBtn();
+        }
+
+        // Export to Excel Function
+        function ExportBtn() {
+            searchText = $("#searchbtn").val().trim();
+            Status = $("#Status").val();
+            fromDate = $("#from-order-date").val();
+            toDate = $("#to-order-date").val();
+            userId = $("#UserFilter").val();
+            $.ajax({
+                url: "/Admin/ExportOrderDataToExcel",
+                type: "GET",
+                data: { search: searchText, Status, userId, fromDate, toDate },
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function (data, status, xhr) {
+                    let filename = "Orders.xlsx";
+
+                    let disposition = xhr.getResponseHeader('Content-Disposition');
+
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        let matches = /filename="([^"]+)"/.exec(disposition);
+                        if (matches !== null && matches[1]) filename = matches[1];
+                    }
+
+                    let blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') });
+                    let link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    let text = "Excel Exported Successfully"
+                    callSuccessToaster(text);
+                },
+                error: function (xhr, status, error) {
+                    let Text = "Failed to Export Excel"
+                    callErrorToaster(Text);
+                }
+            });
+        }
+
+        // READY
         $(document).ready(function () {
 
             // Load users on page load
             loadUsers();
 
             // Initial table load
-            LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+            LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
+
+            document.getElementById('from-order-date').addEventListener('keydown', function (event) {
+                event.preventDefault();
+            });
+
+            document.getElementById('to-order-date').addEventListener('keydown', function (event) {
+                event.preventDefault();
+            });
 
             // Search
             $("#searchbtn").on("keyup", function () {
                 searchText = $(this).val().trim();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
 
             // Right arrow
             $("#right-arrow").on("click", function () {
                 if (!$(this).prop("disabled")) {
                     currentPage++;
-                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
                 }
             });
 
@@ -184,7 +352,7 @@
             $("#left-arrow").on("click", function () {
                 if (!$(this).prop("disabled")) {
                     currentPage--;
-                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
                 }
             });
 
@@ -192,7 +360,7 @@
             $("#itemselect").on("change", function () {
                 pageSize = $(this).val();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
 
             // Sorting By ID
@@ -200,7 +368,7 @@
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
 
             // Sorting By Customer Name
@@ -208,16 +376,15 @@
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
-
 
             // Sorting By Date
             $("#sortable-date").on("click", function () {
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
 
             // Sorting By Amount
@@ -225,22 +392,130 @@
                 sortColumn = $(this).data("column");
                 sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
                 $(this).attr("data-direction", sortDirection);
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
 
             // Order Status
             $("#Status").on("change", function () {
                 Status = $(this).val();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
 
             // User filter
             $("#UserFilter").on("change", function () {
                 userId = $(this).val();
                 currentPage = 1;
-                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId);
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
             });
+
+            // Search Order Date
+            $("#search-order-btn").on("click", function () {
+                fromDate = $("#from-order-date").val();
+                toDate = $("#to-order-date").val();
+                currentPage = 1;
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
+            });
+
+            // Clear Order Date
+            $("#clear-order-btn").on("click", function () {
+                $("#from-order-date").val("");
+                $("#to-order-date").val("");
+                $("#searchbtn").val("");
+                $("#Status").val("");
+                $("#UserFilter").val("");
+                searchText = "";
+                fromDate = "";
+                toDate = "";
+                Status = "";
+                userId = "";
+                currentPage = 1;
+                LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
+
+            });
+
+            @* // From Date of Order
+            $("#from-order-date").on("change", function () {
+                fromDate = document.getElementById("from-order-date").value;
+                toDate = document.getElementById("to-order-date").value;
+                if (toDate == "") return
+                if (toDate < fromDate) {
+                    callErrorToaster("To-date should be greater than From-date. Reset To-date");
+                    document.getElementById("to-order-date").value = "";
+                }
+            });
+
+            // To Date of Order
+            $("#to-order-date").on("change", function () {
+                fromDate = document.getElementById("from-order-date").value;
+                toDate = document.getElementById("to-order-date").value;
+                if (toDate < fromDate) {
+                    callErrorToaster("To-date should be greater than From-date. Reset To-date");
+                    document.getElementById("to-order-date").value = "";
+                }
+            }) *@
+
+            // From Date
+            $('#from-order-date').on('change', function () {
+                let fromDateValue = $(this).val();
+                if (fromDateValue) {
+                    $('#to-order-date').attr('min', fromDateValue);
+                    if ($('#to-order-date').val() < fromDateValue) {
+                        $('#to-order-date').val(fromDateValue);
+                    }
+                } else {
+                    $('#to-order-date').removeAttr('min');
+                }
+            });
+
+            // To Date
+            $('#to-order-date').on('change', function () {
+                let toDateValue = $(this).val();
+                if (toDateValue) {
+                    $('#from-order-date').attr('max', toDateValue);
+                    if ($('#from-order-date').val() > toDateValue) {
+                        $('#from-order-date').val(toDateValue);
+                    }
+                } else {
+                    $('#from-order-date').attr('max', today);
+                }
+            });
+
+            $('#from-order-date').attr('max', today);
+            $('#to-order-date').attr('max', today);
+
+            // Mark All Order Status Modal Yes Button 
+            $(document).on("click", "#MarkAllOrderModal_YesButton", function () {
+
+                var sub_checkboxes = document.getElementsByClassName("order-sub-checkbox");
+
+                for (i = 0; i < sub_checkboxes.length; i++) {
+                    if (sub_checkboxes[i].checked) {
+
+                        let orderId = sub_checkboxes[i].getAttribute("data-checkid");
+                        $.ajax({
+                            url: `/Admin/UpdateOrderStatus?orderId=${orderId}`,
+                            type: "POST",
+                            success: function (data) {
+                                if (data.success) {
+                                    callSuccessToaster(data.text);
+                                    $("#MarkAllBtn").prop("disabled", true);
+                                    currentPage = 1;
+                                    LoadOrders(currentPage, searchText, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate);
+                                }
+                                else {
+                                    callErrorToaster(data.text);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
         });
+        // End of READY
+
+
+
     </script>
 }

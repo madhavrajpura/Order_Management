@@ -11,8 +11,9 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using Rotativa.AspNetCore;
+using Item_Order_Management.MiddleWare;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 
 string logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Exception_Logs", "Exception_Log.txt");
 
@@ -83,7 +84,7 @@ builder.Services.AddAuthentication(x =>
         OnMessageReceived = context =>
         {
             // Check for the token in cookies
-            var token = context.Request.Cookies["JWTToken"];
+            string? token = context.Request.Cookies["JWTToken"];
             if (!string.IsNullOrEmpty(token))
             {
                 context.Token = token;
@@ -94,13 +95,13 @@ builder.Services.AddAuthentication(x =>
         {
             // Redirect to login page when unauthorized 
             context.HandleResponse();
-            context.Response.Redirect("/Authentication/Login");
+            context.Response.Redirect("/Error/Unauthorized");
             return Task.CompletedTask;
         },
         OnForbidden = context =>
         {
             // Redirect to login when access is forbidden (403)
-            context.Response.Redirect("/Authentication/Login");
+            context.Response.Redirect("/Error/Forbidden");
             return Task.CompletedTask;
         }
     };
@@ -110,12 +111,12 @@ builder.Services.AddAuthentication(x =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-var app = builder.Build();
+WebApplication? app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Authentication/Login");
+    app.UseExceptionHandler("/Error/InternalServerError");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
@@ -126,11 +127,15 @@ app.UseStaticFiles();
 
 app.UseRotativa();
 
+app.UseMiddleware<ExceptionHandler>();
+
 app.UseRouting();
 
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseStatusCodePagesWithReExecute("/Error/HandleError/{0}");
 
 app.MapControllerRoute(
     name: "default",

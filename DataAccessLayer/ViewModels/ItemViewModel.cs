@@ -12,20 +12,15 @@ public class ItemViewModel
     public string ItemName { get; set; } = null!;
 
     [Required(ErrorMessage = " Price is required")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
+    [Range(0.01, 99999999.99, ErrorMessage = "Price must be greater than zero")] // Change here
     public decimal Price { get; set; }
-    
+
+    [Required(ErrorMessage = "Details is required")]
+    [StringLength(400, ErrorMessage = "Details cannot exceed 400 characters.")]
     public string? Details { get; set; }
-
-    [Required(ErrorMessage = "Thumbnail image is required.")]
     public string? ThumbnailImageUrl { get; set; } = null!;
-
-    [Required(ErrorMessage = "Thumbnail image is required.")]
     public IFormFile? ThumbnailImageFile { get; set; } = null!;
     public List<string>? AdditionalImagesUrl { get; set; } = new List<string>();
-
-    [Required(ErrorMessage = "You can upload atmost 5 additional images.")]
     public List<IFormFile>? AdditionalImagesFile { get; set; } = new List<IFormFile>();
-
     public DateTime CreatedAt { get; set; }
 }

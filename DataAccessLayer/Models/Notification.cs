@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,7 +18,8 @@ public class Notification
     public string Message { get; set; }
 
     [Required]
-    [Column("CreatedAt")]
+    [Column("CreatedAt", TypeName = "timestamp without time zone")]
+    [DefaultValue("now()")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     [Required]
@@ -27,6 +29,7 @@ public class Notification
 
     [Required]
     [Column("IsActive")]
+    [DefaultValue("true")]
     public bool IsActive { get; set; } = true;
 
     public virtual User User { get; set; } = null!;

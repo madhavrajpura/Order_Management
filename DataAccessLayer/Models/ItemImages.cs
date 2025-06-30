@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -22,14 +23,15 @@ public class ItemImages
 
     [Required]
     [Column("IsThumbnail")]
-
+    [DefaultValue("false")]
     public bool IsThumbnail { get; set; } = false;
 
     [Required]
-    [Column("CreatedAt")]
+    [Column("CreatedAt", TypeName = "timestamp without time zone")]
+    [DefaultValue("now()")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    [Column("UpdatedAt")]
+    [Column("UpdatedAt", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedAt { get; set; }
 
     [Required]

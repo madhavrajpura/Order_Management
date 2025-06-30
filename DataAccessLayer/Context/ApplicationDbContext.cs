@@ -131,39 +131,39 @@ public class ApplicationDbContext : DbContext
         //     .OnDelete(DeleteBehavior.Restrict)
         //     .IsRequired(false);
 
-        modelBuilder.Entity<User>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-        modelBuilder.Entity<User>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<User>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<User>().Property(p => p.IsDelete).HasDefaultValue(false);
+        // modelBuilder.Entity<User>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        // modelBuilder.Entity<User>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<User>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<User>().Property(p => p.IsDelete).HasDefaultValue(false);
 
-        modelBuilder.Entity<Item>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-        modelBuilder.Entity<Item>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<Item>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<Item>().Property(p => p.IsDelete).HasDefaultValue(false);
+        // modelBuilder.Entity<Item>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        // modelBuilder.Entity<Item>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<Item>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<Item>().Property(p => p.IsDelete).HasDefaultValue(false);
 
-        modelBuilder.Entity<Order>().Property(p => p.OrderDate).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-        modelBuilder.Entity<Order>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<Order>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<Order>().Property(p => p.DeliveryDate).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<Order>().Property(p => p.IsDelete).HasDefaultValue(false);
-        modelBuilder.Entity<Order>().Property(p => p.IsDelivered).HasDefaultValue(false);
+        // modelBuilder.Entity<Order>().Property(p => p.OrderDate).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        // modelBuilder.Entity<Order>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<Order>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<Order>().Property(p => p.DeliveryDate).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<Order>().Property(p => p.IsDelete).HasDefaultValue(false);
+        // modelBuilder.Entity<Order>().Property(p => p.IsDelivered).HasDefaultValue(false);
 
-        modelBuilder.Entity<OrderItem>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-        modelBuilder.Entity<OrderItem>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<OrderItem>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<OrderItem>().Property(p => p.IsDelete).HasDefaultValue(false);
+        // modelBuilder.Entity<OrderItem>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        // modelBuilder.Entity<OrderItem>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<OrderItem>().Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<OrderItem>().Property(p => p.IsDelete).HasDefaultValue(false);
 
-        modelBuilder.Entity<Notification>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-        modelBuilder.Entity<Notification>().Property(p => p.IsActive).HasDefaultValue(true);
+        // modelBuilder.Entity<Notification>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+        // modelBuilder.Entity<Notification>().Property(p => p.IsActive).HasDefaultValue(true);
 
-        modelBuilder.Entity<UserNotification>().Property(p => p.ReadAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<UserNotification>().Property(p => p.IsRead).HasDefaultValue(true);
+        // modelBuilder.Entity<UserNotification>().Property(p => p.ReadAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<UserNotification>().Property(p => p.IsRead).HasDefaultValue(false);
 
-        modelBuilder.Entity<ItemImages>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<ItemImages>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<ItemImages>().Property(p => p.IsThumbnail).HasDefaultValue(false);
+        // modelBuilder.Entity<ItemImages>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<ItemImages>().Property(p => p.UpdatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<ItemImages>().Property(p => p.IsThumbnail).HasDefaultValue(false);
 
-        modelBuilder.Entity<WishList>().Property(p => p.LikedAt).HasColumnType("timestamp without time zone");
-        modelBuilder.Entity<Cart>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<WishList>().Property(p => p.LikedAt).HasColumnType("timestamp without time zone");
+        // modelBuilder.Entity<Cart>().Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
     }
 }

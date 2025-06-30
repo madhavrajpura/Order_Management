@@ -21,8 +21,9 @@ public class ItemsController : Controller
     public readonly IWishListService _wishListService;
     public readonly ICartService _cartService;
     public readonly IOrderService _orderService;
+    public readonly INotificationService _notificationService;
 
-    public ItemsController(IItemsService itemService, IJWTService jwtService, IUserService userService, IWishListService wishListService, ICartService cartService, IOrderService orderService)
+    public ItemsController(IItemsService itemService, IJWTService jwtService, IUserService userService, IWishListService wishListService, ICartService cartService, IOrderService orderService, INotificationService notificationService)
     {
         _itemService = itemService;
         _jwtService = jwtService;
@@ -30,39 +31,55 @@ public class ItemsController : Controller
         _wishListService = wishListService;
         _cartService = cartService;
         _orderService = orderService;
+        _notificationService = notificationService;
     }
 
     #region Dashboard Content
 
     public IActionResult Dashboard()
     {
-        if (Request.Cookies.ContainsKey("JWTToken"))
-        {
-            string? token = Request.Cookies["JWTToken"];
-            var claims = _jwtService.GetClaimsFromToken(token!);
-            if (claims != null)
-            {
-                return View();
-            }
-            TempData["ErrorMessage"] = NotificationMessage.TokenExpired;
-            return RedirectToAction("Login", "Authentication");
-        }
-        return RedirectToAction("Login", "Authentication");
+        return View();
     }
 
     [HttpGet]
     public IActionResult GetItemList(int pageNumber = 1, string search = "", int pageSize = 10, string sortColumn = "ID", string sortDirection = "asc")
     {
-        var itemList = _itemService.GetItemList(pageNumber, search, pageSize, sortColumn, sortDirection);
+        PaginationViewModel<ItemViewModel>? itemList = _itemService.GetItemList(pageNumber, search, pageSize, sortColumn, sortDirection);
         return PartialView("_ItemList", itemList);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetUserNavbarData()
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var CartItems = await _cartService.GetCartItems(UserId);
-        return PartialView("_UserNavbar", CartItems);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        NotificationCartViewModel CombinedVM = new NotificationCartViewModel();
+        CombinedVM.CartListVM = await _cartService.GetCartItems(UserId);
+        CombinedVM.NotificationListVM = _notificationService.GetNotificationsById(UserId);
+        return PartialView("_UserNavbar", CombinedVM);
+    }
+
+    #endregion
+
+    #region Notification
+
+    [HttpPost]
+    public async Task<IActionResult> MarkAsRead(int userNotificationId)
+    {
+        await _notificationService.MarkNotificationAsRead(userNotificationId);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        NotificationCartViewModel CombinedVM = new NotificationCartViewModel();
+        CombinedVM.NotificationListVM = _notificationService.GetNotificationsById(UserId);
+        return PartialView("_UserNotificationList", CombinedVM);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> MarkAllAsRead()
+    {
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        await _notificationService.MarkAllNotificationsAsRead(UserId);
+        NotificationCartViewModel CombinedVM = new NotificationCartViewModel();
+        CombinedVM.NotificationListVM = _notificationService.GetNotificationsById(UserId);
+        return PartialView("_UserNotificationList", CombinedVM);
     }
 
     #endregion
@@ -72,7 +89,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> Wishlist()
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<WishListViewModel>? wishlistItems = await _wishListService.GetUserWishlist(UserId);
         return View(wishlistItems);
     }
@@ -80,7 +97,7 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> ToggleWishlistItem(int itemId)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         bool result = await _wishListService.ToggleWishlistItem(UserId, itemId);
         return Json(new { success = true, isFavourite = result });
     }
@@ -88,7 +105,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> IsItemInWishlist(int itemId)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         bool isFavourite = await _wishListService.IsItemInWishlist(UserId, itemId);
         return Json(new { isFavourite });
     }
@@ -100,7 +117,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> Cart()
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return View(cartItems);
     }
@@ -108,7 +125,7 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> AddToCart(int itemId, int quantity = 1)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         ItemViewModel? item = _itemService.GetItemById(itemId);
         if (item == null) return Json(new { success = false, message = "Item not found" });
 
@@ -123,7 +140,7 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> GetCartItems()
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return PartialView("_CartItems", cartItems);
     }
@@ -131,7 +148,7 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> RemoveFromCart(int cartId)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cartService.RemoveFromCart(cartId, UserId);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
         return PartialView("_CartItems", cartItems);
@@ -140,24 +157,24 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> UpdateCartQuantity(int cartId, int quantity)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         if (quantity < 1)
         {
             return Json(new { success = false, message = "Quantity must be at least 1" });
         }
-        var result = await _cartService.UpdateCartQuantity(cartId, UserId, quantity);
+        bool result = await _cartService.UpdateCartQuantity(cartId, UserId, quantity);
         if (result)
         {
-            return Json(new { success = true, message = "Quantity updated successfully" });
+            return Json(new { success = true });
         }
-        return Json(new { success = false, message = "Failed to update quantity" });
+        return Json(new { success = false });
     }
 
     [HttpPost]
     public async Task<IActionResult> AddAllFromWishlistToCart()
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var result = await _cartService.AddAllFromWishlistToCart(UserId);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        bool result = await _cartService.AddAllFromWishlistToCart(UserId);
         if (result)
         {
             return Json(new { success = true, message = "All wishlist items added to cart" });
@@ -168,8 +185,8 @@ public class ItemsController : Controller
     [HttpPost]
     public async Task<IActionResult> BuyNow(int itemId, int quantity = 1)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var result = await _orderService.CreateOrderFromItemAsync(UserId, itemId, quantity);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        bool result = await _orderService.CreateOrderFromItemAsync(UserId, itemId, quantity);
         if (result)
         {
             return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
@@ -184,7 +201,7 @@ public class ItemsController : Controller
     [HttpGet]
     public IActionResult ItemDetails(int itemId)
     {
-        var item = _itemService.GetItemById(itemId);
+         ItemViewModel? item = _itemService.GetItemById(itemId);
         if (item == null)
         {
             TempData["ErrorMessage"] = NotificationMessage.SomethingWentWrong;
@@ -200,17 +217,17 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> Orders()
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var orders = await _orderService.GetUserOrdersAsync(UserId);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        List<OrderViewModel>? orders = await _orderService.GetUserOrdersAsync(UserId);
         return View(orders);
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateOrder(string orderData)
     {
-        var UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         OrderViewModel? orderVM = JsonSerializer.Deserialize<OrderViewModel>(orderData);
-        var result = await _orderService.CreateOrderAsync(UserId, orderVM!);
+        bool result = await _orderService.CreateOrderAsync(UserId, orderVM!);
         if (result)
         {
             return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
@@ -219,9 +236,10 @@ public class ItemsController : Controller
         return Json(new { success = false, message = "Failed to place order" });
     }
 
-    public async Task<IActionResult> GenerateInvoicePDF(int orderid)
+    [HttpGet]
+    public IActionResult GenerateInvoicePDF(int orderid)
     {
-        OrderViewModel? orderDetails = await _orderService.GetOrderDetailById(orderid);
+        OrderViewModel? orderDetails = _orderService.GetOrderDetailById(orderid);
 
         if (orderDetails == null)
         {
@@ -233,11 +251,10 @@ public class ItemsController : Controller
 
         ViewAsPdf PDF = new ViewAsPdf("Invoice", orderDetails)
         {
-            FileName = "OrderInvoice.pdf"
+            FileName = $"OrderInvoice_{orderid}.pdf"
         };
         return PDF;
     }
-
 
     #endregion
 

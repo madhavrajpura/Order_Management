@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -14,7 +15,7 @@ public class OrderItem
 
     [Column("OrderId")]
     public int? OrderId { get; set; }
-    
+
     [Required]
     [Column("ItemId")]
     public int ItemId { get; set; }
@@ -29,18 +30,20 @@ public class OrderItem
 
     [Required]
     [Column("Quantity")]
-    public int Quantity{get; set;}
+    public int Quantity { get; set; }
 
     [Column("IsDelete")]
+    [DefaultValue("false")]
     public bool IsDelete { get; set; } = false;
 
-    [Column("CreatedAt")]
+    [Column("CreatedAt", TypeName = "timestamp without time zone")]
+    [DefaultValue("now()")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    [Column("UpdatedAt")]
+    [Column("UpdatedAt", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedAt { get; set; }
 
-    [Column("DeletedAt")]
+    [Column("DeletedAt", TypeName = "timestamp without time zone")]
     public DateTime? DeletedAt { get; set; }
 
     [Required]
@@ -64,7 +67,7 @@ public class OrderItem
 
     [ForeignKey("ItemId")]
     public virtual Item Items { get; set; } = null!;
-    
+
     [ForeignKey("OrderId")]
-    public virtual Order? Orders {get; set;} = null!;
+    public virtual Order? Orders { get; set; } = null!;
 }

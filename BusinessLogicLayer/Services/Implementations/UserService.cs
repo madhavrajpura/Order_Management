@@ -144,7 +144,7 @@ public class UserService : IUserService
                     UseDefaultCredentials = bool.Parse(_configuration["smtp:UseDefaultCredentials"]),
                     Credentials = new NetworkCredential(senderEmail.Address, password)
                 };
-                using (var mess = new MailMessage(senderEmail, receiverEmail))
+                using (MailMessage? mess = new MailMessage(senderEmail, receiverEmail))
                 {
                     mess.Subject = sub;
                     mess.Body = body;

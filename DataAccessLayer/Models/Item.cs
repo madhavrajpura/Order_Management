@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -24,16 +25,18 @@ public class Item
     public string? Details { get; set; }
 
     [Column("IsDelete")]
+    [DefaultValue("false")]
     public bool IsDelete { get; set; } = false;
 
     [Required]
-    [Column("CreatedAt")]
+    [Column("CreatedAt", TypeName = "timestamp without time zone")]
+    [DefaultValue("now()")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    [Column("UpdatedAt")]
+    [Column("UpdatedAt", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedAt { get; set; }
 
-    [Column("DeletedAt")]
+    [Column("DeletedAt", TypeName = "timestamp without time zone")]
     public DateTime? DeletedAt { get; set; }
 
     [Required]

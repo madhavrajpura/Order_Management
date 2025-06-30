@@ -15,52 +15,38 @@ public class ItemsRepository : IItemsRepository
 
     public IQueryable<ItemViewModel> GetAllItem()
     {
-        try
-        {
-            return _db.Items.Include(item => item.ItemImages)
-                .Where(item => !item.IsDelete)
-                .Select(item => new ItemViewModel
-                {
-                    ItemId = item.Id,
-                    ItemName = item.Name,
-                    Price = item.Price,
-                    CreatedAt = item.CreatedAt,
-                    Details = item.Details,
-                    ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL
-                })
-                .OrderBy(item => item.CreatedAt) ?? Enumerable.Empty<ItemViewModel>().AsQueryable();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetAllItem: {ex.Message}");
-            throw new Exception("Error retrieving items", ex);
-        }
+        return _db.Items.Include(item => item.ItemImages)
+            .Where(item => !item.IsDelete)
+            .Select(item => new ItemViewModel
+            {
+                ItemId = item.Id,
+                ItemName = item.Name,
+                Price = item.Price,
+                CreatedAt = item.CreatedAt,
+                Details = item.Details,
+                ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
+                AdditionalImagesUrl = item.ItemImages.Where(itemImage => !itemImage.IsThumbnail).Select(image => image.ImageURL).ToList()
+            })
+            .OrderBy(item => item.CreatedAt) ?? Enumerable.Empty<ItemViewModel>().AsQueryable();
     }
 
     public ItemViewModel GetItemById(int ItemId)
     {
-        try
-        {
-            return _db.Items.Include(item => item.ItemImages).Where(item => item.Id == ItemId && !item.IsDelete)
-                .Select(item => new ItemViewModel
-                {
-                    ItemId = item.Id,
-                    ItemName = item.Name,
-                    Price = item.Price,
-                    CreatedAt = item.CreatedAt,
-                    Details = item.Details,
-                    ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
-                })
-                .FirstOrDefault() ?? new ItemViewModel();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetItemById: {ex.Message}");
-            throw new Exception("Error retrieving item by ID", ex);
-        }
+        return _db.Items.Include(item => item.ItemImages).Where(item => item.Id == ItemId && !item.IsDelete)
+            .Select(item => new ItemViewModel
+            {
+                ItemId = item.Id,
+                ItemName = item.Name,
+                Price = item.Price,
+                CreatedAt = item.CreatedAt,
+                Details = item.Details,
+                ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
+                AdditionalImagesUrl = item.ItemImages.Where(itemImage => !itemImage.IsThumbnail).Select(image => image.ImageURL).ToList()
+            })
+            .FirstOrDefault() ?? new ItemViewModel();
     }
 
-    public async Task<bool> SaveItem(ItemViewModel itemVM, int UserId)
+    public async Task<bool> SaveItem(ItemViewModel itemVM, int UserId, List<string> NewAdditionalImagesURL)
     {
         if (itemVM == null) return false;
 
@@ -86,12 +72,28 @@ public class ItemsRepository : IItemsRepository
                     ItemImages thumbnailImage = new ItemImages
                     {
                         ItemId = newItem.Id,
-                        ImageURL = itemVM.ThumbnailImageUrl,
+                        ImageURL = itemVM.ThumbnailImageUrl!,
                         IsThumbnail = true,
                         CreatedAt = DateTime.Now,
                         CreatedBy = UserId
                     };
                     await _db.ItemImages.AddAsync(thumbnailImage);
+                }
+
+                if (itemVM.AdditionalImagesFile!.Count != 0)
+                {
+                    foreach (string? AdditionalImages in NewAdditionalImagesURL!)
+                    {
+                        ItemImages thumbnailImage = new ItemImages
+                        {
+                            ItemId = newItem.Id,
+                            ImageURL = AdditionalImages,
+                            IsThumbnail = false,
+                            CreatedAt = DateTime.Now,
+                            CreatedBy = UserId
+                        };
+                        await _db.ItemImages.AddAsync(thumbnailImage);
+                    }
                 }
 
                 await _db.SaveChangesAsync();
@@ -135,6 +137,32 @@ public class ItemsRepository : IItemsRepository
                     }
                 }
 
+                List<ItemImages> ExistingAdditionalImagesDB = await _db.ItemImages.Where(i => i.ItemId == ExistingItem.Id && !i.IsThumbnail).ToListAsync();
+
+                if (ExistingAdditionalImagesDB != null && itemVM.AdditionalImagesUrl != null)
+                {
+                    foreach (ItemImages? existingImageDB in ExistingAdditionalImagesDB)
+                    {
+                        if (!itemVM.AdditionalImagesUrl.Contains(existingImageDB.ImageURL))
+                        {
+                            _db.ItemImages.Remove(existingImageDB);
+                        }
+                    }
+                }
+
+                foreach (string? NewAdditionalImage in NewAdditionalImagesURL)
+                {
+                    ItemImages newImages = new ItemImages
+                    {
+                        ItemId = itemVM.ItemId,
+                        ImageURL = NewAdditionalImage,
+                        IsThumbnail = false,
+                        CreatedAt = DateTime.Now,
+                        CreatedBy = UserId
+                    };
+                    await _db.ItemImages.AddAsync(newImages);
+                }
+
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
@@ -149,20 +177,35 @@ public class ItemsRepository : IItemsRepository
 
     public async Task<bool> DeleteItem(int ItemId, int UserId)
     {
+        using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
             Item? item = await _db.Items.FirstOrDefaultAsync(item => item.Id == ItemId && !item.IsDelete);
 
-            if (item != null)
+            if (item == null)
             {
-                item.IsDelete = true;
-                item.DeletedAt = DateTime.Now;
-                item.DeletedBy = UserId;
-                await _db.SaveChangesAsync();
-                return true;
+                return false;
             }
-            return false;
+            item.IsDelete = true;
+            item.DeletedAt = DateTime.Now;
+            item.DeletedBy = UserId;
+            _db.Items.Update(item);
+            await _db.SaveChangesAsync();
 
+            List<ItemImages>? itemImages = await _db.ItemImages.Where(i => i.ItemId == ItemId && !item.IsDelete).ToListAsync();
+
+            if (itemImages == null)
+            {
+                return false;
+            }
+
+            foreach (ItemImages? Images in itemImages)
+            {
+                _db.ItemImages.Remove(Images);
+            }
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
         }
         catch (Exception ex)
         {
@@ -173,16 +216,8 @@ public class ItemsRepository : IItemsRepository
 
     public async Task<bool> CheckItemExists(ItemViewModel itemVM)
     {
-        try
-        {
-            if (itemVM.ItemId == 0) return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete);
-            return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete && x.Id != itemVM.ItemId);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in CheckItemExists: {ex.Message}");
-            throw new Exception("Error checking item existence", ex);
-        }
+        if (itemVM.ItemId == 0) return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete);
+        return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete && x.Id != itemVM.ItemId);
     }
 
     #endregion

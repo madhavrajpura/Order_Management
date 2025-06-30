@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -24,7 +25,8 @@ public class Cart
     public int Quantity { get; set; }
 
     [Required]
-    [Column("CreatedAt")]
+    [Column("CreatedAt",TypeName = "timestamp without time zone")]
+    [DefaultValue("now()")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     [ForeignKey("UserId")]

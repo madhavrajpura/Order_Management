@@ -87,8 +87,14 @@
             <!-- Update & Cancel Buttons -->
             <div class="d-flex justify-content-end gap-2">
                 <button type="submit" class="btn solid-btn">Update</button>
-                <a asp-action="Dashboard" asp-controller="Items" type="button"
-                    class="btn btn-light hollow-btn">Cancel</a>
+                @if (User.IsInRole("User"))
+                {
+                    <a asp-action="Dashboard" asp-controller="Items" class="btn hollow-btn">Cancel</a>
+                }
+                else
+                {
+                    <a asp-action="Dashboard" asp-controller="Admin" class="btn hollow-btn">Cancel</a>
+                }
             </div>
         </div>
     </form>

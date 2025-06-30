@@ -14,7 +14,7 @@ public class NotificationRepository : INotificationRepository
 
     public List<NotificationViewModel> GetNotificationsById(int UserId)
     {
-        var data = _db.UserNotifications
+        List<NotificationViewModel>? data = _db.UserNotifications
                     .Include(un => un.Notification)
                     .Where(n => n.UserId == UserId && !n.IsRead && n.Notification.IsActive)
                     .Select(n => new NotificationViewModel
@@ -36,7 +36,7 @@ public class NotificationRepository : INotificationRepository
 
     public async Task<bool> MarkNotificationAsRead(int userNotificationId)
     {
-        var notification = await _db.UserNotifications.FindAsync(userNotificationId);
+        UserNotification? notification = await _db.UserNotifications.FindAsync(userNotificationId);
         if (notification != null)
         {
             notification.IsRead = true;
@@ -49,14 +49,14 @@ public class NotificationRepository : INotificationRepository
 
     public async Task<bool> MarkAllNotificationsAsRead(int userId)
     {
-        var notifications = _db.UserNotifications
+        IQueryable<UserNotification>? notifications = _db.UserNotifications
             .Where(n => n.UserId == userId && !n.IsRead);
         if (!notifications.Any())
         {
             return false;
         }
 
-        foreach (var notification in notifications)
+        foreach ( UserNotification? notification in notifications)
         {
             notification.IsRead = true;
             notification.ReadAt = DateTime.Now;

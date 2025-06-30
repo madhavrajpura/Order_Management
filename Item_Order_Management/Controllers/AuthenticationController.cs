@@ -163,7 +163,7 @@ public class AuthenticationController : Controller
             if (sendEmail)
             {
                 TempData["SuccessMessage"] = NotificationMessage.EmailSentSuccessfully;
-                return RedirectToAction("Login","Authentication");
+                return RedirectToAction("Login", "Authentication");
             }
             else
             {
@@ -174,7 +174,7 @@ public class AuthenticationController : Controller
         TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
         return View("ForgotPassword");
     }
-    
+
     #endregion
 
     #region ResetPassword
@@ -187,7 +187,7 @@ public class AuthenticationController : Controller
         if (Db_Password == reset_password)
         {
             ResetPasswordViewModel resetPassData = new ResetPasswordViewModel();
-            resetPassData.Email = _jwtService.GetClaimValue(reset_token, "email") ?? string.Empty;
+            resetPassData.Email = reset_email;
             return View(resetPassData);
         }
         TempData["ErrorMessage"] = NotificationMessage.ResetPasswordChangedError;
@@ -224,7 +224,7 @@ public class AuthenticationController : Controller
         }
         return View("ResetPassword");
     }
-    
+
     #endregion
 
 }

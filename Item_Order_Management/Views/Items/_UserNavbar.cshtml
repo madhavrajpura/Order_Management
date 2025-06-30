@@ -1,6 +1,6 @@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @using DataAccessLayer.ViewModels
-@model List<CartViewModel>;
+@model NotificationCartViewModel;
 
 <!-- Navbar Content  -->
 <div class="container-fluid p-3 d-sm-flex justify-content-sm-between flex-column flex-lg-row shadow bg-white">
@@ -9,7 +9,7 @@
     <div class="d-sm-flex align-items-center flex-column flex-lg-row">
         <span class="fs-2 fw-bold custom-text-color pe-5">Item Order Management</span>
         <a class="fs-5 text-decoration-none hollow-btn rounded p-2 pt-1 pb-1 me-5" asp-action="Dashboard"
-            asp-controller="Items">Items</a>
+            asp-controller="Items">Dashboard</a>
         <a class="fs-5 text-decoration-none hollow-btn rounded p-2 pt-1 pb-1 me-5" asp-action="Orders"
             asp-controller="Items">My Orders</a>
         <a class="fs-5 text-decoration-none hollow-btn rounded p-2 pt-1 pb-1 " asp-action="WishList"
@@ -19,18 +19,49 @@
 
         <!-- My Cart -->
         <div class="p-2 pe-4">
-            <a class="fs-5 text-decoration-none hollow-btn rounded p-2" asp-action="Cart" asp-controller="Items"><i
-                    class="fa-solid fa-cart-plus fs-4 pe-2"></i>My Cart</a>
-            @if (Model.Any())
-            {
-                <div class="Cart_Notify bg-danger rounded-circle text-white"><span class="ms-1">@Model.Count</span></div>
-            }
+            <a class="btn text-decoration-none hollow-btn position-relative" asp-action="Cart" asp-controller="Items">
+                <i class="fa-solid fa-cart-plus fs-4 pe-2"></i>My Cart
+                @if (Model.CartListVM.Any())
+                {
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        @Model.CartListVM.Count
+                        <span class="visually-hidden">unread messages</span>
+                    </span>
+                }
+            </a>
+        </div>
+
+        <!-- User Notification -->
+        <div class="p-2 pe-3">
+            <div class="dropdown me-3">
+                <a class="btn dropdown text-decoration-none hollow-btn position-relative" type="button"
+                    id="dropdownMenuButton2" data-bs-toggle="dropdown" title="My Notification" aria-expanded="false">
+                    <i class="fa-regular fa-bell fs-4"></i>
+                    @if (Model.NotificationListVM.Any())
+                    {
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            @Model.NotificationListVM.Count
+                            <span class="visually-hidden">unread messages</span>
+                        </span>
+                    }
+                </a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <div class="d-flex border border-bottom-black border-top-0 pb-2 fw-bold p-1 ps-2">
+                            New Notifications(@Model.NotificationListVM.Count)
+                        </div>
+                    </li>
+                    <li class="dropdown-menu" id="notificationDropdowns">
+                        <partial name="_UserNotificationList" model="Model" />
+                    </li>
+                </ul>
+            </div>
         </div>
 
         <!-- Profile Picture -->
         <div class="dropdown me-3">
             <a class="btn dropdown p-0" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown"
-                aria-expanded="false">
+                title="My Profile" aria-expanded="false">
                 @if (HttpContextAccessor.HttpContext?.Request.Cookies["ProfileImage"] == null)
                 {
                     <i class="fa-solid fa-circle-user fs-1 custom-text-color rounded-circle"
@@ -39,7 +70,7 @@
                 else
                 {
                     <img src="@(HttpContextAccessor.HttpContext?.Request.Cookies["ProfileImage"])"
-                        class="ms-3 rounded-circle" width="45px" height="45px"
+                        class="ms-3 rounded-circle" style="border: 1px solid rgb(18, 110, 110);" width="45px" height="45px"
                         title="@(HttpContextAccessor.HttpContext.Request.Cookies["UserName"])" />
                 }
             </a>
@@ -47,7 +78,8 @@
                 <li>
                     <div class="d-flex border border-bottom-black border-top-0 pb-2">
                         <img src="@(HttpContextAccessor.HttpContext?.Request.Cookies["ProfileImage"])"
-                            class="ms-3 rounded-circle" width="35px" height="35px" />
+                            class="ms-3 rounded-circle" width="35px" height="35px"
+                            style="border: 1px solid rgb(18, 110, 110);" />
                         <div class="fs-6 fw-bold ps-3 align-content-center">
                             @(HttpContextAccessor.HttpContext.Request.Cookies["UserName"])</div>
                     </div>
@@ -65,3 +97,51 @@
         </div>
     </div>
 </div>
+
+<script>
+
+    function LoadUserNavbar() {
+        $.ajax({
+            url: "/Items/GetUserNavbarData",
+            type: "GET",
+            success: function (data) {
+                $("#Navbar").html(data);
+            },
+            error: function () {
+                callErrorToaster("Error loading navbar");
+            }
+        });
+    }
+
+
+    function MarkAsRead(event, tag) {
+        event.stopPropagation();
+        var userNotificationId = tag.getAttribute("data-id");
+        $.ajax({
+            url: "/Items/MarkAsRead",
+            type: "POST",
+            data: { userNotificationId: userNotificationId },
+            success: function (data) {
+                $("#notificationDropdowns").html(data);
+                LoadUserNavbar();
+            },
+            error: function () {
+                callErrorToaster("Error marking notification as read");
+            }
+        });
+    }
+
+    $(document).on("click", ".MarkAllAsRead", function () {
+        $.ajax({
+            url: "/Items/MarkAllAsRead",
+            type: "POST",
+            success: function (data) {
+                $("#notificationDropdowns").html(data);
+                LoadUserNavbar();
+            },
+            error: function () {
+                callErrorToaster("Error marking all notifications as read");
+            }
+        });
+    });
+</script>

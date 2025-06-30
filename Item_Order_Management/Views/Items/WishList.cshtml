@@ -34,13 +34,14 @@
                                     onclick="window.location.href='@Url.Action("ItemDetails", "Items", new { itemId = item.ItemId })'">
                                 <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
                                 <p class="card-text text-dark">Price : <span
-                                        class="text-success fw-bold">₹@item.Price.ToString("F2")</span></p>
+                                        class="text-success fw-bold">@item.Price.ToString("C")</span></p>
                                 <p class="small text-muted truncate-text" title="@item.Details">@item.Details</p>
                                 <div class="mt-3">
                                     <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
                                         <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
                                     </button>
-                                    <button class="btn solid-btn w-100" onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
+                                    <button class="btn solid-btn w-100"
+                                        onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
                                 </div>
                             </div>
                         </div>
@@ -62,6 +63,20 @@
 
 @section Scripts {
     <script>
+
+        function LoadUserNavbar() {
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    callErrorToaster("Error loading navbar");
+                }
+            });
+        }
+
         function toggleWishlist(event, element) {
             event.preventDefault();
             event.stopPropagation();
@@ -79,13 +94,13 @@
 
                             if ($('#wishlistItems .col-12').length === 0) {
                                 $('#wishlist-content').html(`
-                                    <div class="text-center py-5">
-                                        <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
-                                        <h4 class="text-muted">Your wishlist is empty</h4>
-                                        <p class="text-muted">Add items to your wishlist to see them here</p>
-                                        <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Browse Items</a>
-                                    </div>
-                                `);
+                                                    <div class="text-center py-5">
+                                                        <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
+                                                        <h4 class="text-muted">Your wishlist is empty</h4>
+                                                        <p class="text-muted">Add items to your wishlist to see them here</p>
+                                                        <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Browse Items</a>
+                                                    </div>
+                                                `);
                             }
                         });
                     }
@@ -134,7 +149,7 @@
         }
 
         function showBuyNowModal(itemId, itemName, price) {
-            const quantity = 1; 
+            const quantity = 1;
             const orderItems = [{
                 OrderItemId: 0,
                 OrderId: 0,
@@ -145,23 +160,23 @@
             }];
 
             let itemsHtml = `<table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th class="text-nowrap">Item Name</th>
-                                    <th class="text-nowrap">Quantity</th>
-                                    <th class="text-nowrap">Unit Price (₹)</th>
-                                    <th class="text-nowrap">Sub Total (₹)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="text-nowrap">${itemName}</td>
-                                    <td class="text-nowrap">${quantity}</td>
-                                    <td class="text-nowrap">${price.toFixed(2)}</td>
-                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
-                                </tr>
-                            </tbody>
-                        </table>`;
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-nowrap">Item Name</th>
+                                                    <th class="text-nowrap">Quantity</th>
+                                                    <th class="text-nowrap">Unit Price (₹)</th>
+                                                    <th class="text-nowrap">Sub Total (₹)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">${itemName}</td>
+                                                    <td class="text-nowrap">${quantity}</td>
+                                                    <td class="text-nowrap">${price.toFixed(2)}</td>
+                                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>`;
 
             $("#orderItemsList").html(itemsHtml);
             $("#modalTotalAmount").text(`₹${(price * quantity).toFixed(2)}`);

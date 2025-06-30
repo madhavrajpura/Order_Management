@@ -26,7 +26,7 @@
         }
         else if (User.IsInRole("Admin"))
         {
-            <div class="shadow-lg position-fixed w-100" id="AdminNavbar"></div>
+            <div class="shadow-lg position-fixed w-100" id="AdminNavbar" style="z-index: 2;"></div>
         }
     </header>
     <div class="container-fluid p-0">
@@ -90,6 +90,8 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
+
 
     <script>
         $(document).ready(function () {
@@ -111,58 +113,62 @@
                 toastr.error(errorMessage);
             }
 
+            // Load User navbar
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    console.error("Error loading navbar");
+                }
+            });
+
+            // Load Admin navbar
+            $.ajax({
+                url: "/Admin/GetAdminNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#AdminNavbar").html(data);
+                },
+                error: function () {
+                    callErrorToaster("Ajax Error Loading data");
+                }
+            });
+
+            // Show toaster if TempData contains error (normal request)
+            // Global AJAX error catcher
+            $(document).ajaxComplete(function (event, xhr, settings) {
+                if (xhr.getResponseHeader("X-Error") === "true") {
+                    const response = xhr.responseJSON;
+                    if (response && response.error) {
+                        toastr.error(response.error);
+                    } else {
+                        toastr.error('An unexpected error occurred.');
+                    }
+                }
+            });
+
         });
 
-        $(document).ready(function () {
-
-            LoadUserNavbar();
-            LoadAdminNavbar();
-            // Load navbar
-            function LoadUserNavbar() {
-                $.ajax({
-                    url: "/Items/GetUserNavbarData",
-                    type: "GET",
-                    success: function (data) {
-                        $("#Navbar").html(data);
-                    },
-                    error: function () {
-                        console.error("Error loading navbar");
-                    }
-                });
-            }
-
-            function LoadAdminNavbar() {
-                $.ajax({
-                    url: "/Admin/GetAdminNavbarData",
-                    type: "GET",
-                    success: function (data) {
-                        $("#AdminNavbar").html(data);
-                    },
-                    error: function () {
-                        callErrorToaster("Ajax Error Loading data");
-                    }
-                });
-            }
-        });
-    </script>
-
-    <script>
         function AjaxResponseHandler(response) {
             var parser = new DOMParser();
             var doc = parser.parseFromString(response, 'text/html');
             var title = doc.title;
-            console.log(title)
-            if (title === "Login - Item_Order_Management" || title === "Register - Item_Order_Management") {
-                window.location.href = '@Url.Action("Login", "Login")';
-            } else if (title === "Business - Item_Order_Management") {
-                window.location.href = '@Url.Action("Index", "Business")';
+            console.log(title);
+            if (title === "Login - Item_Order_Management") {
+                window.location.href = '@Url.Action("Login", "Authentication")';
             }
-            else if (title === "InternalServerError" || title === "Forbidden" || title === "UnAuthorize" || title === "PageNotFound") {
-                var url = `/ErrorPage/${title}`;
+            else if (title === "User Dashboard - Item_Order_Management") {
+                window.location.href = '@Url.Action("Dashboard", "User")';
+            }
+            else if (title === "InternalServerError" || title === "Forbidden" || title === "Unauthorized" || title === "PageNotFound") {
+                var url = `/Error/${title}`;
                 window.location.href = url;
             }
-            else if (title === "InternalServerError - Item_Order_Management" || title === "Forbidden - Item_Order_Management" || title === "Unauthorize - Item_Order_Management" || title === "PageNotFound - Item_Order_Management") {
-                var url = `/ErrorPage/${title.split(" ")[0].toString().trim()}`;
+            else if (title === "InternalServerError - Item_Order_Management" || title === "Forbidden - Item_Order_Management" || title === "Unauthorized - Item_Order_Management" || title === "PageNotFound - Item_Order_Management") {
+                var url = `/Error/${title.split(" ")[0].toString().trim()}`;
                 window.location.href = url;
             }
             else {
@@ -171,32 +177,17 @@
         }
 
         function IsHtmlDocument(response) {
+
             if (response.statusCode) {
                 return;
             }
+
             if ((response.trim().indexOf('<!DOCTYPE html>') === 0) || (response.trim().indexOf('<html>') === 0)) {
-                AjaxResponseHandle(response);
+                AjaxResponseHandler(response);
             }
         }
 
-        $(document).ready(function () {
-            // 1. Show toaster if TempData contains error (normal request)
 
-            // 2. Global AJAX error catcher
-            $(document).ajaxComplete(function (event, xhr, settings) {
-                if (xhr.getResponseHeader("X-Error") == "true") {
-                    const response = xhr.responseJSON;
-                    if (response && response.error) {
-                        callErrorToaster(response.error);
-                        $('.btn-close').click();
-                    } else {
-                        callErrorToaster('An unexpected error occurred.');
-                        $('.btn-close').click();
-                    }
-                }
-            });
-
-        });
     </script>
 
     <partial name="_Toaster" />

@@ -17,7 +17,7 @@ public class WishlistRepository : IWishlistRepository
 
     public async Task<bool> ToggleWishlistItem(int userId, int itemId)
     {
-        var existing = await _db.WishLists
+         WishList? existing = await _db.WishLists
             .FirstOrDefaultAsync(w => w.LikedBy == userId && w.ItemId == itemId);
 
         if (existing != null)
@@ -51,7 +51,7 @@ public class WishlistRepository : IWishlistRepository
                 ItemName = w.Item.Name,
                 Price = w.Item.Price,
                 Details = w.Item.Details,
-                ThumbnailImageUrl = string.Join(", ", w.Item.ItemImages.Select(i => i.ImageURL)),
+                ThumbnailImageUrl = w.Item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
                 LikedAt = w.LikedAt
             })
             .ToListAsync();

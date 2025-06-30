@@ -108,7 +108,30 @@ public class AdminController : Controller
             }
         }
 
-        bool saveStatus = await _itemService.SaveItem(ItemVM, UserId);
+        string NewAdditionalImagesURL;
+        List<string> NewAdditionalImageList = new List<string>();
+        foreach (IFormFile? AdditionalImagesFiles in ItemVM.AdditionalImagesFile!)
+        {
+            if (AdditionalImagesFiles != null)
+            {
+                string[] extension = AdditionalImagesFiles.FileName.Split(".");
+                string ext = extension[extension.Length - 1].ToLower();
+
+                if (new[] { "jpg", "jpeg", "png", "gif", "webp", "jfif" }.Contains(ext))
+                {
+                    string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                    string fileName = ImageTemplate.GetFileName(AdditionalImagesFiles, path);
+                    NewAdditionalImagesURL = $"/Uploads/{fileName}";
+                    NewAdditionalImageList.Add(NewAdditionalImagesURL);
+                }
+                else
+                {
+                    return Json(new { success = false, text = NotificationMessage.ImageFormat });
+                }
+            }
+        }
+
+        bool saveStatus = await _itemService.SaveItem(ItemVM, UserId, NewAdditionalImageList);
         return Json(saveStatus
             ? new { success = true, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateSuccess.Replace("{0}", "Item") : NotificationMessage.UpdateSuccess.Replace("{0}", "Item") }
             : new { success = false, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateFailure.Replace("{0}", "Item") : NotificationMessage.UpdateFailure.Replace("{0}", "Item") });
@@ -134,25 +157,32 @@ public class AdminController : Controller
         return View();
     }
 
-    public async Task<IActionResult> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "", int UserId = 0)
+    public IActionResult GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "", int UserId = 0, string fromDate = "", string toDate = "")
     {
-        PaginationViewModel<OrderViewModel>? OrderList = await _orderService.GetOrderList(search, sortColumn, sortDirection, pageNumber, pageSize, Status, UserId);
+        PaginationViewModel<OrderViewModel>? OrderList = _orderService.GetOrderList(search, sortColumn, sortDirection, pageNumber, pageSize, Status, UserId, fromDate, toDate);
         return PartialView("_OrderList", OrderList);
     }
 
     [HttpGet]
-    public async Task<IActionResult> OrderDetails(int orderid)
+    public IActionResult OrderDetails(int orderid)
     {
-        OrderViewModel? orders = await _orderService.GetOrderDetailById(orderid);
+        OrderViewModel? orders = _orderService.GetOrderDetailById(orderid);
         return View(orders);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> MarkOrderStatus(int orderId)
+    [HttpPost]
+    public async Task<IActionResult> UpdateOrderStatus(int orderId)
     {
-        bool OrderStatus = await _orderService.MarkOrderStatus(orderId);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        bool OrderStatus = await _orderService.UpdateOrderStatus(orderId, UserId);
         if (OrderStatus) return Json(new { success = true, text = NotificationMessage.OrderCompleteMark });
         return Json(new { success = false, text = NotificationMessage.OrderCompleteMarkFailure });
+    }
+
+    public async Task<IActionResult> ExportOrderDataToExcel(string search = "", string Status = "", int UserId = 0, string fromDate = "", string toDate = "")
+    {
+        byte[]? FileData = await _orderService.ExportData(search, Status, UserId, fromDate, toDate);
+        return File(FileData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Orders.xlsx");
     }
 
     #endregion

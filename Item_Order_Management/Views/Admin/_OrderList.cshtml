@@ -12,10 +12,23 @@ else
     @foreach (var order in Model.Items)
     {
         <tr class="text-nowrap">
-            <td># @order.OrderId</td>
+            @if (!order.IsDelivered)
+            {
+                <td>
+                    <input class="order-sub-checkbox form-check-input me-3 mt-0 fs-5" onclick=CheckBoxTickManage() type="checkbox" data-checkid="@order.OrderId">
+                    # @order.OrderId
+                </td>
+            }
+            else
+            {
+                <td>
+                    <input class="form-check-input me-3 mt-0 fs-5" type="checkbox" disabled>
+                    # @order.OrderId
+                </td>
+            }
             <td>@order.CustomerName</td>
             <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
-            <td>₹@order.TotalAmount.ToString("F2")</td>
+            <td>@order.TotalAmount.ToString("C")</td>
             <td>
                 @if (order.IsDelivered)
                 {
@@ -39,7 +52,7 @@ else
                 @if (!order.IsDelivered)
                 {
                     <i class="bi bi-check2-all fs-5 cursorPointer" title="Mark As Complete"
-                        onclick="markAsDelivered(@order.OrderId)"></i>
+                        onclick="UpdateOrderStatus(@order.OrderId)"></i>
                 }
             </td>
         </tr>

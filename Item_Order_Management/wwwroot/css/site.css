@@ -112,22 +112,13 @@ input:focus {
   font-size: x-small;
 }
 
-.Cart_Notify {
-  height: 13px;
-  width: 13px;
-  margin-left: 125px;
-  margin-top: -40px;
-  position: relative;
-  font-size: x-small;
-}
-
-
 .MarkAllAsRead {
   font-size: small;
-  margin-left: 110px !important;
+  margin-left: 135px !important;
   margin-bottom: 20px !important;
-  background-color: rgb(118, 182, 255);
-  border-radius: 20px;
+  background-color: rgb(215, 244, 255);
+  color: rgb(0, 132, 255);
+  padding: 3px;
 }
 
 .dropdown-menu {
@@ -223,4 +214,15 @@ input:focus {
   .badge {
     font-size: 0.8rem !important;
   }
+}
+
+.offscreen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }

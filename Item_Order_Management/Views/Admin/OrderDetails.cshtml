@@ -15,16 +15,24 @@
                 </strong>@Model.OrderDate.ToString("MMM dd, yyyy")</p>
             <p class="pt-2 text-muted ps-5"><strong class="me-2 text-dark">Status : </strong>@if (Model.IsDelivered)
                 {
-                    <span class="badge bg-success fw-light">Delivered</span>
+                    <span class="badge fw-light"
+                        style="color: rgb(0, 139, 67); background-color: rgba(71, 255, 117, 0.336);">Delivered</span>
                 }
                 else
                 {
-                    <span class="badge bg-primary fw-light">Pending</span>
+                    <span class="badge fw-light"
+                        style="color: rgb(0, 100, 139); background-color: rgba(71, 203, 255, 0.336);">Pending</span>
                 }
             </p>
+            @if (Model.IsDelivered)
+            {
+                <p class="pt-2 text-muted ps-5"><strong class="text-dark">Delivered On :
+                    </strong>@Model.DeliveryDate?.ToString("MMM dd, yyyy")</p>
+            }
         </div>
         <p class="text-muted"><strong class="text-dark">Customer Name : </strong>@Model.CustomerName</p>
-        <p class="text-success fw-bold"><strong class="text-dark">Total Amount : </strong>₹ @Model.TotalAmount</p>
+        <p class="text-success fw-bold"><strong class="text-dark">Total Amount :
+            </strong>@Model.TotalAmount.ToString("C")</p>
 
         <div class="p-3 shadow rounded">
             <div class="row">
@@ -40,11 +48,12 @@
                         <tbody class="fw-bold text-muted">
                             @foreach (var orderdetail in Model.OrderItems)
                             {
+                                var total = orderdetail.Price * orderdetail.Quantity;
                                 <tr>
                                     <td>@orderdetail.ItemName</td>
                                     <td>@orderdetail.Quantity</td>
-                                    <td>₹ @orderdetail.Price</td>
-                                    <td>₹ @(orderdetail.Price * orderdetail.Quantity)</td>
+                                    <td>@orderdetail.Price.ToString("C")</td>
+                                    <td>@total.ToString("C")</td>
                                 </tr>
                             }
                             <tr>
@@ -52,7 +61,7 @@
                                 <td></td>
                                 <td></td>
                                 <td class="text-dark">
-                                    Total :  <span class="text-success">₹ @Model.TotalAmount</span>
+                                    Total : <span class="text-success">@Model.TotalAmount.ToString("C")</span>
                                 </td>
                             </tr>
                         </tbody>

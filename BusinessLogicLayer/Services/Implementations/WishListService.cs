@@ -15,9 +15,9 @@ public class WishListService : IWishListService
 
     public async Task<List<CombinedItemViewModel>> GetItemsWithWishlistStatus(int userId, List<ItemViewModel> items)
     {
-        var combinedItems = new List<CombinedItemViewModel>();
+        List<CombinedItemViewModel>? combinedItems = new List<CombinedItemViewModel>();
         
-        foreach (var item in items)
+        foreach (ItemViewModel? item in items)
         {
             combinedItems.Add(new CombinedItemViewModel
             {

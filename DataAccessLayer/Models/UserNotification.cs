@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -23,9 +24,10 @@ public class UserNotification
 
     [Required]
     [Column("IsRead")]
+    [DefaultValue("false")]
     public bool IsRead { get; set; } = false;
 
-    [Column("ReadAt")]
+    [Column("ReadAt", TypeName = "timestamp without time zone")]
     public DateTime? ReadAt { get; set; }
     public virtual User User { get; set; } = null!;
     public virtual Notification Notification { get; set; } = null!;

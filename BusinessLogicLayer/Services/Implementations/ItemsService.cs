@@ -12,7 +12,7 @@ public class ItemsService : IItemsService
 
     public PaginationViewModel<ItemViewModel> GetItemList(int pageNumber, string search, int pageSize, string sortColumn, string sortDirection)
     {
-        var query = _itemRepository.GetAllItem();
+        IQueryable<ItemViewModel>? query = _itemRepository.GetAllItem();
 
         if (!string.IsNullOrEmpty(search))
         {
@@ -42,7 +42,7 @@ public class ItemsService : IItemsService
 
     public ItemViewModel GetItemById(int ItemId) => _itemRepository.GetItemById(ItemId);
 
-    public async Task<bool> SaveItem(ItemViewModel itemVM,int UserId) => await _itemRepository.SaveItem(itemVM,UserId);
+    public async Task<bool> SaveItem(ItemViewModel itemVM,int UserId,List<string> NewAdditionalImagesURL) => await _itemRepository.SaveItem(itemVM,UserId,NewAdditionalImagesURL);
 
     public async Task<bool> DeleteItem(int ItemId,int UserId) => await _itemRepository.DeleteItem(ItemId,UserId);
 

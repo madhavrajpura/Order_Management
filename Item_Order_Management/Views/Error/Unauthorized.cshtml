@@ -1,0 +1,21 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Unauthorized";
+}
+
+<div class="container-fluid vw-100 vh-100 d-flex align-items-center" style="background-color: rgb(191, 238, 240);">
+    <div class="row d-flex align-items-center col-12">
+        <div class="col-12  custom-text-color  d-flex justify-content-center" style="font-size: 200px;">
+            401
+        </div>
+        <div class="col-12 d-flex custom-text-color justify-content-center" style="font-size: 30px;">
+            UnAuthorized
+        </div>
+        <div class="col-12 d-flex justify-content-center  custom-text-color  mt-4">
+            Oops, you are not Authorized to access this.
+        </div>
+        <div class="col-12 d-flex justify-content-center  custom-text-color  mt-4">
+            <a asp-action="Login" asp-controller="Authentication" class="fw-bold" style="color: rgb(0, 94, 94);">Back to Login</a>
+        </div>
+    </div>
+</div>

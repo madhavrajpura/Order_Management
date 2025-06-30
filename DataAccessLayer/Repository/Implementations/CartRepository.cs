@@ -20,7 +20,7 @@ public class CartRepository : ICartRepository
         try
         {
             if (userId == 0 || itemId == 0) return null;
-            var cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.UserId == userId && c.ItemId == itemId);
+            Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.UserId == userId && c.ItemId == itemId);
             return cartItem ?? null; 
         }
         catch (Exception ex)
@@ -35,7 +35,7 @@ public class CartRepository : ICartRepository
         try
         {
             if (userId == 0 || itemId == 0) return false;
-            var existingCartItem = await GetCartItem(userId, itemId);
+            Cart? existingCartItem = await GetCartItem(userId, itemId);
             if (existingCartItem != null)
             {
                 existingCartItem.Quantity += quantity;
@@ -43,7 +43,7 @@ public class CartRepository : ICartRepository
             }
             else
             {
-                var cart = new Cart
+                Cart? cart = new Cart
                 {
                     UserId = userId,
                     ItemId = itemId,
@@ -92,7 +92,7 @@ public class CartRepository : ICartRepository
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            var cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
+            Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
             if (cartItem != null)
             {
                 _db.Carts.Remove(cartItem);
@@ -113,7 +113,7 @@ public class CartRepository : ICartRepository
     {
         try
         {
-            var cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
+            Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
             if (cartItem == null) return false;
 
             cartItem.Quantity = quantity;
@@ -132,17 +132,17 @@ public class CartRepository : ICartRepository
     {
         try
         {
-            var wishlistItems = await _db.WishLists
+             List<int>? wishlistItems = await _db.WishLists
                 .Where(w => w.LikedBy == userId)
                 .Select(w => w.ItemId)
                 .ToListAsync();
 
-            foreach (var itemId in wishlistItems)
+            foreach (int itemId in wishlistItems)
             {
-                var existingCartItem = await GetCartItem(userId, itemId);
+                Cart? existingCartItem = await GetCartItem(userId, itemId);
                 if (existingCartItem == null)
                 {
-                    var cart = new Cart
+                    Cart? cart = new Cart
                     {
                         UserId = userId,
                         ItemId = itemId,

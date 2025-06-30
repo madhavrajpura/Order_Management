@@ -15,7 +15,7 @@ public class ImageTemplate
         string fileName = file.FileName;
         string filePath = Path.Combine(folderPath, fileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        using (FileStream? stream = new FileStream(filePath, FileMode.Create))
         {
             file.CopyTo(stream);
         }

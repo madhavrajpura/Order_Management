@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.ViewModels;
@@ -21,8 +22,7 @@ public class UserController : Controller
     [HttpGet]
     public async Task<IActionResult> UserProfileAsync()
     {
-        string? token = Request.Cookies["JWTToken"];
-        string? Email = _jwtService.GetClaimValue(token!, "email");
+        string? Email = User.FindFirst(ClaimTypes.Email)?.Value;
         UserViewModel? ProfileData = await _userService.GetUserProfileDetails(Email!);
         return View(ProfileData);
     }
@@ -30,8 +30,7 @@ public class UserController : Controller
     [HttpPost]
     public async Task<IActionResult> UserProfileAsync(UserViewModel user)
     {
-        string? token = Request.Cookies["JWTToken"];
-        string? Email = _jwtService.GetClaimValue(token!, "email");
+        string? Email = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (user.ImageFile != null)
         {
@@ -62,9 +61,13 @@ public class UserController : Controller
             Response.Cookies.Append("UserName", user.UserName, options);
 
             TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Profile");
-            return RedirectToAction("Dashboard", "Items");
+            if (User.IsInRole("User"))
+            {
+                return RedirectToAction("Dashboard", "Items");
+            }
+            return RedirectToAction("Dashboard", "Admin");
         }
-        
+
         TempData["ErrorMessage"] = NotificationMessage.UpdateFailure.Replace("{0}", "Profile");
         return View();
     }
@@ -80,10 +83,14 @@ public class UserController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> ChangePasswordAsync(ChangePasswordViewModel changepassword)
+    public async Task<IActionResult> ChangePasswordPost(ChangePasswordViewModel changepassword)
     {
-        string? token = Request.Cookies["JWTToken"];
-        string? Email = _jwtService.GetClaimValue(token!, "email");
+        if (!ModelState.IsValid)
+        {
+            return View(changepassword);
+        }
+
+        string? Email = User.FindFirst(ClaimTypes.Email)?.Value;
         string? CurrentPassword = _userService.GetPassword(Email!);
 
         if (CurrentPassword != Encryption.EncryptPassword(changepassword.CurrentPassword))
@@ -106,7 +113,11 @@ public class UserController : Controller
             if (password_verify)
             {
                 TempData["SuccessMessage"] = NotificationMessage.UpdateSuccess.Replace("{0}", "Password");
-                return RedirectToAction("Dashboard", "Items");
+                if (User.IsInRole("User"))
+                {
+                    return RedirectToAction("Dashboard", "Items");
+                }
+                return RedirectToAction("Dashboard", "Admin");
             }
             else
             {

@@ -25,7 +25,7 @@ public class OrderRepository : IOrderRepository
             _db.Orders.Add(order);
             await _db.SaveChangesAsync();
 
-            foreach (var orderItem in orderItems)
+            foreach ( OrderItem? orderItem in orderItems)
             {
                 orderItem.OrderId = order.Id;
                 _db.OrderItems.Add(orderItem);
@@ -47,7 +47,7 @@ public class OrderRepository : IOrderRepository
     {
         try
         {
-            var data = await _db.Orders
+             List<Order>? data = await _db.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Items)
                 .Where(o => o.CreatedBy == userId && !o.IsDelete)
@@ -66,7 +66,7 @@ public class OrderRepository : IOrderRepository
     {
         try
         {
-            var data = _db.Orders.Include(o => o.CreatedByUser)
+            IQueryable<OrderViewModel>? data = _db.Orders.Include(o => o.CreatedByUser)
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Items)
                 .Where(o => !o.IsDelete)
@@ -94,7 +94,7 @@ public class OrderRepository : IOrderRepository
     {
         try
         {
-            var data = _db.Orders.Include(o => o.CreatedByUser).ThenInclude(o => o.Role)
+            IQueryable<Order>? data = _db.Orders.Include(o => o.CreatedByUser).ThenInclude(o => o.Role)
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Items)
                 .Where(o => !o.IsDelete && (o.CreatedByUser.RoleId == 3))
@@ -109,13 +109,14 @@ public class OrderRepository : IOrderRepository
         }
     }
 
-    public async Task<bool> MarkOrderStatus(int orderId)
+    public async Task<bool> UpdateOrderStatus(int orderId,int UserId)
     {
-        var order = await _db.Orders.FirstOrDefaultAsync(order => order.Id == orderId);
+        Order? order = await _db.Orders.FirstOrDefaultAsync(order => order.Id == orderId);
         if (order == null) return false;
         order.IsDelivered = true;
         order.UpdatedAt = DateTime.Now;
         order.DeliveryDate = DateTime.Now;
+        order.UpdatedBy = UserId;
         _db.Orders.Update(order);
         await _db.SaveChangesAsync();
         return true;

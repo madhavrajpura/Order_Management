@@ -17,7 +17,22 @@
 </div>
 
 @section Scripts {
+
     <script>
+        
+        function LoadUserNavbar() {
+            $.ajax({
+                url: "/Items/GetUserNavbarData",
+                type: "GET",
+                success: function (data) {
+                    $("#Navbar").html(data);
+                },
+                error: function () {
+                    callErrorToaster("Error loading navbar");
+                }
+            });
+        }
+
         function showOrderConfirmationModal() {
             let orderItems = [];
             let total = 0;
@@ -42,26 +57,26 @@
 
             // Populate modal with order items
             let itemsHtml = `<table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th class="text-nowrap">Item Name</th>
-                                    <th class="text-nowrap">Quantity</th>
-                                    <th class="text-nowrap">Unit Price (₹)</th>
-                                    <th class="text-nowrap">Sub Total (₹)</th>
-                                </tr>
-                            </thead>
-                            <tbody>`;
+                                <thead>
+                                    <tr>
+                                        <th class="text-nowrap">Item Name</th>
+                                        <th class="text-nowrap">Quantity</th>
+                                        <th class="text-nowrap">Unit Price (₹)</th>
+                                        <th class="text-nowrap">Sub Total (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
             orderItems.forEach(item => {
                 itemsHtml += `
-                                <tr>
-                                    <td class="text-nowrap">${item.ItemName}</td>
-                                    <td class="text-nowrap">${item.Quantity}</td>
-                                    <td class="text-nowrap">${item.Price.toFixed(2)}</td>
-                                    <td class="text-nowrap">${(item.Price * item.Quantity).toFixed(2)}</td>
-                                </tr>`;
+                                    <tr>
+                                        <td class="text-nowrap">${item.ItemName}</td>
+                                        <td class="text-nowrap">${item.Quantity}</td>
+                                        <td class="text-nowrap">${item.Price.toFixed(2)}</td>
+                                        <td class="text-nowrap">${(item.Price * item.Quantity).toFixed(2)}</td>
+                                    </tr>`;
             });
             itemsHtml += `</tbody>
-                        </table>`;
+                            </table>`;
 
             $("#orderItemsList").html(itemsHtml);
             $("#modalTotalAmount").text(`₹${total.toFixed(2)}`);
@@ -107,6 +122,7 @@
                 success: function (data) {
                     $("#cartItems").html(data);
                     updateTotalAmount();
+                    LoadUserNavbar();
                 },
                 error: function () {
                     callErrorToaster("Error loading cart items");
@@ -134,17 +150,15 @@
                 data: { cartId: cartId, quantity: quantity },
                 success: function (response) {
                     if (response.success) {
-                        callSuccessToaster(response.message);
                         updateTotalAmount();
                     } else {
-                        callErrorToaster(response.message);
                         loadCartItems();
-                        LoadUserNavbar()
+                        LoadUserNavbar();
                     }
                 },
                 error: function () {
                     callErrorToaster("Failed to update quantity");
-                    loadCartItems(); 
+                    loadCartItems();
                 }
             });
         }
@@ -155,7 +169,7 @@
             $(document).on("click", ".quantity-btn", function () {
                 const inputTag = $(this).siblings(".quantity-input");
                 let qty = parseInt(inputTag.val());
-                if (isNaN(qty)) qty = 1; 
+                if (isNaN(qty)) qty = 1;
                 const cardTag = $(this).closest(".cart-item");
                 const cartId = cardTag.find(".remove-btn").data("cart-id");
 

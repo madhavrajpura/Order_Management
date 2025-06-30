@@ -38,7 +38,6 @@ public class ExceptionHandler
             500 => HttpStatusCode.InternalServerError,
             _ => HttpStatusCode.InternalServerError
         };
-        
 
         _logger.LogError(exception, NotificationMessage.UnhandledExceptionMessage);
 
@@ -65,7 +64,7 @@ public class ExceptionHandler
         {
             if (!context.Response.HasStarted)
             {
-                var redirectUrl = $"/Error/InternalServerError";
+                 string? redirectUrl = $"/Error/InternalServerError";
                 context.Response.StatusCode = (int)HttpStatusCode.Redirect;
                 context.Response.Headers["Location"] = redirectUrl;
                 await context.Response.CompleteAsync();

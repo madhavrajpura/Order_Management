@@ -15,4 +15,8 @@ public class OrderViewModel
     public int CreatedByUser { get; set; }
     public List<OrderItemViewModel> OrderItems { get; set; } = new List<OrderItemViewModel>();
 
+    // Added to store total discount from all applied coupons
+    public decimal DiscountAmount { get; set; }
+    // Added to store codes of applied coupons for display
+    public List<string> CouponCodes { get; set; } = new List<string>();
 }

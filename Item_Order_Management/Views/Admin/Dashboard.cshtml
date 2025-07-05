@@ -1,274 +1,170 @@
-﻿@model DataAccessLayer.ViewModels.ItemViewModel;
-
 @{
-    ViewData["Title"] = "Admin Page";
+    ViewData["Title"] = "Dashboard";
 }
 
-<!-- Start Main Content -->
-<div class="container-fluid m-0 p-0 dashboard-color min-vh-100 User-dasrboard">
-
-    <!-- Start Upper Div -->
-    <div class="d-sm-flex justify-content-between p-md-4 p-3 pb-2 pt-5">
-        <h3 class="custom-text-color">Items List</h3>
-        <div class="search-div d-flex align-items-center justify-content-end gap-2">
-            <div class="search-button">
-                <input type="text" id="searchbtn" placeholder="Search by Name, Price"
-                    class="p-2 border rounded text-truncate shadow">
-            </div>
-            <div class="add-Item-button">
-                <button class="btn SaveItemId solid-btn text-light p-2 text-size text-nowrap shadow"
-                    data-bs-toggle="modal" title="Add Item" data-bs-target="#SaveItemModal" data-id="0">+ Add
-                    Item</button>
-            </div>
-        </div>
-    </div>
-    <!-- End Upper Div -->
-
-    <!-- Start Item List -->
-    <div class="container-fluid p-0 pe-md-4 pe-3">
-        <div class="table-main-div table-responsive p-3 bg-white ms-md-4 ms-3 me-0 shadow-lg"
-            style="border-top-right-radius: 10px; border-top-left-radius: 10px;">
-
-            <table id="table" class="table">
-                <thead>
-                    <tr class="border border-top-0 border-end-0 border-start-0 border-dark">
-                        <th scope="col" class="fw-bold text-start text-nowrap"># ID <i
-                                class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-id" data-column="ID"
-                                data-direction="asc"></i></th>
-                        <th scope="col" class="fw-bold text-start text-nowrap">Name <i
-                                class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-name" data-column="Name"
-                                data-direction="asc"></i>
-                        </th>
-                        <th scope="col" class="fw-bold text-start text-nowrap">Price<i
-                                class="bi bi-arrow-down-up ps-1 cursorPointer" id="sortable-price" data-column="Price"
-                                data-direction="asc"></i></th>
-
-                        <th scope="col" class="fw-bold text-start text-nowrap">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="ItemTableBody"></tbody>
-            </table>
-
-        </div>
-
-        <div class="pagination-main-div shadow d-flex justify-content-end gap-2 p-3 pt-0 bg-white ps-3 ms-md-4 ms-3 pe-3"
-            style="border-bottom-right-radius: 10px; border-bottom-left-radius: 10px;">
-            <span class="pt-2">Items Per page:</span>
-            <select id="itemselect">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-            </select>
-            <span class="pt-2 ps-1" id="pagination-info"></span>
-            <button id="left-arrow" class="btn border border-dark bg-light ps-2">
-                < </button>
-                    <button id="right-arrow" class="btn border border-dark bg-light ps-2">></button>
-        </div>
-    </div>
-    <!-- End Item List -->
-
-</div>
-<!-- End Main Content -->
-
-
-<!------------------------------------------------ Modals ------------------------------------------------------>
-
-
-<!-- Save Item Modal -->
-<div id="SaveItemModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered" id="SaveItem-Content"></div>
-</div>
-
-<!-- Delete Item Modal -->
-<div class="modal fade" id="DeleteItemModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fs-5 fw-bold text-secondary">Delete Item Confirmation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="d-flex justify-content-center">
-                    <i class="fa-solid fa-triangle-exclamation fa-3x text-warning"></i>
+<div class="container-fluid px-5 py-4" style="padding-top: 120px !important;">
+    <h3 class="custom-text-color fw-bold mb-4">Admin Dashboard</h3>
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        <!-- Top 5 Sold Items Pie Chart -->
+        <div class="col">
+            <div class="card shadow bg-white">
+                <div class="card-body">
+                    <h2 class="card-title custom-text-color h5 fw-bold mb-3">Top 5 Sold Items</h2>
+                    <canvas id="topSoldItemsChart" class="w-100" style="max-height: 300px;"></canvas>
                 </div>
-                <p class="fw-semibold text-secondary text-center mb-3 pt-2">Are you sure you want to delete this
-                    Item?</p>
-                <form id="DeleteItemFrom">
-                    <input type="hidden" asp-for="@Model.ItemId" id="DeleteItemId" name="ItemId">
-                    <div class="modal-footer mt-3 d-flex justify-content-center">
-                        <button type="submit" class="btn solid-btn" data-bs-dismiss="modal">Yes</button>
-                        <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">No</button>
-                    </div>
-                </form>
+            </div>
+        </div>
+        <!-- Top 5 Active Users Pie Chart -->
+        <div class="col">
+            <div class="card shadow bg-white">
+                <div class="card-body">
+                    <h2 class="card-title custom-text-color h5 fw-bold mb-3">Top 5 Active Users</h2>
+                    <canvas id="topActiveUsersChart" class="w-100" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Top 5 Liked Items Pie Chart -->
+        <div class="col">
+            <div class="card shadow bg-white">
+                <div class="card-body">
+                    <h2 class="card-title custom-text-color h5 fw-bold mb-3">Top 5 Liked Items</h2>
+                    <canvas id="topLikedItemsChart" class="w-100" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Order Stats Bar Chart -->
+        <div class="col">
+            <div class="card shadow bg-white">
+                <div class="card-body">
+                    <h2 class="card-title custom-text-color h5 fw-bold mb-3">Order Statistics</h2>
+                    <canvas id="orderStatsChart" class="w-100" style="max-height: 300px;"></canvas>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Scripts -->
 
 @section Scripts {
-
     <script>
-
-        // Initialization
-        let currentPage = 1;
-        let pageSize = $("#itemselect").val();
-        let searchText = "";
-        let sortColumn = "ID";
-        let sortDirection = "asc";
-
-        // Function to get ItemId for Delete
-        function GetIdForDeleteItem(tag) {
-            let ItemId = $(tag).data("id");
-            $("#DeleteItemId").val(ItemId);
-        }
-
-        // Pagination Function
-        function Pagination(page = 1, search = "", pageSize = 5, sortColumn = "ID", sortDirection = "asc") {
-            $.ajax({
-                url: "/Admin/GetItemList",
-                type: "GET",
-                data: { pageNumber: page, search, pageSize, sortColumn, sortDirection },
-                success: function (data) {
-
-                    $("#ItemTableBody").html(data);
-
-                    currentPage = page;
-                    pageSize = parseInt(pageSize);
-
-                    var totalRecords = parseInt($("#totalRecords").val()) || 0;
-                    var startItem = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-                    var endItem = Math.min(currentPage * pageSize, totalRecords);
-
-                    $("#pagination-info").text("Showing " + startItem + " - " + endItem + " of " + totalRecords);
-                    $("#left-arrow").prop("disabled", currentPage === 1);
-                    $("#right-arrow").prop("disabled", currentPage * pageSize >= totalRecords);
-                },
-                error: function () {
-                    callErrorToaster("Ajax Error Loading data");
-                }
-            });
-        }
-
-        // GET - Save Item Modal
-        $(document).on('click', ".SaveItemId", function (event) {
-            var ItemId = $(this).data("id");
-            $.ajax({
-                url: "/Admin/GetItemById",
-                type: "GET",
-                data: { ItemId: ItemId },
-                success: function (data) {
-                    IsHtmlDocument(data);
-                    $("#SaveItem-Content").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Ajax Error Loading data");
-                }
-            });
-        });
-
-        // Load Navbar
-        function LoadAdminNavbar() {
-            $.ajax({
-                url: "/Admin/GetAdminNavbarData",
-                type: "GET",
-                success: function (data) {
-                    $("#AdminNavbar").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Error loading navbar");
-                }
-            });
-        }
-
-        // START READY
         $(document).ready(function () {
+            // Fetch dashboard data
+            $.ajax({
+                url: '/Admin/GetDashboardData',
+                type: 'GET',
+                success: function (data) {
 
-            LoadAdminNavbar();
-
-            // Initial table load
-            Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-
-            // Search
-            $("#searchbtn").on("keyup", function () {
-                searchText = $(this).val().trim();
-                currentPage = 1;
-                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-            });
-
-            // Right arrow
-            $("#right-arrow").on("click", function () {
-                if (!$(this).prop("disabled")) {
-                    currentPage++;
-                    Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-                }
-            });
-
-            // Left arrow
-            $("#left-arrow").on("click", function () {
-                if (!$(this).prop("disabled")) {
-                    currentPage--;
-                    Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-                }
-            });
-
-            // Item per Page
-            $("#itemselect").on("change", function () {
-                pageSize = $(this).val();
-                currentPage = 1;
-                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-            });
-
-            // Sorting By ID
-            $("#sortable-id").on("click", function () {
-                sortColumn = $(this).data("column");
-                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
-                $(this).attr("data-direction", sortDirection);
-                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-            });
-
-            // Sorting By Name
-            $("#sortable-name").on("click", function () {
-                sortColumn = $(this).data("column");
-                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
-                $(this).attr("data-direction", sortDirection);
-                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-            });
-
-            // Sorting By Department
-            $("#sortable-price").on("click", function () {
-                sortColumn = $(this).data("column");
-                sortDirection = $(this).attr("data-direction") === "asc" ? "desc" : "asc";
-                $(this).attr("data-direction", sortDirection);
-                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-            });
-
-            // Delete Item POST
-            $(document).on("submit", "#DeleteItemFrom", function (e) {
-                e.preventDefault();
-                let ItemId = $("#DeleteItemId").val();
-                $.ajax({
-                    url: "/Admin/DeleteItem",
-                    type: "POST",
-                    data: { ItemId: ItemId },
-                    success: function (data) {
-                        if (data.success) {
-                            callSuccessToaster(data.text);
-                            currentPage = 1;
-                            Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-                            $("#DeleteItemModal").modal('hide');
-                        } else {
-                            callErrorToaster(data.text);
+                    // Top 5 Sold Items Pie Chart
+                    new Chart(document.getElementById('topSoldItemsChart'), {
+                        type: 'pie',
+                        data: {
+                            labels: data.topSoldItems.map(item => item.itemName || 'Unknown'),
+                            datasets: [{
+                                data: data.topSoldItems.map(item => item.count || 0),
+                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Top 5 Sold Items' }
+                            }
                         }
-                    },
-                    error: function () {
-                        callErrorToaster("Ajax Error deleting Item");
-                    }
-                });
-            });
+                    });
 
+                    // Top 5 Active Users Pie Chart
+                    new Chart(document.getElementById('topActiveUsersChart'), {
+                        type: 'pie',
+                        data: {
+                            labels: data.topActiveUsers.map(user => user.username || 'Unknown'),
+                            datasets: [{
+                                data: data.topActiveUsers.map(user => user.orderCount || 0),
+                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Top 5 Active Users' }
+                            }
+                        }
+                    });
+
+                    // Top 5 Liked Items Pie Chart
+                    new Chart(document.getElementById('topLikedItemsChart'), {
+                        type: 'pie',
+                        data: {
+                            labels: data.topLikedItems.map(item => item.itemName || 'Unknown'),
+                            datasets: [{
+                                data: data.topLikedItems.map(item => item.count || 0),
+                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Top 5 Liked Items' }
+                            }
+                        }
+                    });
+
+                    // Order Stats Bar Chart
+                    // Maps period to labels, orderCount and totalAmount to two datasets
+                    new Chart(document.getElementById('orderStatsChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: data.orderStats.map(stat => stat.period || 'Unknown'),
+                            datasets: [
+                                {
+                                    label: 'Order Count',
+                                    data: data.orderStats.map(stat => stat.orderCount || 0),
+                                    backgroundColor: '#36A2EB',
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Total Amount',
+                                    data: data.orderStats.map(stat => stat.totalAmount || 0),
+                                    backgroundColor: '#FFCE56',
+                                    yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    title: { display: true, text: 'Order Count' }
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'right',
+                                    title: { display: true, text: 'Total Amount ($)' },
+                                    grid: { drawOnChartArea: false }
+                                }
+                            },
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Order Statistics by Period' }
+                            }
+                        }
+                    });
+                },
+                error: function (xhr, status, error) {
+                    // Handle client-side or network errors
+                    callErrorToaster('Failed to load dashboard data');
+                    // Server-side errors (e.g., CustomException) are handled by $.ajaxComplete
+                }
+            });
         });
-        // END READY
     </script>
 }

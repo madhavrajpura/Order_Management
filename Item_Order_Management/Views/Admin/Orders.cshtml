@@ -164,14 +164,13 @@
                 url: "/Admin/GetAllUsers",
                 type: "GET",
                 success: function (data) {
+                    IsHtmlDocument(data);
+
                     let options = '<option value="">All Users</option>';
                     data.forEach(user => {
                         options += `<option value="${user.id}">${user.name}</option>`;
                     });
                     $("#UserFilter").html(options);
-                },
-                error: function () {
-                    callErrorToaster("Failed to load users");
                 }
             });
         }
@@ -183,6 +182,8 @@
                 type: "GET",
                 data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate },
                 success: function (data) {
+                    IsHtmlDocument(data);
+
                     $("#OrderTableBody").html(data);
                     currentPage = page;
                     pageSize = parseInt(pageSize);
@@ -192,9 +193,6 @@
                     $("#pagination-info").text("Showing " + startItem + " - " + endItem + " of " + totalRecords);
                     $("#left-arrow").prop("disabled", currentPage === 1);
                     $("#right-arrow").prop("disabled", currentPage * pageSize >= totalRecords);
-                },
-                error: function () {
-                    callErrorToaster("Ajax Error Loading data ordersss");
                 }
             });
         }
@@ -212,9 +210,6 @@
                     } else {
                         callErrorToaster(data.text);
                     }
-                },
-                error: function () {
-                    callErrorToaster("Ajax Error Loading data");
                 }
             });
         }
@@ -308,10 +303,6 @@
 
                     let text = "Excel Exported Successfully"
                     callSuccessToaster(text);
-                },
-                error: function (xhr, status, error) {
-                    let Text = "Failed to Export Excel"
-                    callErrorToaster(Text);
                 }
             });
         }
@@ -434,39 +425,39 @@
 
             });
 
-            @* // From Date of Order
+        @* // From Date of Order
             $("#from-order-date").on("change", function () {
                 fromDate = document.getElementById("from-order-date").value;
                 toDate = document.getElementById("to-order-date").value;
-                if (toDate == "") return
-                if (toDate < fromDate) {
+            if (toDate == "") return
+            if (toDate < fromDate) {
                     callErrorToaster("To-date should be greater than From-date. Reset To-date");
                     document.getElementById("to-order-date").value = "";
-                }
+            }
             });
 
             // To Date of Order
             $("#to-order-date").on("change", function () {
                 fromDate = document.getElementById("from-order-date").value;
                 toDate = document.getElementById("to-order-date").value;
-                if (toDate < fromDate) {
+            if (toDate < fromDate) {
                     callErrorToaster("To-date should be greater than From-date. Reset To-date");
                     document.getElementById("to-order-date").value = "";
-                }
+            }
             }) *@
 
-            // From Date
-            $('#from-order-date').on('change', function () {
-                let fromDateValue = $(this).val();
-                if (fromDateValue) {
-                    $('#to-order-date').attr('min', fromDateValue);
-                    if ($('#to-order-date').val() < fromDateValue) {
-                        $('#to-order-date').val(fromDateValue);
+                // From Date
+                $('#from-order-date').on('change', function () {
+                    let fromDateValue = $(this).val();
+                    if (fromDateValue) {
+                        $('#to-order-date').attr('min', fromDateValue);
+                        if ($('#to-order-date').val() < fromDateValue) {
+                            $('#to-order-date').val(fromDateValue);
+                        }
+                    } else {
+                        $('#to-order-date').removeAttr('min');
                     }
-                } else {
-                    $('#to-order-date').removeAttr('min');
-                }
-            });
+                });
 
             // To Date
             $('#to-order-date').on('change', function () {

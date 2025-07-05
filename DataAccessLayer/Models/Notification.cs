@@ -1,37 +1,25 @@
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DataAccessLayer.Models;
 
-
-[Table("Notification", Schema = "public")]
-public class Notification
+public partial class Notification
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("Id")]
     public int Id { get; set; }
 
-    [Required]
-    [Column("Message")]
-    public string Message { get; set; }
+    public string Message { get; set; } = null!;
 
-    [Required]
-    [Column("CreatedAt", TypeName = "timestamp without time zone")]
-    [DefaultValue("now()")]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime? CreatedAt { get; set; }
 
-    [Required]
-    [ForeignKey("User")]
-    [Column("CreatedBy")]
     public int CreatedBy { get; set; }
 
-    [Required]
-    [Column("IsActive")]
-    [DefaultValue("true")]
-    public bool IsActive { get; set; } = true;
+    public bool? IsActive { get; set; }
 
-    public virtual User User { get; set; } = null!;
+    public int? ItemId { get; set; }
 
+    public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual Item? Item { get; set; }
+
+    public virtual ICollection<UserNotification> UserNotifications { get; } = new List<UserNotification>();
 }

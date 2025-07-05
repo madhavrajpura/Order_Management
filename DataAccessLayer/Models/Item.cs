@@ -1,62 +1,47 @@
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DataAccessLayer.Models;
 
-[Table("Item", Schema = "public")]
-public class Item
+public partial class Item
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("Id")]
     public int Id { get; set; }
 
-    [Required]
-    [Column("Name")]
-    [StringLength(100)]
     public string Name { get; set; } = null!;
 
-    [Required]
-    [Column("Price", TypeName = "decimal(10,2)")]
     public decimal Price { get; set; }
 
-    [Column("Details")]
-    public string? Details { get; set; }
+    public bool IsDelete { get; set; }
 
-    [Column("IsDelete")]
-    [DefaultValue("false")]
-    public bool IsDelete { get; set; } = false;
+    public DateTime CreatedAt { get; set; }
 
-    [Required]
-    [Column("CreatedAt", TypeName = "timestamp without time zone")]
-    [DefaultValue("now()")]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    [Column("UpdatedAt", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedAt { get; set; }
 
-    [Column("DeletedAt", TypeName = "timestamp without time zone")]
     public DateTime? DeletedAt { get; set; }
 
-    [Required]
-    [Column("CreatedBy")]
     public int CreatedBy { get; set; }
 
-    [Column("UpdatedBy")]
     public int? UpdatedBy { get; set; }
 
-    [Column("DeletedBy")]
     public int? DeletedBy { get; set; }
 
-    [ForeignKey("CreatedBy")]
-    public virtual User CreatedByUser { get; set; } = null!;
+    public string? Details { get; set; }
 
-    [ForeignKey("UpdatedBy")]
-    public virtual User? UpdatedByUser { get; set; }
+    public int Stock { get; set; }
 
-    [ForeignKey("DeletedBy")]
-    public virtual User? DeletedByUser { get; set; }
-    public virtual ICollection<ItemImages> ItemImages { get; set; } = new List<ItemImages>();
+    public virtual ICollection<Cart> Carts { get; } = new List<Cart>();
 
+    public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual User? DeletedByNavigation { get; set; }
+
+    public virtual ICollection<ItemImage> ItemImages { get; } = new List<ItemImage>();
+
+    public virtual ICollection<Notification> Notifications { get; } = new List<Notification>();
+
+    public virtual ICollection<OrderItem> OrderItems { get; } = new List<OrderItem>();
+
+    public virtual User? UpdatedByNavigation { get; set; }
+
+    public virtual ICollection<WishList> WishLists { get; } = new List<WishList>();
 }

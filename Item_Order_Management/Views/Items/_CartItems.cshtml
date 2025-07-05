@@ -16,33 +16,50 @@ else
         {
             var total = item.Price * item.Quantity;
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow cart-item" data-price="@item.Price">
-                    <div class="card-body d-flex align-items-center p-4">
+                <div class="card h-100 border-0 shadow cart-item" data-price="@item.Price" data-stock="@item.Stock"
+                    data-quantity="@item.Quantity">
+                    @if (item.Stock == 0 || item.Quantity > item.Stock)
+                    {
+                        <div class="ps-2 pt-2">
+                            <button class="btn hollow-btn btn-sm notify-btn" data-item-id="@item.ItemId"
+                                data-item-name="@item.ItemName">Notify Me</button>
+                        </div>
+                    }
+                    <div class="card-body d-flex align-items-center p-4 pt-0">
+                        @if (item.Stock == 0 || item.Quantity > item.Stock)
+                        {
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge fw-light"
+                                    style="color: rgb(179, 0, 0); background-color: rgba(255, 71, 71, 0.336);">Out of Stock</span>
+                            </div>
+                        }
                         <img src="@item.ThumbnailImageUrl" class="card-img-top rounded"
                             style="width: 120px; height: 130px; object-fit: cover;">
-                        <div class="ms-3 flex-grow-1">
+                        <div class="ms-3 flex-grow-1 pt-2">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h5 class="card-title text-dark fw-bold">@item.ItemName</h5>
-                                <i class="fa-solid fa-trash-can remove-btn cursorPointer" data-cart-id="@item.Id" data-item-id="@item.ItemId"></i>
+                                <i class="fa-solid fa-trash-can remove-btn cursorPointer" data-cart-id="@item.Id"
+                                    data-item-id="@item.ItemId"></i>
                             </div>
                             <p class="card-text text-muted">Price per unit : <span
                                     class="fw-bold">@item.Price.ToString("C")</span></p>
                             <div class="d-flex align-items-center mt-2">
                                 <button class="btn hollow-btn quantity-btn minus me-2">-</button>
                                 <input type="number" class="form-control quantity-input text-center" value="@item.Quantity"
-                                    style="width: 70px;" min="1" readonly>
+                                    style="width: 70px;" min="1" max="@item.Stock" readonly>
                                 <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
                             </div>
-                            <span
-                                class="d-flex justify-content-end text-success fw-bold item-total">@total.ToString("C")</span>
+                            <span class="d-flex justify-content-end text-success fw-bold item-total">@total.ToString("C")</span>
                         </div>
                     </div>
                 </div>
             </div>
         }
     </div>
+    <!-- Replace the coupon dropdown section in the existing _CartItems.cshtml -->
     <div id="cartSummary" class="mt-5 p-3 bg-white shadow rounded" style="width: 97%; margin-left: 0.7%;">
-        <h4 class="custom-text-color">Total Amount : <span id="totalAmount" class="fw-bold">₹0.00</span></h4>
+        <h4 class="custom-text-color">Cart Summary</h4>
+        <p>Total: <span id="totalAmount" class="fw-bold">₹0.00</span></p> <!-- Change: Simplified to show only total -->
         <button class="btn solid-btn mt-3" onclick="showOrderConfirmationModal()">Place Order</button>
     </div>
 }

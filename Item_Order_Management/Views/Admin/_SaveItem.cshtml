@@ -18,11 +18,20 @@
                     <label for="ItemName" class="text-black-50">Name*</label>
                     <span asp-validation-for="@Model.ItemName" class="text-danger text-size"></span>
                 </div>
+            </div>
+
+            <div class="d-flex flex-sm-row flex-column gap-sm-3 gap-0">
                 <div class="form-floating col mb-3">
                     <input type="number" class="form-control" id="Price" asp-for="@Model.Price"
                         placeholder="Last Name*">
                     <label for="Price" class="text-black-50">Price*</label>
                     <span asp-validation-for="@Model.Price" class="text-danger text-size"></span>
+                </div>
+                <div class="form-floating col mb-3">
+                    <input type="number" class="form-control" id="Stock" asp-for="@Model.Stock"
+                        placeholder="Last Name*">
+                    <label for="Stock" class="text-black-50">Stock*</label>
+                    <span asp-validation-for="@Model.Stock" class="text-danger text-size"></span>
                 </div>
             </div>
 
@@ -171,48 +180,48 @@
         });
 
 
-            // POST method of Save Tax
-            $("#SaveItemForm").on("submit", function (e) {
+        // POST method of Save Tax
+        $("#SaveItemForm").on("submit", function (e) {
 
-                e.preventDefault();
+            e.preventDefault();
 
-                let form = $("#SaveItemForm");
+            let form = $("#SaveItemForm");
 
-                if (form.valid()) {
+            if (form.valid()) {
 
-                    $('#ItemImages').removeAttr('name');
+                $('#ItemImages').removeAttr('name');
 
-                    let formData = new FormData(this);
+                let formData = new FormData(this);
 
-                    // Append existing retained image URL
-                    ExistingImages.forEach(url => {
-                        formData.append('AdditionalImagesURL', url);
-                    });
+                // Append existing retained image URL
+                ExistingImages.forEach(url => {
+                    formData.append('AdditionalImagesURL', url);
+                });
 
-                    NewImages.forEach(file => {
-                        formData.append('AdditionalImagesFile', file);
-                    });
+                NewImages.forEach(file => {
+                    formData.append('AdditionalImagesFile', file);
+                });
 
-                    $.ajax({
-                        url: "/Admin/SaveItem",
-                        type: "POST",
-                        contentType: false,
-                        processData: false,
-                        data: formData,
-                        success: function (data) {
-                            if (data.success) {
-                                callSuccessToaster(data.text);
-                                Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
-                                $("#SaveItemModal").modal('hide');
-                            } else {
-                                callErrorToaster(data.text);
-                            }
-                        },
-                        error: function () {
-                            callErrorToaster("Error saving product.");
+                $.ajax({
+                    url: "/Admin/SaveItem",
+                    type: "POST",
+                    contentType: false,
+                    processData: false,
+                    data: formData,
+                    success: function (data) {
+                        if (data.success) {
+                            callSuccessToaster(data.text);
+                            Pagination(currentPage, searchText, pageSize, sortColumn, sortDirection);
+                            $("#SaveItemModal").modal('hide');
+                        } else {
+                            callErrorToaster(data.text);
                         }
-                    });
-                }
-            });
+                    },
+                    error: function () {
+                        callErrorToaster("Error saving product.");
+                    }
+                });
+            }
+        });
     });
 </script>

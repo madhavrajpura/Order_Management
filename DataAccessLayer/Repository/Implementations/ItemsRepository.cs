@@ -1,4 +1,3 @@
-using DataAccessLayer.Context;
 using DataAccessLayer.Models;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.ViewModels;
@@ -8,8 +7,8 @@ namespace DataAccessLayer.Repository.Implementations;
 
 public class ItemsRepository : IItemsRepository
 {
-    private readonly ApplicationDbContext _db;
-    public ItemsRepository(ApplicationDbContext db) => _db = db;
+    private readonly NewItemOrderDbContext _db;
+    public ItemsRepository(NewItemOrderDbContext db) => _db = db;
 
     #region Items CRUD
 
@@ -24,15 +23,17 @@ public class ItemsRepository : IItemsRepository
                 Price = item.Price,
                 CreatedAt = item.CreatedAt,
                 Details = item.Details,
-                ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
-                AdditionalImagesUrl = item.ItemImages.Where(itemImage => !itemImage.IsThumbnail).Select(image => image.ImageURL).ToList()
+                Stock = item.Stock,
+                ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageUrl,
+                AdditionalImagesUrl = item.ItemImages.Where(itemImage => !itemImage.IsThumbnail).Select(image => image.ImageUrl).ToList()
             })
-            .OrderBy(item => item.CreatedAt) ?? Enumerable.Empty<ItemViewModel>().AsQueryable();
+            .OrderBy(item => item.CreatedAt) ?? throw new Exception();
     }
 
     public ItemViewModel GetItemById(int ItemId)
     {
-        return _db.Items.Include(item => item.ItemImages).Where(item => item.Id == ItemId && !item.IsDelete)
+        ItemViewModel? item = _db.Items.Include(item => item.ItemImages)
+            .Where(item => item.Id == ItemId && !item.IsDelete)
             .Select(item => new ItemViewModel
             {
                 ItemId = item.Id,
@@ -40,16 +41,16 @@ public class ItemsRepository : IItemsRepository
                 Price = item.Price,
                 CreatedAt = item.CreatedAt,
                 Details = item.Details,
-                ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
-                AdditionalImagesUrl = item.ItemImages.Where(itemImage => !itemImage.IsThumbnail).Select(image => image.ImageURL).ToList()
+                Stock = item.Stock,
+                ThumbnailImageUrl = item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageUrl,
+                AdditionalImagesUrl = item.ItemImages.Where(itemImage => !itemImage.IsThumbnail).Select(image => image.ImageUrl).ToList()
             })
-            .FirstOrDefault() ?? new ItemViewModel();
+            .FirstOrDefault() ?? throw new Exception();
+        return item;
     }
 
     public async Task<bool> SaveItem(ItemViewModel itemVM, int UserId, List<string> NewAdditionalImagesURL)
     {
-        if (itemVM == null) return false;
-
         if (itemVM.ItemId == 0)
         {
             using var transaction = await _db.Database.BeginTransactionAsync();
@@ -61,6 +62,7 @@ public class ItemsRepository : IItemsRepository
                     Name = itemVM.ItemName,
                     Price = itemVM.Price,
                     Details = itemVM.Details,
+                    Stock = itemVM.Stock,
                     CreatedAt = DateTime.Now,
                     CreatedBy = UserId
                 };
@@ -69,10 +71,10 @@ public class ItemsRepository : IItemsRepository
 
                 if (itemVM.ThumbnailImageFile != null)
                 {
-                    ItemImages thumbnailImage = new ItemImages
+                    ItemImage thumbnailImage = new ItemImage
                     {
                         ItemId = newItem.Id,
-                        ImageURL = itemVM.ThumbnailImageUrl!,
+                        ImageUrl = itemVM.ThumbnailImageUrl!,
                         IsThumbnail = true,
                         CreatedAt = DateTime.Now,
                         CreatedBy = UserId
@@ -80,14 +82,14 @@ public class ItemsRepository : IItemsRepository
                     await _db.ItemImages.AddAsync(thumbnailImage);
                 }
 
-                if (itemVM.AdditionalImagesFile!.Count != 0)
+                if (itemVM.AdditionalImagesFile?.Count > 0)
                 {
                     foreach (string? AdditionalImages in NewAdditionalImagesURL!)
                     {
-                        ItemImages thumbnailImage = new ItemImages
+                        ItemImage thumbnailImage = new ItemImage
                         {
                             ItemId = newItem.Id,
-                            ImageURL = AdditionalImages,
+                            ImageUrl = AdditionalImages,
                             IsThumbnail = false,
                             CreatedAt = DateTime.Now,
                             CreatedBy = UserId
@@ -103,7 +105,7 @@ public class ItemsRepository : IItemsRepository
             catch
             {
                 await transaction.RollbackAsync();
-                return false;
+                throw new Exception();
             }
         }
         else
@@ -111,12 +113,13 @@ public class ItemsRepository : IItemsRepository
             using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                Item? ExistingItem = await _db.Items.FirstOrDefaultAsync(item => item.Id == itemVM.ItemId && !item.IsDelete);
-                if (ExistingItem == null) return false;
+                Item? ExistingItem = await _db.Items.FirstOrDefaultAsync(item => item.Id == itemVM.ItemId && !item.IsDelete)
+                    ?? throw new Exception();
 
                 ExistingItem.Name = itemVM.ItemName;
                 ExistingItem.Price = itemVM.Price;
                 ExistingItem.Details = itemVM.Details;
+                ExistingItem.Stock = itemVM.Stock;
                 ExistingItem.UpdatedAt = DateTime.Now;
                 ExistingItem.UpdatedBy = UserId;
                 _db.Items.Update(ExistingItem);
@@ -125,25 +128,26 @@ public class ItemsRepository : IItemsRepository
                 // Handle thumbnail image
                 if (itemVM.ThumbnailImageFile != null)
                 {
-                    ItemImages? existingThumbnail = await _db.ItemImages
+                    ItemImage? existingThumbnail = await _db.ItemImages
                         .FirstOrDefaultAsync(pi => pi.ItemId == ExistingItem.Id && pi.IsThumbnail);
 
                     if (existingThumbnail != null)
                     {
-                        existingThumbnail.ImageURL = itemVM.ThumbnailImageUrl;
+                        existingThumbnail.ImageUrl = itemVM.ThumbnailImageUrl;
                         existingThumbnail.UpdatedAt = DateTime.Now;
                         existingThumbnail.UpdatedBy = UserId;
                         _db.ItemImages.Update(existingThumbnail);
                     }
                 }
 
-                List<ItemImages> ExistingAdditionalImagesDB = await _db.ItemImages.Where(i => i.ItemId == ExistingItem.Id && !i.IsThumbnail).ToListAsync();
+                List<ItemImage> ExistingAdditionalImagesDB = await _db.ItemImages
+                    .Where(i => i.ItemId == ExistingItem.Id && !i.IsThumbnail).ToListAsync();
 
                 if (ExistingAdditionalImagesDB != null && itemVM.AdditionalImagesUrl != null)
                 {
-                    foreach (ItemImages? existingImageDB in ExistingAdditionalImagesDB)
+                    foreach (ItemImage? existingImageDB in ExistingAdditionalImagesDB)
                     {
-                        if (!itemVM.AdditionalImagesUrl.Contains(existingImageDB.ImageURL))
+                        if (!itemVM.AdditionalImagesUrl.Contains(existingImageDB.ImageUrl))
                         {
                             _db.ItemImages.Remove(existingImageDB);
                         }
@@ -152,10 +156,10 @@ public class ItemsRepository : IItemsRepository
 
                 foreach (string? NewAdditionalImage in NewAdditionalImagesURL)
                 {
-                    ItemImages newImages = new ItemImages
+                    ItemImage newImages = new ItemImage
                     {
                         ItemId = itemVM.ItemId,
-                        ImageURL = NewAdditionalImage,
+                        ImageUrl = NewAdditionalImage,
                         IsThumbnail = false,
                         CreatedAt = DateTime.Now,
                         CreatedBy = UserId
@@ -170,7 +174,7 @@ public class ItemsRepository : IItemsRepository
             catch
             {
                 await transaction.RollbackAsync();
-                return false;
+                throw new Exception();
             }
         }
     }
@@ -180,46 +184,49 @@ public class ItemsRepository : IItemsRepository
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            Item? item = await _db.Items.FirstOrDefaultAsync(item => item.Id == ItemId && !item.IsDelete);
+            Item? item = await _db.Items.FirstOrDefaultAsync(item => item.Id == ItemId && !item.IsDelete)
+                ?? throw new Exception();
 
-            if (item == null)
-            {
-                return false;
-            }
             item.IsDelete = true;
             item.DeletedAt = DateTime.Now;
             item.DeletedBy = UserId;
             _db.Items.Update(item);
             await _db.SaveChangesAsync();
 
-            List<ItemImages>? itemImages = await _db.ItemImages.Where(i => i.ItemId == ItemId && !item.IsDelete).ToListAsync();
+            List<ItemImage>? itemImages = await _db.ItemImages.Where(i => i.ItemId == ItemId && !item.IsDelete).ToListAsync();
 
-            if (itemImages == null)
+            if (itemImages != null)
             {
-                return false;
+                foreach (ItemImage? Images in itemImages)
+                {
+                    _db.ItemImages.Remove(Images);
+                }
             }
 
-            foreach (ItemImages? Images in itemImages)
-            {
-                _db.ItemImages.Remove(Images);
-            }
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
             return true;
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error in DeleteItem: {ex.Message}");
-            throw new Exception("Error deleting item", ex);
+            await transaction.RollbackAsync();
+            throw new Exception();
         }
     }
 
     public async Task<bool> CheckItemExists(ItemViewModel itemVM)
     {
-        if (itemVM.ItemId == 0) return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete);
+        if (string.IsNullOrEmpty(itemVM.ItemName)) throw new Exception();
+
+        if (itemVM.ItemId == 0)
+            return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete);
         return await _db.Items.AnyAsync(x => x.Name.ToLower().Trim() == itemVM.ItemName.ToLower().Trim() && !x.IsDelete && x.Id != itemVM.ItemId);
     }
 
-    #endregion
+    public async Task<bool> IsItemInStock(int ItemId)
+    {
+        return await _db.Items.AnyAsync(item => item.Id == ItemId && !item.IsDelete && item.Stock != 0);
+    }
 
+    #endregion
 }

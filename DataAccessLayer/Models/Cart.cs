@@ -1,37 +1,21 @@
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DataAccessLayer.Models;
 
-[Table("Cart", Schema = "public")]
-public class Cart
+public partial class Cart
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("Id")]
     public int Id { get; set; }
 
-    [Required]
-    [Column("ItemId")]
     public int ItemId { get; set; }
 
-    [Required]
-    [Column("UserId")]
-    public int UserId { get; set; }
+    public int? UserId { get; set; }
 
-    [Required]
-    [Column("Quantity")]
+    public DateTime? CreatedAt { get; set; }
+
     public int Quantity { get; set; }
 
-    [Required]
-    [Column("CreatedAt",TypeName = "timestamp without time zone")]
-    [DefaultValue("now()")]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    [ForeignKey("UserId")]
-    public virtual User User { get; set; } = null!;
-
-    [ForeignKey("ItemId")]
     public virtual Item Item { get; set; } = null!;
+
+    public virtual User? User { get; set; }
 }

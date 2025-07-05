@@ -22,22 +22,23 @@ public class UserController : Controller
     [HttpGet]
     public async Task<IActionResult> UserProfileAsync()
     {
-        string? Email = User.FindFirst(ClaimTypes.Email)?.Value;
-        UserViewModel? ProfileData = await _userService.GetUserProfileDetails(Email!);
-        return View(ProfileData);
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        UserViewModel? profileData = await _userService.GetUserProfileDetails(UserId);
+        return View(profileData);
     }
 
     [HttpPost]
     public async Task<IActionResult> UserProfileAsync(UserViewModel user)
     {
-        string? Email = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Chnge the Email to ID
+        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         if (user.ImageFile != null)
         {
             string[] extension = user.ImageFile.FileName.Split(".");
             string ext = extension[extension.Length - 1].ToLower();
 
-            if (new[] { "jpg", "jpeg", "png", "gif", "webp", "jfif" }.Contains(ext))
+            if (new[] { "jpg", "png", "webp" }.Contains(ext))
             {
                 string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
                 string fileName = ImageTemplate.GetFileName(user.ImageFile, path);
@@ -50,7 +51,7 @@ public class UserController : Controller
             }
         }
 
-        if (await _userService.UpdateUserProfile(user, Email!))
+        if (await _userService.UpdateUserProfile(user, UserId))
         {
             CookieOptions options = new CookieOptions();
             options.Expires = DateTime.Now.AddMinutes(60);

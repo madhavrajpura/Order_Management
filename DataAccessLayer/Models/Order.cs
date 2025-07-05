@@ -1,61 +1,39 @@
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DataAccessLayer.Models;
 
-[Table("Order", Schema = "public")]
-public class Order
+public partial class Order
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("Id")]
     public int Id { get; set; }
 
-    [Required]
-    [Column("TotalAmount", TypeName = "decimal(10,2)")]
     public decimal TotalAmount { get; set; }
 
-    [Required]
-    [Column("OrderDate", TypeName = "timestamp without time zone")]
-    [DefaultValue("now")]
-    public DateTime OrderDate { get; set; } = DateTime.Now;
+    public DateTime OrderDate { get; set; }
 
-    [Column("DeliveryDate", TypeName = "timestamp without time zone")]
     public DateTime? DeliveryDate { get; set; }
 
-    [Column("IsDelete")]
-    [DefaultValue("false")]
-    public bool IsDelete { get; set; } = false;
+    public bool IsDelivered { get; set; }
 
-    [Column("IsDelivered")]
-    [DefaultValue("false")]
-    public bool IsDelivered { get; set; } = false;
+    public bool IsDelete { get; set; }
 
-    [Column("UpdatedAt", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedAt { get; set; }
 
-    [Column("DeletedAt", TypeName = "timestamp without time zone")]
     public DateTime? DeletedAt { get; set; }
 
-    [Required]
-    [Column("CreatedBy")]
     public int CreatedBy { get; set; }
 
-    [Column("UpdatedBy")]
     public int? UpdatedBy { get; set; }
 
-    [Column("DeletedBy")]
     public int? DeletedBy { get; set; }
 
-    [ForeignKey("CreatedBy")]
-    public virtual User CreatedByUser { get; set; } = null!;
+    public virtual ICollection<CouponUsage> CouponUsages { get; } = new List<CouponUsage>();
 
-    [ForeignKey("UpdatedBy")]
-    public virtual User? UpdatedByUser { get; set; }
+    public virtual User CreatedByNavigation { get; set; } = null!;
 
-    [ForeignKey("DeletedBy")]
-    public virtual User? DeletedByUser { get; set; }
-    public virtual ICollection<OrderItem>? OrderItems { get; set; }
+    public virtual User? DeletedByNavigation { get; set; }
 
+    public virtual ICollection<OrderItem> OrderItems { get; } = new List<OrderItem>();
+
+    public virtual User? UpdatedByNavigation { get; set; }
 }

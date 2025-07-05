@@ -9,5 +9,6 @@ public class WishListViewModel
     public decimal Price { get; set; }
     public string ThumbnailImageUrl { get; set; }
     public DateTime LikedAt { get; set; }
+    public int Stock { get; set; }
 
 }

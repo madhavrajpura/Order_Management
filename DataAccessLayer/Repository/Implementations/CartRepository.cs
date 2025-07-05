@@ -1,4 +1,3 @@
-using DataAccessLayer.Context;
 using DataAccessLayer.Models;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.ViewModels;
@@ -8,157 +7,116 @@ namespace DataAccessLayer.Repository.Implementations;
 
 public class CartRepository : ICartRepository
 {
-    private readonly ApplicationDbContext _db;
+    private readonly NewItemOrderDbContext _db;
 
-    public CartRepository(ApplicationDbContext db)
+    public CartRepository(NewItemOrderDbContext db)
     {
         _db = db;
     }
 
     public async Task<Cart> GetCartItem(int userId, int itemId)
     {
-        try
-        {
-            if (userId == 0 || itemId == 0) return null;
-            Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.UserId == userId && c.ItemId == itemId);
-            return cartItem ?? null; 
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetCartItem: {ex.Message}");
-            throw new Exception("Error retrieving CartItem by ID", ex);
-        }
+        Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.UserId == userId && c.ItemId == itemId) ?? null;
+        return cartItem!;
+    }
+
+    public async Task<bool> IsItemExistsInCart(int userId, int itemId)
+    {
+        return await _db.Carts.AnyAsync(c => c.UserId == userId && c.ItemId == itemId);
     }
 
     public async Task<bool> AddToCart(int userId, int itemId, int quantity = 1)
     {
-        try
+        Cart? cart = new Cart
         {
-            if (userId == 0 || itemId == 0) return false;
-            Cart? existingCartItem = await GetCartItem(userId, itemId);
-            if (existingCartItem != null)
+            UserId = userId,
+            ItemId = itemId,
+            Quantity = quantity,
+            CreatedAt = DateTime.Now
+        };
+        _db.Carts.Add(cart);
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<List<CartViewModel>> GetCartItems(int userId)
+    {
+        List<CartViewModel>? cartItem = await _db.Carts.Include(c => c.Item).ThenInclude(c => c.ItemImages)
+            .Where(c => c.UserId == userId)
+            .Select(c => new CartViewModel
             {
-                existingCartItem.Quantity += quantity;
-                _db.Carts.Update(existingCartItem);
-            }
-            else
+                Id = c.Id,
+                ItemId = c.ItemId,
+                ItemName = c.Item.Name,
+                Price = c.Item.Price,
+                ThumbnailImageUrl = c.Item.ItemImages.Select(i => i.ImageUrl).FirstOrDefault() ?? string.Empty,
+                Quantity = c.Quantity,
+                Stock = c.Item.Stock
+            })
+            .ToListAsync() ?? throw new Exception();
+        return cartItem;
+    }
+
+    public async Task<bool> RemoveFromCart(int cartId, int userId)
+    {
+        Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId) ?? throw new Exception();
+        _db.Carts.Remove(cartItem);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> UpdateCartQuantity(int cartId, int userId, int quantity)
+    {
+
+        Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId) ?? throw new Exception();
+        cartItem.Quantity = quantity;
+        _db.Carts.Update(cartItem);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+
+    public async Task<bool> AddAllFromWishlistToCart(int userId)
+    {
+        List<int>? wishlistItems = await _db.WishLists
+        .Where(w => w.LikedBy == userId)
+        .Select(w => w.ItemId)
+        .ToListAsync() ?? throw new Exception();
+
+        foreach (int itemId in wishlistItems)
+        {
+            Cart? existingCartItem = await GetCartItem(userId, itemId);
+
+            if (existingCartItem == null)
             {
                 Cart? cart = new Cart
                 {
                     UserId = userId,
                     ItemId = itemId,
-                    Quantity = quantity, 
+                    Quantity = 1,
                     CreatedAt = DateTime.Now
                 };
                 _db.Carts.Add(cart);
             }
-            await _db.SaveChangesAsync();
-            return true;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in AddToCart: {ex.Message}");
-            throw new Exception("Error in AddToCart", ex);
-        }
+
+        await _db.SaveChangesAsync();
+        return true;
     }
 
-    public async Task<List<CartViewModel>> GetCartItems(int userId)
+    public async Task<CartViewModel> GetCartItemById(int CartId, int UserId)
     {
-        try
+        CartViewModel? cartItem = await _db.Carts.Where(c => c.UserId == UserId && c.Id == CartId).Select(c => new CartViewModel
         {
-            if (userId == 0) return new List<CartViewModel>();
-            return await _db.Carts.Include(c => c.Item).ThenInclude(c => c.ItemImages)
-                .Where(c => c.UserId == userId)
-                .Select(c => new CartViewModel
-                {
-                    Id = c.Id,
-                    ItemId = c.ItemId,
-                    ItemName = c.Item.Name,
-                    Price = c.Item.Price,
-                    ThumbnailImageUrl = c.Item.ItemImages.Select(i => i.ImageURL).FirstOrDefault() ?? string.Empty,
-                    Quantity = c.Quantity 
-                })
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetCartItems: {ex.Message}");
-            throw new Exception("Error retrieving CartItems by ID", ex);
-        }
+            ItemId = c.ItemId,
+            ItemName = c.Item.Name,
+            Price = c.Item.Price,
+            Stock = c.Item.Stock,
+            Quantity = c.Quantity
+        }).FirstOrDefaultAsync() ?? null;
+
+        return cartItem!;
     }
 
-    public async Task<bool> RemoveFromCart(int cartId, int userId)
-    {
-        using var transaction = await _db.Database.BeginTransactionAsync();
-        try
-        {
-            Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
-            if (cartItem != null)
-            {
-                _db.Carts.Remove(cartItem);
-                await _db.SaveChangesAsync();
-            }
-            await transaction.CommitAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            Console.WriteLine($"Error in RemoveFromCart: {ex.Message}");
-            throw new Exception("Error in RemoveFromCart", ex);
-        }
-    }
-
-    public async Task<bool> UpdateCartQuantity(int cartId, int userId, int quantity)
-    {
-        try
-        {
-            Cart? cartItem = await _db.Carts.FirstOrDefaultAsync(c => c.Id == cartId && c.UserId == userId);
-            if (cartItem == null) return false;
-
-            cartItem.Quantity = quantity;
-            _db.Carts.Update(cartItem);
-            await _db.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in UpdateCartQuantity: {ex.Message}");
-            throw new Exception("Error updating cart quantity", ex);
-        }
-    }
-
-    public async Task<bool> AddAllFromWishlistToCart(int userId)
-    {
-        try
-        {
-             List<int>? wishlistItems = await _db.WishLists
-                .Where(w => w.LikedBy == userId)
-                .Select(w => w.ItemId)
-                .ToListAsync();
-
-            foreach (int itemId in wishlistItems)
-            {
-                Cart? existingCartItem = await GetCartItem(userId, itemId);
-                if (existingCartItem == null)
-                {
-                    Cart? cart = new Cart
-                    {
-                        UserId = userId,
-                        ItemId = itemId,
-                        Quantity = 1, 
-                        CreatedAt = DateTime.Now
-                    };
-                    _db.Carts.Add(cart);
-                }
-            }
-            await _db.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in AddAllFromWishlistToCart: {ex.Message}");
-            throw new Exception("Error adding wishlist items to cart", ex);
-        }
-    }
 }

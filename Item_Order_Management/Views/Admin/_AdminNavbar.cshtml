@@ -10,6 +10,8 @@
         <span class="fs-2 fw-bold custom-text-color pe-5">Item Order Management</span>
         <a class="fs-5 text-decoration-none hollow-btn rounded p-2 pt-1 pb-1 me-5" asp-action="Dashboard"
             asp-controller="Admin">Dashboard</a>
+        <a class="fs-5 text-decoration-none hollow-btn rounded p-2 pt-1 pb-1 me-5" asp-action="Items"
+            asp-controller="Admin">Items</a>
         <a class="fs-5 text-decoration-none hollow-btn rounded p-2 pt-1 pb-1 me-5" asp-action="Orders"
             asp-controller="Admin">Orders</a>
     </div>
@@ -86,10 +88,8 @@
             url: "/Admin/GetAdminNavbarData",
             type: "GET",
             success: function (data) {
+                IsHtmlDocument(data);
                 $("#AdminNavbar").html(data);
-            },
-            error: function () {
-                callErrorToaster("Error loading navbar");
             }
         });
     }
@@ -102,11 +102,9 @@
             type: "POST",
             data: { userNotificationId: userNotificationId },
             success: function (data) {
+                IsHtmlDocument(data);
                 $("#notificationDropdown").html(data);
                 LoadAdminNavbar();
-            },
-            error: function () {
-                callErrorToaster("Error marking notification as read");
             }
         });
     }
@@ -116,11 +114,9 @@
             url: "/Admin/MarkAllAsRead",
             type: "POST",
             success: function (data) {
+                IsHtmlDocument(data);
                 $("#notificationDropdown").html(data);
                 LoadAdminNavbar();
-            },
-            error: function () {
-                callErrorToaster("Error marking all notifications as read");
             }
         });
     });

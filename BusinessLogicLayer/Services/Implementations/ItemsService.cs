@@ -1,3 +1,4 @@
+using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.ViewModels;
@@ -12,6 +13,9 @@ public class ItemsService : IItemsService
 
     public PaginationViewModel<ItemViewModel> GetItemList(int pageNumber, string search, int pageSize, string sortColumn, string sortDirection)
     {
+        if (pageNumber <= 0) throw new CustomException("Invalid Page Number.");
+        if (pageSize <= 0) throw new CustomException("Invalid Page Size.");
+
         IQueryable<ItemViewModel>? query = _itemRepository.GetAllItem();
 
         if (!string.IsNullOrEmpty(search))
@@ -40,12 +44,36 @@ public class ItemsService : IItemsService
         return new PaginationViewModel<ItemViewModel>(items, totalCount, pageNumber, pageSize);
     }
 
-    public ItemViewModel GetItemById(int ItemId) => _itemRepository.GetItemById(ItemId);
+    public ItemViewModel GetItemById(int ItemId)
+    {
+        if (ItemId <= 0) throw new CustomException("Invalid Item ID.");
+        return _itemRepository.GetItemById(ItemId);
+    }
 
-    public async Task<bool> SaveItem(ItemViewModel itemVM,int UserId,List<string> NewAdditionalImagesURL) => await _itemRepository.SaveItem(itemVM,UserId,NewAdditionalImagesURL);
+    public async Task<bool> SaveItem(ItemViewModel itemVM, int UserId, List<string> NewAdditionalImagesURL)
+    {
+        if (itemVM == null) throw new CustomException("Invalid Item View Model.");
+        if (UserId <= 0) throw new CustomException("Invalid User ID.");
+        return await _itemRepository.SaveItem(itemVM, UserId, NewAdditionalImagesURL);
+    }
 
-    public async Task<bool> DeleteItem(int ItemId,int UserId) => await _itemRepository.DeleteItem(ItemId,UserId);
+    public async Task<bool> DeleteItem(int ItemId, int UserId)
+    {
+        if (ItemId <= 0) throw new CustomException("Invalid Item ID.");
+        if (UserId <= 0) throw new CustomException("Invalid User ID.");
+        return await _itemRepository.DeleteItem(ItemId, UserId);
+    }
 
-    public async Task<bool> CheckItemExists(ItemViewModel itemVM) => await _itemRepository.CheckItemExists(itemVM);
+    public async Task<bool> CheckItemExists(ItemViewModel itemVM)
+    {
+        if (itemVM == null) throw new CustomException("Invalid Item View Model.");
+        return await _itemRepository.CheckItemExists(itemVM);
+    }
+
+    public async Task<bool> IsItemInStock(int ItemId)
+    {
+        if (ItemId <= 0) throw new CustomException("Invalid Item ID.");
+        return await _itemRepository.IsItemInStock(ItemId);
+    }
 
 }

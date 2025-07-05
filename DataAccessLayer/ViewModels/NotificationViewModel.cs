@@ -10,4 +10,5 @@ public class NotificationViewModel
     public int UserId { get; set; }
     public bool IsRead { get; set; }
     public DateTime? ReadAt { get; set; }
+    public int? ItemId { get; set; }
 }

@@ -1,4 +1,3 @@
-using DataAccessLayer.Context;
 using DataAccessLayer.Models;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.ViewModels;
@@ -8,9 +7,9 @@ namespace DataAccessLayer.Repository.Implementations;
 
 public class WishlistRepository : IWishlistRepository
 {
-    private readonly ApplicationDbContext _db;
+    private readonly NewItemOrderDbContext _db;
 
-    public WishlistRepository(ApplicationDbContext db)
+    public WishlistRepository(NewItemOrderDbContext db)
     {
         _db = db;
     }
@@ -51,8 +50,9 @@ public class WishlistRepository : IWishlistRepository
                 ItemName = w.Item.Name,
                 Price = w.Item.Price,
                 Details = w.Item.Details,
-                ThumbnailImageUrl = w.Item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageURL,
-                LikedAt = w.LikedAt
+                Stock = w.Item.Stock,
+                ThumbnailImageUrl = w.Item.ItemImages.FirstOrDefault(itemImage => itemImage.IsThumbnail).ImageUrl,
+                LikedAt = (DateTime)w.LikedAt
             })
             .ToListAsync();
     }
@@ -62,4 +62,5 @@ public class WishlistRepository : IWishlistRepository
         return await _db.WishLists
             .AnyAsync(w => w.LikedBy == userId && w.ItemId == itemId);
     }
+
 }

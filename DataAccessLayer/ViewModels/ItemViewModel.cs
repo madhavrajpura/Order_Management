@@ -18,6 +18,7 @@ public class ItemViewModel
     [Required(ErrorMessage = "Details is required")]
     [StringLength(400, ErrorMessage = "Details cannot exceed 400 characters.")]
     public string? Details { get; set; }
+    public int Stock { get; set; }
     public string? ThumbnailImageUrl { get; set; } = null!;
     public IFormFile? ThumbnailImageFile { get; set; } = null!;
     public List<string>? AdditionalImagesUrl { get; set; } = new List<string>();

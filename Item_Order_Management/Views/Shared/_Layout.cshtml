@@ -48,8 +48,14 @@
                     <div class="modal-body">
                         <div id="orderItemsList"></div>
                         <hr>
+                        <div class="mb-3">
+                            <label class="form-label">Apply Coupons</label>
+                            <div id="modalCouponCheckboxes">
+                                <!-- Populated dynamically via JavaScript -->
+                            </div>
+                        </div>
                         <h4 class="text-end">Grand Total : <span id="modalTotalAmount"
-                                class="fw-bold text-success">₹0.00</span>
+                                class="fw-bold text-success">₹0.00</span></h4>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">Cancel</button>
@@ -91,7 +97,157 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
+    <script>
+        let appliedCoupons = []; // Track applied coupons client-side
+
+        // Function to load available coupons into modal checkboxes
+        function loadModalCoupons(subtotal) {
+            $.ajax({
+                url: "/Items/GetAvailableCoupons",
+                type: "GET",
+                success: function (coupons) {
+                    let html = "";
+                    if (coupons.length === 0) {
+                        html = "<p>No coupons available</p>";
+                    } else {
+                        coupons.forEach(coupon => {
+                            html += `
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" class="form-check-input modal-coupon-checkbox" id="modal-coupon-${coupon.code}" data-code="${coupon.code}" data-discount="${coupon.discountType === 'Percentage' ? (subtotal * (coupon.discountValue / 100)) : coupon.discountValue}">
+                                    <label class="form-check-label" for="modal-coupon-${coupon.code}">
+                                        ${coupon.code} (${coupon.discountType === "Percentage" ? `${coupon.discountValue}% off` : `₹${coupon.discountValue} off`})
+                                    </label>
+                                </div>`;
+                        });
+                    }
+                    $("#modalCouponCheckboxes").html(html);
+        @* updateModalTotal(); // Update total when coupons load *@
+                },
+                error: function () {
+                    callErrorToaster("Failed to load coupons. Please try again.");
+                }
+            });
+        }
+
+        // Function to update modal total based on applied coupons
+        function updateModalTotal(subtotal) {
+            const totalDiscount = appliedCoupons.reduce((sum, c) => sum + parseFloat(c.discount), 0);
+            $("#modalTotalAmount").text(`₹${(subtotal - totalDiscount).toFixed(2)}`);
+        }
+
+        // Function to toggle coupon application
+        function toggleModalCoupon(code, isChecked, subtotal) {
+            const discount = $(`#modal-coupon-${code}`).data("discount");
+            if (isChecked) {
+                appliedCoupons.push({ code: code, discount: discount });
+            } else {
+                appliedCoupons = appliedCoupons.filter(c => c.code !== code);
+            }
+            updateModalTotal(subtotal);
+        }
+
+        // Update showOrderConfirmationModal to include coupon logic
+        function showOrderConfirmationModal() {
+            let orderItems = [];
+            let subtotal = 0;
+            let hasOutOfStock = false;
+            let outOfStockMessages = [];
+
+            $(".cart-item").each(function () {
+                const price = parseFloat($(this).data("price"));
+                const quantity = parseInt($(this).find(".quantity-input").val());
+                const itemName = $(this).find(".card-title").text();
+                const itemId = $(this).find(".remove-btn").data("item-id");
+                const stock = parseInt($(this).data("stock"));
+
+                orderItems.push({
+                    OrderItemId: 0,
+                    OrderId: 0,
+                    ItemId: itemId,
+                    ItemName: itemName,
+                    Price: price,
+                    Quantity: quantity,
+                    Stock: stock,
+                    ImageURL: $(this).find("img").attr("src")
+                });
+
+                subtotal += price * quantity;
+                if (stock === 0) {
+                    hasOutOfStock = true;
+                    outOfStockMessages.push(`${itemName} is out of stock`);
+                } else if (quantity > stock) {
+                    hasOutOfStock = true;
+                    outOfStockMessages.push(`Only ${stock} units of ${itemName} available in stock`);
+                }
+            });
+
+            if (hasOutOfStock) {
+                callErrorToaster(outOfStockMessages.join(". "));
+                return;
+            }
+
+            let itemsHtml = `<table class="table table-striped">
+                                <thead><tr><th>Item Name</th><th>Quantity</th><th>Unit Price (₹)</th><th>Sub Total (₹)</th></tr></thead><tbody>`;
+            orderItems.forEach(item => {
+                itemsHtml += `<tr><td>${item.ItemName}</td><td>${item.Quantity}</td><td>${item.Price.toFixed(2)}</td><td>${(item.Price * item.Quantity).toFixed(2)}</td></tr>`;
+            });
+            itemsHtml += `</tbody></table>`;
+
+            $("#orderItemsList").html(itemsHtml);
+            appliedCoupons = []; // Reset applied coupons when modal opens
+            // Change: Set initial modalTotalAmount to subtotal before loading coupons
+            $("#modalTotalAmount").text(`₹${subtotal.toFixed(2)}`);
+            loadModalCoupons(subtotal); // Load coupons after setting initial total
+
+            $("#orderConfirmationModal").modal('show');
+
+            $("#confirmOrderBtn").off('click').on('click', function () {
+                const orderData = {
+                    OrderId: 0,
+                    CustomerName: '@User.Identity.Name',
+                    Email: '@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value',
+                    PhoneNumber: 0,
+                    Address: null,
+                    OrderDate: new Date().toISOString(),
+                    TotalAmount: subtotal - appliedCoupons.reduce((sum, c) => sum + parseFloat(c.discount), 0),
+                    DiscountAmount: appliedCoupons.reduce((sum, c) => sum + parseFloat(c.discount), 0),
+                    CouponCodes: appliedCoupons.map(c => c.code),
+                    IsDelivered: false,
+                    IsDelete: false,
+                    CreatedByUser: parseInt('@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value'),
+                    OrderItems: orderItems
+                };
+
+                $.ajax({
+                    url: "/Items/CreateOrder",
+                    type: "POST",
+                    data: { orderData: JSON.stringify(orderData) },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#orderConfirmationModal").modal('hide');
+                            callSuccessToaster(response.message);
+                            LoadUserNavbar();
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to place order. Please try again.");
+                    }
+                });
+            });
+
+            // Handle coupon checkbox changes in modal
+            $(document).on("change", ".modal-coupon-checkbox", function () {
+                const code = $(this).data("code");
+                const isChecked = $(this).is(":checked");
+                toggleModalCoupon(code, isChecked, subtotal);
+            });
+        }
+    </script>
 
     <script>
         $(document).ready(function () {
@@ -101,7 +257,6 @@
 
             toastr.options = {
                 "closeButton": true,
-                "progressBar": true,
                 "timeOut": "2000"
             };
 
@@ -139,13 +294,11 @@
 
             // Show toaster if TempData contains error (normal request)
             // Global AJAX error catcher
-            $(document).ajaxComplete(function (event, xhr, settings) {
+            $(document).ajaxSend(function (event, xhr, settings) {
                 if (xhr.getResponseHeader("X-Error") === "true") {
                     const response = xhr.responseJSON;
                     if (response && response.error) {
-                        toastr.error(response.error);
-                    } else {
-                        toastr.error('An unexpected error occurred.');
+                        callErrorToaster(response.error);
                     }
                 }
             });
@@ -156,7 +309,6 @@
             var parser = new DOMParser();
             var doc = parser.parseFromString(response, 'text/html');
             var title = doc.title;
-            console.log(title);
             if (title === "Login - Item_Order_Management") {
                 window.location.href = '@Url.Action("Login", "Authentication")';
             }

@@ -1,4 +1,3 @@
-using DataAccessLayer.Context;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.Repository.Implementations;
 using DataAccessLayer.ViewModels;
@@ -12,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using Rotativa.AspNetCore;
 using Item_Order_Management.MiddleWare;
+using DataAccessLayer.Models;
 
 WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 
@@ -24,8 +24,8 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(
         path: logFilePath,
         rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7, // Keep logs for 7 days
-        fileSizeLimitBytes: 50_000_000, // in bytes 50 MB
+        retainedFileCountLimit: 1, // Keep logs for 1 days
+        fileSizeLimitBytes: 100_000_000, // in bytes 100 MB
         rollOnFileSizeLimit: true,
         shared: true,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}{NewLine}{NewLine}"
@@ -35,7 +35,7 @@ Log.Logger = new LoggerConfiguration()
 // Replace built-in logger with Serilog
 builder.Logging.AddSerilog(Log.Logger);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<NewItemOrderDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register Repositories
@@ -46,6 +46,8 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<ICouponRepository, CouponRepository>();
 
 // Register Services
 builder.Services.AddScoped<IUserService, UserService>();
@@ -55,6 +57,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWishListService, WishListService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
@@ -111,6 +115,15 @@ builder.Services.AddAuthentication(x =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddDistributedMemoryCache();
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 WebApplication? app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -136,6 +149,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseStatusCodePagesWithReExecute("/Error/HandleError/{0}");
+
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",

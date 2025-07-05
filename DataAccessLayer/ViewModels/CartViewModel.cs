@@ -8,6 +8,7 @@ public class CartViewModel
     public int ItemId { get; set; }
     public string ItemName { get; set; } = null!;
     public decimal Price { get; set; }
+    public int Stock { get; set; }
     public string ThumbnailImageUrl { get; set; } = null!;
-    public int Quantity { get; set; } 
+    public int Quantity { get; set; }
 }

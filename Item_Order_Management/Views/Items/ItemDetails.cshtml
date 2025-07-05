@@ -49,7 +49,20 @@
                     <!-- Item Info -->
                     <div class="col-md-7">
                         <div class="card-body p-4">
-                            <div class="position-absolute m-2" style="top:10px; right:20px">
+                            <div class="position-absolute m-2 top-0 end-0">
+                                @if (Model.Stock == 0)
+                                {
+                                    <div class="position-absolute top-0 ms-0 m-2 mt-0" style="right: 600px !important;">
+                                        <button class="btn hollow-btn btn-sm notify-btn text-nowrap" data-item-id="@Model.ItemId"
+                                            data-item-name="@Model.ItemName">Notify Me</button>
+                                    </div>
+
+                                    <div class="position-absolute top-0 m-2 mt-0 me-5" style="right: 0px;">
+                                        <span class="badge fw-light"
+                                            style="color: rgb(179, 0, 0); background-color: rgba(255, 71, 71, 0.336);">Out
+                                            of Stock</span>
+                                    </div>
+                                }
                                 @{
                                     var isFavourite = await CheckIfFavourite(Model.ItemId);
                                 }
@@ -57,18 +70,21 @@
                                     onclick="toggleWishlist(event, this)" data-item-id="@Model.ItemId"
                                     title="@(isFavourite ? "Remove from wishlist" : "Add to wishlist")"></i>
                             </div>
-                            <h2 class="card-title fw-bold custom-text-color mb-3">@Model.ItemName</h2>
+                            <h2 class="card-title fw-bold custom-text-color mb-3 pt-4">@Model.ItemName</h2>
                             <div class="my-3">
                                 <h5 class="text-dark fw-semibold">Price:</h5>
                                 <p class="fs-5 text-success fw-bold">@Model.Price.ToString("C")</p>
                             </div>
-                            <!-- Quantity Input -->
-                            <div class="d-flex align-items-center mt-3">
-                                <button class="btn hollow-btn quantity-btn minus me-2">-</button>
-                                <input type="number" class="form-control quantity-input text-center" value="1"
-                                    style="width: 70px;" min="1" id="quantity-input">
-                                <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
-                            </div>
+                            @if (Model.Stock > 0)
+                            {
+                                <!-- Quantity Input -->
+                                <div class="d-flex align-items-center mt-3">
+                                    <button class="btn hollow-btn quantity-btn minus me-2">-</button>
+                                    <input type="number" class="form-control quantity-input text-center" value="1"
+                                        style="width: 70px;" min="1" max="@Model.Stock" id="quantity-input" readonly>
+                                    <button class="btn hollow-btn quantity-btn plus ms-2">+</button>
+                                </div>
+                            }
                             @if (!string.IsNullOrWhiteSpace(Model.Details))
                             {
                                 <div class="mt-4">
@@ -81,11 +97,21 @@
                                 <a asp-action="Dashboard" asp-controller="Items" class="btn hollow-btn px-3">
                                     <i class="fa fa-arrow-left me-1"></i> Back to List
                                 </a>
-                                <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
-                                    <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
-                                </button>
-                                <button class="btn solid-btn px-3" onclick="showBuyNowModal(@Model.ItemId)">Buy
-                                    Now</button>
+                                @if (Model.Stock == 0)
+                                {
+                                    <button class="btn hollow-btn px-3" disabled>
+                                        <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                                    </button>
+                                    <button class="btn solid-btn px-3" disabled>Buy Now</button>
+                                }
+                                else
+                                {
+                                    <button class="btn hollow-btn px-3" onclick="addToCart(@Model.ItemId)">
+                                        <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                                    </button>
+                                    <button class="btn solid-btn px-3" onclick="showBuyNowModal(@Model.ItemId)">Buy
+                                        Now</button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -106,9 +132,7 @@
 }
 
 @section Scripts {
-
     <script>
-
         // Function to Load User Navbar.
         function LoadUserNavbar() {
             $.ajax({
@@ -116,31 +140,24 @@
                 type: "GET",
                 success: function (data) {
                     $("#Navbar").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Error loading navbar");
                 }
+            });
+        }
+
+        // Function to Perform the elevate Zoom plugin.
+        function initElevateZoomOnActive() {
+            $('.zoomContainer').remove();
+            $('.ItemImage').removeData('elevateZoom').unbind('.elevateZoom');
+            $('.carousel-item.active .ItemImage').elevateZoom({
+                zoomType: "inner",
+                cursor: "pointer"
             });
         }
 
         // Quantity Button Handlers
         $(document).ready(function () {
-
-            function initElevateZoomOnActive() {
-                // Remove previous zoom overlays and data
-                $('.zoomContainer').remove();
-                $('.ItemImage').removeData('elevateZoom').unbind('.elevateZoom');
-
-                // Initialize elevateZoom only on the active image
-                $('.carousel-item.active .ItemImage').elevateZoom({
-                    zoomType: "inner",
-                    lensShape: "round",
-                    lensSize: 450
-                });
-            }
-
             initElevateZoomOnActive();
-            
+
             $('#ImageCarousal').on('slid.bs.carousel', function () {
                 initElevateZoomOnActive();
             });
@@ -148,10 +165,16 @@
             $(".quantity-btn").on("click", function () {
                 const inputTag = $(this).siblings(".quantity-input");
                 let qty = parseInt(inputTag.val());
+                const maxQty = parseInt(inputTag.attr("max"));
+
                 if (isNaN(qty)) qty = 1;
 
                 if ($(this).hasClass("plus")) {
-                    qty += 1;
+                    if (qty < maxQty) {
+                        qty = qty + 1;
+                    } else {
+                        callErrorToaster(`Only ${maxQty} units are available.`);
+                    }
                 } else {
                     qty = qty > 1 ? qty - 1 : 1;
                 }
@@ -180,9 +203,6 @@
                                 .attr('title', 'Add to wishlist');
                         }
                     }
-                },
-                error: function () {
-                    callErrorToaster('Failed to update wishlist');
                 }
             });
         }
@@ -201,16 +221,13 @@
                     } else {
                         callErrorToaster(response.message);
                     }
-                },
-                error: function () {
-                    callErrorToaster("Failed to add item to cart");
                 }
             });
         }
 
-        // Function to Buy particular item
+        // Function to Buy particular item CHECK
         function showBuyNowModal(itemId) {
-            const quantity = parseInt($("#quantity-input").val());
+            const quantity = parseInt($("#quantity-input").val()) || 1;
             const itemName = '@Model.ItemName';
             const price = @Model.Price;
 
@@ -224,23 +241,23 @@
             }];
 
             let itemsHtml = `<table class="table table-striped">
-                                                                                                                                                                                                                            <thead>
-                                                                                                                                                                                                                                <tr>
-                                                                                                                                                                                                                                    <th class="text-nowrap">Item Name</th>
-                                                                                                                                                                                                                                    <th class="text-nowrap">Quantity</th>
-                                                                                                                                                                                                                                    <th class="text-nowrap">Unit Price (₹)</th>
-                                                                                                                                                                                                                                    <th class="text-nowrap">Sub Total (₹)</th>
-                                                                                                                                                                                                                                </tr>
-                                                                                                                                                                                                                            </thead>
-                                                                                                                                                                                                                            <tbody>
-                                                                                                                                                                                                                                <tr>
-                                                                                                                                                                                                                                    <td class="text-nowrap">${itemName}</td>
-                                                                                                                                                                                                                                    <td class="text-nowrap">${quantity}</td>
-                                                                                                                                                                                                                                    <td class="text-nowrap">${price.toFixed(2)}</td>
-                                                                                                                                                                                                                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
-                                                                                                                                                                                                                                </tr>
-                                                                                                                                                                                                                            </tbody>
-                                                                                                                                                                                                                        </table>`;
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-nowrap">Item Name</th>
+                                                    <th class="text-nowrap">Quantity</th>
+                                                    <th class="text-nowrap">Unit Price (₹)</th>
+                                                    <th class="text-nowrap">Sub Total (₹)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">${itemName}</td>
+                                                    <td class="text-nowrap">${quantity}</td>
+                                                    <td class="text-nowrap">${price.toFixed(2)}</td>
+                                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>`;
 
             $("#orderItemsList").html(itemsHtml);
             $("#modalTotalAmount").text(`₹${(price * quantity).toFixed(2)}`);
@@ -259,13 +276,31 @@
                         } else {
                             callErrorToaster(response.message);
                         }
-                    },
-                    error: function () {
-                        callErrorToaster("Failed to place order");
                     }
                 });
             });
         }
 
+        // Function for Notify Me button
+            $(document).on("click", ".notify-btn", function () {
+                const itemId = $(this).data("item-id");
+                const itemName = $(this).data("item-name");
+                $.ajax({
+                    url: "/Items/RequestStockNotification",
+                    type: "POST",
+                    data: { itemId: itemId, itemName: itemName },
+                    success: function (response) {
+                        if (response.success) {
+                            $(".notify-btn").attr("disabled", true); // Disable button after request
+                            callSuccessToaster(response.message);
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to request notification. Please try again.");
+                    }
+                });
+            });
     </script>
 }

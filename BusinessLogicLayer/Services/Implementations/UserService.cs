@@ -26,12 +26,15 @@ public class UserService : IUserService
 
     public async Task<bool> Register(UserViewModel model)
     {
+        if (model == null) throw new CustomException("Invalid Model passed.");
         model.Password = Encryption.EncryptPassword(model.Password);
         return await _userRepository.Register(model);
     }
 
     public async Task<string> Login(UserViewModel model)
     {
+        if (model == null) throw new CustomException("Invalid Model passed.");
+
         User? user = _userRepository.GetUserByEmail(model.Email);
 
         if (user != null && user.IsDelete == false)
@@ -51,12 +54,22 @@ public class UserService : IUserService
         return null;
     }
 
-    public async Task<bool> IsEmailExists(string email) => await _userRepository.IsEmailExists(email);
+    public async Task<bool> IsEmailExists(string email)
+    {
+        if (string.IsNullOrEmpty(email)) throw new CustomException("Invalid Email.");
+        return await _userRepository.IsEmailExists(email);
+    }
 
-    public async Task<bool> IsUsernameExists(string Username) => await _userRepository.IsUsernameExists(Username);
+    public async Task<bool> IsUserExists(string Username, string Email)
+    {
+        if (string.IsNullOrEmpty(Username)) throw new CustomException("Invalid Email.");
+        return await _userRepository.IsUserExists(Username, Email);
+    }
 
     public int GetUserIdFromToken(string token)
     {
+        if (string.IsNullOrEmpty(token)) throw new CustomException("Invalid Token.");
+
         string? Email = _JWTService.GetClaimValue(token, "email");
 
         if (string.IsNullOrEmpty(Email)) return 0;
@@ -70,48 +83,47 @@ public class UserService : IUserService
 
     public async Task<bool> ChangePassword(ChangePasswordViewModel changepassword, string Email)
     {
+        if (changepassword == null) throw new CustomException("Invalid Model data");
+        if (string.IsNullOrEmpty(Email)) throw new CustomException("Invalid Email.");
         return await _userRepository.ChangePassword(changepassword, Email);
     }
 
-    public async Task<bool> UpdateUserProfile(UserViewModel user, string Email)
+    public async Task<bool> UpdateUserProfile(UserViewModel user, int UserId)
     {
-        return await _userRepository.UpdateUserProfile(user, Email);
+        if (user == null) throw new CustomException("Invalid Model data");
+        if (UserId <= 0) throw new CustomException("Invalid User ID");
+        return await _userRepository.UpdateUserProfile(user, UserId);
     }
 
-    public async Task<UserViewModel> GetUserProfileDetails(string Email)
+    public async Task<UserViewModel> GetUserProfileDetails(int UserId)
     {
-        return await _userRepository.GetUserProfileDetails(Email);
+        if (UserId <= 0) throw new CustomException("Invalid User ID");
+        return await _userRepository.GetUserProfileDetails(UserId);
     }
 
-    public string GetProfileImage(string token)
+    public UserInfoViewModel GetUserInformation(string token)
     {
-        string? Email = _JWTService.GetClaimValue(token, "email");
+        if (string.IsNullOrEmpty(token)) throw new CustomException("Invalid Token.");
 
-        if (string.IsNullOrEmpty(Email)) return null!;
+        string? email = _JWTService.GetClaimValue(token, "email");
 
-        User? user = _userRepository.GetUserByEmail(Email!);
+        if (string.IsNullOrEmpty(email)) return new UserInfoViewModel();
 
-        if (user.Email == Email) return user.ImageURL ?? "../images/Default_pfp.svg.png";
+        User? user = _userRepository.GetUserByEmail(email);
 
-        return null!;
-    }
+        if (user == null || user.Email != email)
+            return new UserInfoViewModel();
 
-    public string GetUserName(string token)
-    {
-        string? Email = _JWTService.GetClaimValue(token, "email");
-
-        if (string.IsNullOrEmpty(Email)) return null!;
-
-        User? user = _userRepository.GetUserByEmail(Email!);
-
-        if (user.Email == Email) return user.Username!;
-
-        return null!;
+        return new UserInfoViewModel
+        {
+            ProfileImage = user.ImageUrl ?? "../images/Default_pfp.svg.png",
+            UserName = user.Username
+        };
     }
 
     public string GetPassword(string Email)
     {
-        if (string.IsNullOrEmpty(Email)) return null!;
+        if (string.IsNullOrEmpty(Email)) throw new CustomException("Invalid Email");
 
         User? user = _userRepository.GetUserByEmail(Email!);
 
@@ -123,6 +135,10 @@ public class UserService : IUserService
     //  Used to Send Email
     public async Task<bool> SendEmail(ForgotPasswordViewModel forgotpassword, string resetLink)
     {
+        if (forgotpassword == null) throw new CustomException("Invalid Model data");
+        if (string.IsNullOrEmpty(resetLink)) throw new CustomException("Invalid reset Link");
+
+
         string email = forgotpassword.Email;
         User? user = _userRepository.GetUserByEmail(email);
         string userName = user.Username;
@@ -134,7 +150,7 @@ public class UserService : IUserService
                 MailAddress receiverEmail = new MailAddress(forgotpassword.Email, "reciever");
                 string password = _configuration["smtp:Password"];
                 string sub = "Forgot Password";
-                string body = EmailTemplate.ResetPasswordEmail(resetLink,userName);
+                string body = EmailTemplate.ResetPasswordEmail(resetLink, userName);
                 SmtpClient smtp = new SmtpClient
                 {
                     Host = _configuration["smtp:Host"],
@@ -166,29 +182,24 @@ public class UserService : IUserService
     // Used to find If email exists and will update the encrypted password in the DB. 
     public async Task<bool> ResetPassword(ResetPasswordViewModel resetPassword)
     {
-        try
+        if (resetPassword == null) throw new CustomException("Invalid Model data");
+
+        User? data = _userRepository.GetUserByEmail(resetPassword.Email);
+
+        if (data != null && !data.IsDelete)
         {
-            User? data = _userRepository.GetUserByEmail(resetPassword.Email);
-
-            if (data != null && !data.IsDelete)
+            // Check if the new password is the same as the old password
+            if (data.Password == Encryption.EncryptPassword(resetPassword.Password))
             {
-                // Check if the new password is the same as the old password
-                if (data.Password == Encryption.EncryptPassword(resetPassword.Password))
-                {
-                    return false;
-                }
-
-                data.Password = Encryption.EncryptPassword(resetPassword.Password);
-                if (await _userRepository.ResetPassword(data)) return true;
-
                 return false;
             }
+            data.Password = Encryption.EncryptPassword(resetPassword.Password);
+            if (await _userRepository.ResetPassword(data)) return true;
+
             return false;
         }
-        catch
-        {
-            throw;
-        }
+        return false;
+
     }
 
     public List<User> GetAllUsers()

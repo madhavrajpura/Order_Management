@@ -4,14 +4,53 @@
 
 <div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
 
-    <div class="row mb-4 mt-3">
-        <div class="col-12 col-md-6">
-            <h2 class="custom-text-color fw-bold">Browse Catalog</h2>
-        </div>
+    <div class="row mb-3">
+            @* <h2 class="custom-text-color fw-bold">Browse Catalog</h2> *@
+            <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0"
+                        class="active" aria-current="true" aria-label="Slide 1"></button>
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1"
+                        aria-label="Slide 2"></button>
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2"
+                        aria-label="Slide 3"></button>
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="3"
+                        aria-label="Slide 3"></button>
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="4"
+                        aria-label="Slide 3"></button>
+                </div>
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <img src="~/images/backgroundSlider1.webp" class="d-block w-100 rounded" alt="...">
+                    </div>
+                    <div class="carousel-item">
+                        <img src="~/images/backgroundSlider2.webp" class="d-block w-100 rounded" alt="...">
+                    </div>
+                    <div class="carousel-item">
+                        <img src="~/images/backgroundSlider3.webp" class="d-block w-100 rounded" alt="...">
+                    </div>
+                    <div class="carousel-item">
+                        <img src="~/images/backgroundSlider4.webp" class="d-block w-100 rounded" alt="...">
+                    </div>
+                    <div class="carousel-item">
+                        <img src="~/images/backgroundSlider5.webp" class="d-block w-100 rounded" alt="...">
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators"
+                    data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators"
+                    data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
     </div>
 
     <div id="items-content">
-        <div class="d-flex justify-content-between gap-3 mb-4">
+        <div class="d-flex justify-content-between gap-3 mb-3">
             <div class="d-flex justify-content-end align-items-center gap-3">
                 <div class="d-flex align-items-center">
                     <span class="me-2 text-nowrap">Items per page:</span>
@@ -77,11 +116,6 @@
                     itemsCurrentPage++;
                     itemsIsLoading = false;
                     $("#loading").addClass("d-none");
-                },
-                error: function () {
-                    itemsIsLoading = false;
-                    $("#loading").addClass("d-none");
-                    callErrorToaster("Error Loading Data");
                 }
             });
         }
@@ -108,9 +142,6 @@
                                 .attr('title', 'Add to wishlist');
                         }
                     }
-                },
-                error: function () {
-                    callErrorToaster("Error Loading Data");
                 }
             });
         }

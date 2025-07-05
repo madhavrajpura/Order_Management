@@ -17,104 +17,32 @@
 </div>
 
 @section Scripts {
-
     <script>
-        
+        // Function to Load User Navbar.
         function LoadUserNavbar() {
             $.ajax({
                 url: "/Items/GetUserNavbarData",
                 type: "GET",
                 success: function (data) {
                     $("#Navbar").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Error loading navbar");
                 }
             });
         }
 
-        function showOrderConfirmationModal() {
-            let orderItems = [];
-            let total = 0;
-
+        // Function to Update the place order button state
+        function updatePlaceOrderButtonState() {
+            let hasOutOfStock = false;
             $(".cart-item").each(function () {
-                const price = parseFloat($(this).data("price"));
+                const stock = parseInt($(this).data("stock"));
                 const quantity = parseInt($(this).find(".quantity-input").val());
-                const itemName = $(this).find(".card-title").text();
-                const itemId = $(this).find(".remove-btn").data("item-id");
-
-                orderItems.push({
-                    OrderItemId: 0,
-                    OrderId: 0,
-                    ItemId: itemId,
-                    ItemName: itemName,
-                    Price: price,
-                    Quantity: quantity
-                });
-
-                total += price * quantity;
+                if (stock === 0 || quantity > stock) {
+                    hasOutOfStock = true;
+                }
             });
-
-            // Populate modal with order items
-            let itemsHtml = `<table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th class="text-nowrap">Item Name</th>
-                                        <th class="text-nowrap">Quantity</th>
-                                        <th class="text-nowrap">Unit Price (₹)</th>
-                                        <th class="text-nowrap">Sub Total (₹)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-            orderItems.forEach(item => {
-                itemsHtml += `
-                                    <tr>
-                                        <td class="text-nowrap">${item.ItemName}</td>
-                                        <td class="text-nowrap">${item.Quantity}</td>
-                                        <td class="text-nowrap">${item.Price.toFixed(2)}</td>
-                                        <td class="text-nowrap">${(item.Price * item.Quantity).toFixed(2)}</td>
-                                    </tr>`;
-            });
-            itemsHtml += `</tbody>
-                            </table>`;
-
-            $("#orderItemsList").html(itemsHtml);
-            $("#modalTotalAmount").text(`₹${total.toFixed(2)}`);
-            $("#orderConfirmationModal").modal('show');
-
-            // Store order data for confirmation
-            $("#confirmOrderBtn").off('click').on('click', function () {
-                const orderData = {
-                    OrderId: 0,
-                    OrderDate: new Date().toISOString(),
-                    TotalAmount: total,
-                    IsDelivered: false,
-                    IsDelete: false,
-                    OrderItems: orderItems
-                };
-
-                $.ajax({
-                    url: "/Items/CreateOrder",
-                    type: "POST",
-                    data: { orderData: JSON.stringify(orderData) },
-                    success: function (response) {
-                        if (response.success) {
-                            $("#orderConfirmationModal").modal('hide');
-                            callSuccessToaster(response.message);
-                            LoadUserNavbar();
-                            window.location.href = response.redirectUrl;
-                        } else {
-                            callErrorToaster(response.message);
-                        }
-                    },
-                    error: function () {
-                        callErrorToaster("Failed to place order");
-                    }
-                });
-            });
+            $("#cartSummary .solid-btn").prop("disabled", hasOutOfStock);
         }
 
-        // Function to Load the Cart items
+        // Function to load cart items
         function loadCartItems() {
             $.ajax({
                 url: "/Items/GetCartItems",
@@ -123,26 +51,25 @@
                     $("#cartItems").html(data);
                     updateTotalAmount();
                     LoadUserNavbar();
-                },
-                error: function () {
-                    callErrorToaster("Error loading cart items");
+                    updatePlaceOrderButtonState();
+                    // Change: Removed loadAvailableCoupons() since coupons are now in modal
                 }
             });
         }
 
-        // Function to Update the Total Amount
+        // Function to update the total amount
         function updateTotalAmount() {
             let total = 0;
             $(".cart-item").each(function () {
                 const price = parseFloat($(this).data("price"));
                 const quantity = parseInt($(this).find(".quantity-input").val());
-                const itemTotal = price * quantity;
-                $(this).find(".item-total").text(`₹${itemTotal.toFixed(2)}`);
-                total += itemTotal;
+                total += price * quantity;
             });
             $("#totalAmount").text(`₹${total.toFixed(2)}`);
+            updatePlaceOrderButtonState();
         }
 
+        // Function to Update the Cart Quantity
         function updateCartQuantity(cartId, quantity) {
             $.ajax({
                 url: "/Items/UpdateCartQuantity",
@@ -151,30 +78,37 @@
                 success: function (response) {
                     if (response.success) {
                         updateTotalAmount();
+                        loadCartItems();
                     } else {
                         loadCartItems();
                         LoadUserNavbar();
+                        callErrorToaster(response.message);
                     }
-                },
-                error: function () {
-                    callErrorToaster("Failed to update quantity");
-                    loadCartItems();
                 }
             });
         }
 
+        // READY
         $(document).ready(function () {
+            // Load Cart Items
             loadCartItems();
 
+            // Quantity on Click
             $(document).on("click", ".quantity-btn", function () {
                 const inputTag = $(this).siblings(".quantity-input");
                 let qty = parseInt(inputTag.val());
+                const maxQty = parseInt(inputTag.attr("max"));
+                const stock = parseInt($(this).closest(".cart-item").data("stock"));
                 if (isNaN(qty)) qty = 1;
                 const cardTag = $(this).closest(".cart-item");
                 const cartId = cardTag.find(".remove-btn").data("cart-id");
 
                 if ($(this).hasClass("plus")) {
-                    qty += 1;
+                    if (stock === 0 || qty >= stock) {
+                        callErrorToaster(stock === 0 ? "Item is out of stock" : `Only ${stock} units available`);
+                        return;
+                    }
+                    qty = qty < maxQty ? qty + 1 : maxQty;
                 } else {
                     qty = qty > 1 ? qty - 1 : 1;
                 }
@@ -183,7 +117,7 @@
                 updateCartQuantity(cartId, qty);
             });
 
-            // Remove Button 
+            // Remove button on click
             $(document).on("click", ".remove-btn", function () {
                 const cartId = $(this).data("cart-id");
                 $.ajax({
@@ -194,16 +128,37 @@
                         $("#cartItems").html(data);
                         updateTotalAmount();
                         LoadUserNavbar();
-                    },
-                    error: function () {
-                        callErrorToaster("Failed to remove item");
                     }
                 });
             });
 
+            // Function for Notify Me button
+            $(document).on("click", ".notify-btn", function () {
+                const itemId = $(this).data("item-id");
+                const itemName = $(this).data("item-name");
+                $.ajax({
+                    url: "/Items/RequestStockNotification",
+                    type: "POST",
+                    data: { itemId: itemId, itemName: itemName },
+                    success: function (response) {
+                        if (response.success) {
+                            $(".notify-btn").attr("disabled", true);
+                            callSuccessToaster(response.message);
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to request notification. Please try again.");
+                    }
+                });
+            });
+
+            // Trigger the Cart Summary
             $("#cartSummary .solid-btn").off('click').on('click', function () {
                 showOrderConfirmationModal();
             });
         });
+        // END READY
     </script>
 }

@@ -35,11 +35,9 @@ public class AuthenticationController : Controller
                 }
                 return RedirectToAction("Dashboard", "Admin");
             }
-            else
-            {
-                TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;
-                return View();
-            }
+
+            TempData["ErrorMessage"] = NotificationMessage.InvalidCredentials;
+            return View();
         }
         return View();
     }
@@ -47,20 +45,21 @@ public class AuthenticationController : Controller
     [HttpPost]
     public async Task<IActionResult> Login(UserViewModel model)
     {
-        string? verification_token = await _userService.Login(model);
+        string? generatedToken = await _userService.Login(model);
 
         CookieOptions option = new CookieOptions();
         option.Expires = DateTime.Now.AddHours(30);
 
-        if (verification_token != null)
+        if (generatedToken != null)
         {
-            Response.Cookies.Append("JWTToken", verification_token, option);
-            Response.Cookies.Append("ProfileImage", _userService.GetProfileImage(verification_token), option);
-            Response.Cookies.Append("UserName", _userService.GetUserName(verification_token), option);
+            UserInfoViewModel? userInfo = _userService.GetUserInformation(generatedToken);
+            Response.Cookies.Append("JWTToken", generatedToken, option);
+            Response.Cookies.Append("ProfileImage", userInfo.ProfileImage, option);
+            Response.Cookies.Append("UserName", userInfo.UserName, option);
 
-            string? RoleName = _jwtService.GetClaimValue(verification_token, "role");
+            string? roleName = _jwtService.GetClaimValue(generatedToken, "role");
 
-            if (RoleName == "User")
+            if (roleName == "User")
             {
                 TempData["SuccessMessage"] = NotificationMessage.LoginSuccess;
                 return RedirectToAction("Dashboard", "Items");
@@ -97,17 +96,10 @@ public class AuthenticationController : Controller
     [HttpPost]
     public async Task<IActionResult> Register(UserViewModel model)
     {
-        bool isEmailExists = await _userService.IsEmailExists(model.Email);
-        bool isUsernameExists = await _userService.IsUsernameExists(model.UserName);
-
-        if (isEmailExists)
+        bool isUserExists = await _userService.IsUserExists(model.UserName, model.Email);
+        if (isUserExists)
         {
-            TempData["ErrorMessage"] = NotificationMessage.AlreadyExists.Replace("{0}", "Email");
-            return RedirectToAction("Register", "Authentication");
-        }
-        else if (isUsernameExists)
-        {
-            TempData["ErrorMessage"] = NotificationMessage.AlreadyExists.Replace("{0}", "Username");
+            TempData["ErrorMessage"] = NotificationMessage.AlreadyExists.Replace("{0}", "Username or Email");
             return RedirectToAction("Register", "Authentication");
         }
         else
@@ -136,6 +128,7 @@ public class AuthenticationController : Controller
         TempData["Email"] = Email;
         return Email;
     }
+
     public IActionResult ForgotPassword()
     {
         return View();
@@ -146,30 +139,29 @@ public class AuthenticationController : Controller
     {
         UserViewModel? user = new UserViewModel();
         user.Email = forgotpassword.Email;
-        bool CheckEmailExists = await _userService.IsEmailExists(user.Email);
 
-        if (!CheckEmailExists)
+        bool isEmailExists = await _userService.IsEmailExists(user.Email);
+
+        if (!isEmailExists)
         {
             TempData["ErrorMessage"] = NotificationMessage.DoesNotExist.Replace("{0}", "Email");
             return View("ForgotPassword");
         }
 
-        string? getpassword = _userService.GetPassword(user.Email);
-        if (!string.IsNullOrEmpty(getpassword))
+        string? userPassword = _userService.GetPassword(user.Email);
+
+        if (!string.IsNullOrEmpty(userPassword))
         {
 
-            string? resetLink = Url.Action("ResetPassword", "Authentication", new { reset_token = _jwtService.GenerateResetToken(user.Email, getpassword) }, Request.Scheme);
-            bool sendEmail = await _userService.SendEmail(forgotpassword, resetLink!);
-            if (sendEmail)
+            string? resetLink = Url.Action("ResetPassword", "Authentication", new { reset_token = _jwtService.GenerateResetToken(user.Email, userPassword) }, Request.Scheme);
+            bool userEmail = await _userService.SendEmail(forgotpassword, resetLink!);
+            if (userEmail)
             {
                 TempData["SuccessMessage"] = NotificationMessage.EmailSentSuccessfully;
                 return RedirectToAction("Login", "Authentication");
             }
-            else
-            {
-                TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
-                return View("ForgotPassword");
-            }
+            TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
+            return View("ForgotPassword");
         }
         TempData["ErrorMessage"] = NotificationMessage.EmailSendingFailed;
         return View("ForgotPassword");
@@ -180,14 +172,14 @@ public class AuthenticationController : Controller
     #region ResetPassword
     public IActionResult ResetPassword(string reset_token)
     {
-        string? reset_email = _jwtService.GetClaimValue(reset_token, "email");
-        string? reset_password = _jwtService.GetClaimValue(reset_token, "password");
-        string? Db_Password = _userService.GetPassword(reset_email);
+        string? email = _jwtService.GetClaimValue(reset_token, "email");
+        string? password = _jwtService.GetClaimValue(reset_token, "password");
+        string? dbPassword = _userService.GetPassword(email!);
 
-        if (Db_Password == reset_password)
+        if (dbPassword == password)
         {
             ResetPasswordViewModel resetPassData = new ResetPasswordViewModel();
-            resetPassData.Email = reset_email;
+            resetPassData.Email = email!;
             return View(resetPassData);
         }
         TempData["ErrorMessage"] = NotificationMessage.ResetPasswordChangedError;
@@ -199,9 +191,9 @@ public class AuthenticationController : Controller
     {
         if (ModelState.IsValid)
         {
-            bool IsEmailExistsStatus = await _userService.IsEmailExists(resetPassword.Email);
+            bool isEmailExistsStatus = await _userService.IsEmailExists(resetPassword.Email);
 
-            if (!IsEmailExistsStatus)
+            if (!isEmailExistsStatus)
             {
                 TempData["ErrorMessage"] = NotificationMessage.DoesNotExist.Replace("{0}", "Email");
                 return View("ResetPassword");
@@ -209,17 +201,14 @@ public class AuthenticationController : Controller
 
             if (resetPassword.Password == resetPassword.ConfirmPassword)
             {
-                bool checkresetpassword = await _userService.ResetPassword(resetPassword);
-                if (checkresetpassword)
+                bool resetPasswordStatus = await _userService.ResetPassword(resetPassword);
+                if (resetPasswordStatus)
                 {
                     TempData["SuccessMessage"] = NotificationMessage.PasswordChanged;
                     return RedirectToAction("Login");
                 }
-                else
-                {
-                    TempData["ErrorMessage"] = NotificationMessage.PasswordChangeFailed;
-                    return View("ResetPassword");
-                }
+                TempData["ErrorMessage"] = NotificationMessage.PasswordChangeFailed;
+                return View("ResetPassword");
             }
         }
         return View("ResetPassword");

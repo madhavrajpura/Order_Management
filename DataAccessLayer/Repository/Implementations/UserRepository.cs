@@ -1,4 +1,3 @@
-using DataAccessLayer.Context;
 using DataAccessLayer.Models;
 using DataAccessLayer.Repository.Interfaces;
 using DataAccessLayer.ViewModels;
@@ -9,8 +8,8 @@ namespace DataAccessLayer.Repository.Implementations;
 public class UserRepository : IUserRepository
 {
 
-    private readonly ApplicationDbContext _db;
-    public UserRepository(ApplicationDbContext db) => _db = db;
+    private readonly NewItemOrderDbContext _db;
+    public UserRepository(NewItemOrderDbContext db) => _db = db;
 
     public async Task<bool> Register(UserViewModel model)
     {
@@ -37,145 +36,101 @@ public class UserRepository : IUserRepository
 
     public User GetUserByEmail(string email)
     {
-        try
-        {
-            User? user = _db.Users.FirstOrDefault(e => e.Email == email);
-
-            if (user == null) return null;
-            return user;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetUserByEmail: {ex.Message}");
-            throw new Exception("Error retrieving user by email", ex);
-        }
+        User? user = _db.Users.FirstOrDefault(e => e.Email == email) ?? throw new Exception();
+        return user;
     }
 
     public async Task<bool> IsEmailExists(string email)
     {
-        try
-        {
-            User? user = await _db.Users.FirstOrDefaultAsync(e => e.Email == email);
+        User? user = await _db.Users.FirstOrDefaultAsync(e => e.Email == email) ?? throw new Exception();
 
-            if (user != null)
-            {
-                return true;
-            }
-            return false;
-        }
-        catch
+        if (user != null)
         {
-            Console.WriteLine("Error in IsEmailExists");
-            throw new Exception("Error checking if email exists");
+            return true;
         }
+        return false;
     }
 
-    public async Task<bool> IsUsernameExists(string Username)
+    public async Task<bool> IsUserExists(string Username, string Email)
     {
-        try
-        {
-            User? user = await _db.Users.FirstOrDefaultAsync(e => e.Username == Username);
+        bool user = await _db.Users.AnyAsync(e => e.Username == Username || e.Email == Email);
 
-            if (user != null)
-            {
-                return true;
-            }
-            return false;
-        }
-        catch
+        if (user)
         {
-            Console.WriteLine("Error in IsEmailExists");
-            throw new Exception("Error checking if username exists");
+            return true;
         }
+        return false;
     }
 
     public async Task<bool> ChangePassword(ChangePasswordViewModel changepassword, string Email)
     {
-        try
+        User? userdetails = GetUserByEmail(Email!);
+
+        if (userdetails != null)
         {
-            User? userdetails = GetUserByEmail(Email!);
-            if (userdetails != null)
+            if (userdetails.Password == changepassword.CurrentPassword)
             {
-                if (userdetails.Password == changepassword.CurrentPassword)
-                {
-                    userdetails.Password = changepassword.NewPassword;
-                    _db.Update(userdetails);
-                    await _db.SaveChangesAsync();
-                    return true;
-                }
-                return false;
+                userdetails.Password = changepassword.NewPassword;
+                _db.Update(userdetails);
+                await _db.SaveChangesAsync();
+                return true;
             }
             return false;
-
         }
-        catch
-        {
-            throw;
-        }
+        return false;
     }
 
-    public async Task<bool> UpdateUserProfile(UserViewModel user, string Email)
+    public async Task<bool> UpdateUserProfile(UserViewModel user, int UserId)
     {
-        try
-        {
-            User userdetails = GetUserByEmail(Email);
+        User? userDetails = await _db.Users.FirstOrDefaultAsync(user => user.Id == UserId) ?? throw new Exception();
 
-            userdetails.Username = user.UserName;
-            userdetails.Email = user.Email;
-            userdetails.Address = user.Address;
-            if (user.ImageFile != null)
-            {
-                userdetails.ImageURL = user.ImageURL;
-            }
-            userdetails.PhoneNumber = user.PhoneNumber;
-
-            _db.Update(userdetails);
-            await _db.SaveChangesAsync();
-            return true;
-        }
-        catch
+        if (userDetails == null)
         {
-            throw;
+            return false;
         }
 
+        userDetails.Username = user.UserName;
+        userDetails.Email = user.Email;
+        userDetails.Address = user.Address;
+
+        if (user.ImageFile != null)
+        {
+            userDetails.ImageUrl = user.ImageURL;
+        }
+        userDetails.PhoneNumber = user.PhoneNumber;
+
+        _db.Update(userDetails);
+        await _db.SaveChangesAsync();
+        return true;
     }
 
-    public async Task<UserViewModel> GetUserProfileDetails(string Email)
+    public async Task<UserViewModel> GetUserProfileDetails(int UserId)
     {
-        UserViewModel? data = await _db.Users.Where(x => x.Email == Email)
+        UserViewModel? User = await _db.Users.Where(x => x.Id == UserId)
         .Select(
             x => new UserViewModel
             {
                 UserName = x.Username,
                 Email = x.Email,
-                ImageURL = x.ImageURL,
+                ImageURL = x.ImageUrl,
                 PhoneNumber = x.PhoneNumber,
                 Address = x.Address
             }
-        ).FirstOrDefaultAsync();
+        ).FirstOrDefaultAsync() ?? throw new Exception();
 
-        return data;
+        return User;
     }
 
     public async Task<bool> ResetPassword(User userData)
     {
-        try
-        {
-            _db.Update(userData);
-            await _db.SaveChangesAsync();
-            return true;
-        }
-        catch (Exception Exception)
-        {
-            Console.WriteLine("Exception Occured : ", Exception.Message);
-            return false;
-        }
+        _db.Update(userData);
+        await _db.SaveChangesAsync();
+        return true;
     }
 
     public List<User> GetAllUsers()
     {
-        return _db.Users.Where(u => !u.IsDelete && u.RoleId == 3).ToList();
+        return _db.Users.Where(u => !u.IsDelete && u.RoleId == 3).ToList() ?? throw new Exception();
     }
-
 
 }

@@ -1,21 +1,13 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DataAccessLayer.Models;
 
-[Table("Role", Schema = "public")]
-public class Role
+public partial class Role
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("Id")]
     public int Id { get; set; }
 
-    [Required]
-    [Column("Name")]
-    [StringLength(30)]
     public string Name { get; set; } = null!;
 
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
-
+    public virtual ICollection<User> Users { get; } = new List<User>();
 }

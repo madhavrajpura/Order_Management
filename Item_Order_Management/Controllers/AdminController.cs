@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
+using DataAccessLayer.Models;
 using DataAccessLayer.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,18 +18,44 @@ public class AdminController : Controller
     private readonly IUserService _userService;
     private readonly INotificationService _notificationService;
     private readonly IOrderService _orderService;
-    public AdminController(IItemsService itemService, IJWTService JWTService, IUserService userService, INotificationService notificationService, IOrderService orderService)
+    private readonly IDashboardService _dashboardService;
+    public AdminController(IItemsService itemService, IJWTService JWTService, IUserService userService, INotificationService notificationService, IOrderService orderService, IDashboardService dashboardService)
     {
         _itemService = itemService;
         _JWTService = JWTService;
         _userService = userService;
         _notificationService = notificationService;
         _orderService = orderService;
+        _dashboardService = dashboardService;
     }
 
     #region Dashboard
 
     public IActionResult Dashboard()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetDashboardData()
+    {
+        var topSoldItems = await _dashboardService.GetTopSoldItems();
+        var topActiveUsers = await _dashboardService.GetTopActiveUsers();
+        var topLikedItems = await _dashboardService.GetTopLikedItems();
+        var orderStats = await _dashboardService.GetOrderStats();
+
+        var dashboardData = new
+        {
+            TopSoldItems = topSoldItems,
+            TopActiveUsers = topActiveUsers,
+            TopLikedItems = topLikedItems,
+            OrderStats = orderStats.Values
+        };
+
+        return Json(dashboardData);
+    }
+
+    public IActionResult Items()
     {
         return View();
     }
@@ -90,13 +117,14 @@ public class AdminController : Controller
             return Json(new { success = false, text = NotificationMessage.AlreadyExists.Replace("{0}", "Item") });
         }
 
-        // Handle thumbnail image
+        // Handle thumbnail image upload
         if (ItemVM.ThumbnailImageFile != null)
         {
             string[] extension = ItemVM.ThumbnailImageFile.FileName.Split(".");
             string ext = extension[extension.Length - 1].ToLower();
 
-            if (new[] { "jpg", "jpeg", "png", "gif", "webp", "jfif" }.Contains(ext))
+            // Validate image format
+            if (new[] { "jpg", "png", "webp"}.Contains(ext))
             {
                 string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
                 string fileName = ImageTemplate.GetFileName(ItemVM.ThumbnailImageFile, path);
@@ -108,16 +136,18 @@ public class AdminController : Controller
             }
         }
 
+        // Handle additional images upload
         string NewAdditionalImagesURL;
         List<string> NewAdditionalImageList = new List<string>();
-        foreach (IFormFile? AdditionalImagesFiles in ItemVM.AdditionalImagesFile!)
+        foreach (IFormFile? AdditionalImagesFiles in ItemVM.AdditionalImagesFile ?? new List<IFormFile>())
         {
             if (AdditionalImagesFiles != null)
             {
                 string[] extension = AdditionalImagesFiles.FileName.Split(".");
                 string ext = extension[extension.Length - 1].ToLower();
 
-                if (new[] { "jpg", "jpeg", "png", "gif", "webp", "jfif" }.Contains(ext))
+                // Validate additional image formats
+                if (new[] { "jpg", "png", "webp" }.Contains(ext))
                 {
                     string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
                     string fileName = ImageTemplate.GetFileName(AdditionalImagesFiles, path);
@@ -131,10 +161,63 @@ public class AdminController : Controller
             }
         }
 
+        // Check previous stock for updates to determine if notifications are needed
+        int previousStock = 0;
+        if (ItemVM.ItemId != 0)
+        {
+            var existingItem = _itemService.GetItemById(ItemVM.ItemId);
+            if (existingItem != null)
+            {
+                previousStock = existingItem.Stock;
+            }
+        }
+
+        // Save or update the item
         bool saveStatus = await _itemService.SaveItem(ItemVM, UserId, NewAdditionalImageList);
-        return Json(saveStatus
-            ? new { success = true, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateSuccess.Replace("{0}", "Item") : NotificationMessage.UpdateSuccess.Replace("{0}", "Item") }
-            : new { success = false, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateFailure.Replace("{0}", "Item") : NotificationMessage.UpdateFailure.Replace("{0}", "Item") });
+        if (!saveStatus)
+        {
+            return Json(new { success = false, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateFailure.Replace("{0}", "Item") : NotificationMessage.UpdateFailure.Replace("{0}", "Item") });
+        }
+
+        // Trigger notifications if stock increased from 0 to positive
+        if (ItemVM.ItemId != 0 && previousStock == 0 && ItemVM.Stock > 0)
+        {
+            // Retrieve pending notification requests for the item
+            var pendingNotifications = await _notificationService.GetPendingStockNotificationsAsync(ItemVM.ItemId);
+            
+            foreach (var pendingNotification in pendingNotifications)
+            {
+                // Mark original "Notify Me" request as read to prevent duplicates
+                await _notificationService.MarkStockNotificationAsReadAsync(pendingNotification.UserNotificationId);
+
+                // Create new notification for stock update
+                var notification = new Notification
+                {
+                    Message = $"{ItemVM.ItemName} is in stock now",
+                    CreatedBy = UserId,
+                    CreatedAt = DateTime.Now,
+                    IsActive = true,
+                    ItemId = ItemVM.ItemId
+                };
+
+                // Save new notification and link to user
+                int notificationId = await _notificationService.CreateNotificationAsync(notification);
+                if (notificationId > 0)
+                {
+                    var newUserNotification = new UserNotification
+                    {
+                        UserId = pendingNotification.UserId,
+                        NotificationId = notificationId,
+                        IsRead = false,
+                        ReadAt = null
+                    };
+                    await _notificationService.CreateUserNotificationAsync(newUserNotification);
+                }
+            }
+        }
+
+        // Return success response
+        return Json(new { success = true, text = ItemVM.ItemId == 0 ? NotificationMessage.CreateSuccess.Replace("{0}", "Item") : NotificationMessage.UpdateSuccess.Replace("{0}", "Item") });
     }
 
     [HttpPost]

@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Linq;
+using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.Models;
 using DataAccessLayer.Repository.Interfaces;
@@ -22,57 +23,99 @@ public class OrderService : IOrderService
         _itemsService = itemsService;
     }
 
+    // Modified: Added stock validation and decrementing
     public async Task<bool> CreateOrderAsync(int userId, OrderViewModel orderViewModel)
     {
-        try
+        if (userId <= 0) throw new CustomException("Invalid User ID.");
+        if (orderViewModel == null || orderViewModel.OrderItems == null || !orderViewModel.OrderItems.Any()) 
+            throw new CustomException("Invalid order data");
+
+        // Added: Validate stock for each item
+        foreach (var orderItem in orderViewModel.OrderItems)
         {
-            Order? order = new Order
-            {
-                TotalAmount = orderViewModel.TotalAmount,
-                OrderDate = DateTime.Now,
-                CreatedBy = userId
-            };
-
-            List<OrderItem>? orderItemsList = new List<OrderItem>();
-
-            foreach (OrderItemViewModel? orderItemViewModel in orderViewModel.OrderItems)
-            {
-                OrderItem newOrderItem = new OrderItem
-                {
-                    ItemId = orderItemViewModel.ItemId,
-                    ItemName = orderItemViewModel.ItemName,
-                    Price = orderItemViewModel.Price,
-                    Quantity = orderItemViewModel.Quantity,
-                    CreatedBy = userId,
-                    CreatedAt = DateTime.Now
-                };
-
-                orderItemsList.Add(newOrderItem);
-            }
-
-            bool result = await _orderRepo.CreateOrderAsync(order, orderItemsList);
-
-            if (result)
-            {
-                // Clear cart after successfully Placed order
-                List<CartViewModel>? cartItems = await _cartRepo.GetCartItems(userId);
-                foreach (CartViewModel? cartItem in cartItems)
-                {
-                    await _cartRepo.RemoveFromCart(cartItem.Id, userId);
-                }
-            }
-
-            return result;
+            ItemViewModel? item = _itemsService.GetItemById(orderItem.ItemId);
+            if (item == null)
+                throw new CustomException($"{orderItem.ItemName} not found");
+            if (!await _itemsService.IsItemInStock(orderItem.ItemId))
+                throw new CustomException($"{orderItem.ItemName} is out of stock");
+            if (orderItem.Quantity > item.Stock)
+                throw new CustomException($"Only {item.Stock} units of {orderItem.ItemName} available in stock");
         }
-        catch (Exception ex)
+
+        Order order = new Order
         {
-            Console.WriteLine($"Error in CreateOrderAsync: {ex.Message}");
-            throw;
+            TotalAmount = orderViewModel.TotalAmount,
+            OrderDate = DateTime.Now,
+            CreatedBy = userId
+        };
+
+        List<OrderItem> orderItemsList = orderViewModel.OrderItems.Select(orderItemViewModel => new OrderItem
+        {
+            ItemId = orderItemViewModel.ItemId,
+            ItemName = orderItemViewModel.ItemName,
+            Price = orderItemViewModel.Price,
+            Quantity = orderItemViewModel.Quantity,
+            CreatedBy = userId,
+            CreatedAt = DateTime.Now
+        }).ToList();
+
+        // Added: Update stock transactionally
+        bool orderCreationStatus = await _orderRepo.CreateOrderAsync(order, orderItemsList, orderViewModel.OrderItems);
+
+        if (orderCreationStatus)
+        {
+            // Modified: Clear cart only after successful order and stock update
+            List<CartViewModel> cartItems = await _cartRepo.GetCartItems(userId);
+            foreach (CartViewModel cartItem in cartItems)
+            {
+                await _cartRepo.RemoveFromCart(cartItem.Id, userId);
+            }
         }
+
+        return orderCreationStatus;
     }
 
+    // Modified: Added stock validation and decrementing
+    public async Task<bool> CreateOrderFromItemAsync(int userId, int itemId, int quantity)
+    {
+        if (userId <= 0) throw new CustomException("Invalid User ID.");
+        if (itemId <= 0) throw new CustomException("Invalid Item ID.");
+        if (quantity <= 0) throw new CustomException("Invalid Quantity.");
+
+        ItemViewModel? item = _itemsService.GetItemById(itemId);
+        if (item == null) throw new CustomException("Item not found");
+        if (!await _itemsService.IsItemInStock(itemId))
+            throw new CustomException($"{item.ItemName} is out of stock");
+        if (quantity > item.Stock)
+            throw new CustomException($"Only {item.Stock} units of {item.ItemName} available in stock");
+
+        Order order = new Order
+        {
+            CreatedBy = userId,
+            OrderDate = DateTime.Now,
+            TotalAmount = item.Price * quantity,
+        };
+
+        OrderItem orderItem = new OrderItem
+        {
+            ItemId = itemId,
+            Price = item.Price,
+            ItemName = item.ItemName,
+            CreatedBy = userId,
+            CreatedAt = DateTime.Now,
+            Quantity = quantity
+        };
+
+        // Added: Pass single item for stock update
+        return await _orderRepo.CreateOrderAsync(order, new List<OrderItem> { orderItem }, 
+            new List<OrderItemViewModel> { new OrderItemViewModel { ItemId = itemId, Quantity = quantity, ItemName = item.ItemName } });
+    }
+
+    // Get Order By User ID
     public async Task<List<OrderViewModel>> GetUserOrdersAsync(int userId)
     {
+        if (userId <= 0) throw new CustomException("Invalid User ID.");
+
         List<Order>? orders = await _orderRepo.GetUserOrdersAsync(userId);
 
         return orders.Select(o => new OrderViewModel
@@ -90,11 +133,13 @@ public class OrderService : IOrderService
                 ItemId = oi.ItemId,
                 ItemName = oi.ItemName,
                 Price = oi.Price,
+                Stock = oi.Item.Stock,
                 Quantity = oi.Quantity
             }).ToList()
         }).ToList();
     }
 
+    // Get Order List
     public PaginationViewModel<OrderViewModel> GetOrderList(string search = "", string sortColumn = "", string sortDirection = "", int pageNumber = 1, int pageSize = 5, string Status = "", int userId = 0, string fromDate = "", string toDate = "")
     {
         IQueryable<OrderViewModel>? query = _orderRepo.GetOrderList();
@@ -166,8 +211,12 @@ public class OrderService : IOrderService
         return new PaginationViewModel<OrderViewModel>(items, totalCount, pageNumber, pageSize);
     }
 
+
+    // Get Order Detail by Order ID.
     public OrderViewModel GetOrderDetailById(int OrderId)
     {
+        if (OrderId <= 0) throw new CustomException("Invalid Order ID.");
+
         IQueryable<Order>? Orders = _orderRepo.GetOrderListByModel();
 
         if (Orders == null) return new OrderViewModel();
@@ -178,10 +227,10 @@ public class OrderService : IOrderService
         {
             OrderId = order.Id,
             OrderDate = order.OrderDate,
-            CustomerName = order.CreatedByUser.Username,
-            Email = order.CreatedByUser.Email,
-            PhoneNumber = order.CreatedByUser.PhoneNumber,
-            Address = order.CreatedByUser.Address,
+            CustomerName = order.CreatedByNavigation.Username,
+            Email = order.CreatedByNavigation.Email,
+            PhoneNumber = order.CreatedByNavigation.PhoneNumber,
+            Address = order.CreatedByNavigation.Address,
             TotalAmount = order.TotalAmount,
             DeliveryDate = order.DeliveryDate,
             IsDelivered = order.IsDelivered,
@@ -192,8 +241,9 @@ public class OrderService : IOrderService
                 OrderId = (int)oi.OrderId,
                 ItemId = oi.ItemId,
                 ItemName = oi.ItemName,
-                ImageURL = oi.Items.ItemImages.Where(item => item.ItemId == oi.ItemId).Select(item => item.ImageURL).FirstOrDefault(),
+                ImageURL = oi.Item.ItemImages.Where(item => item.ItemId == oi.ItemId).Select(item => item.ImageUrl).FirstOrDefault(),
                 Price = oi.Price,
+                Stock = oi.Item.Stock,
                 Quantity = oi.Quantity
             }).ToList()
         }).FirstOrDefault();
@@ -201,45 +251,24 @@ public class OrderService : IOrderService
         return orderData;
     }
 
+    // Update Order Status.
     public async Task<bool> UpdateOrderStatus(int orderId, int UserId)
     {
+        if (UserId <= 0) throw new CustomException("Invalid User ID.");
+        if (orderId <= 0) throw new CustomException("Invalid order ID.");
         return await _orderRepo.UpdateOrderStatus(orderId, UserId);
     }
 
-    public async Task<bool> CreateOrderFromItemAsync(int userId, int itemId, int quantity)
-    {
-        ItemViewModel? item = _itemsService.GetItemById(itemId);
-        if (item == null) return false;
-
-        Order? order = new Order
-        {
-            CreatedBy = userId,
-            OrderDate = DateTime.Now,
-            TotalAmount = item.Price * quantity,
-        };
-
-        OrderItem? orderItem = new OrderItem
-        {
-            ItemId = itemId,
-            Price = item.Price,
-            ItemName = item.ItemName,
-            CreatedBy = userId,
-            CreatedAt = DateTime.Now,
-            Quantity = quantity
-        };
-
-        return await _orderRepo.CreateOrderAsync(order, new List<OrderItem> { orderItem });
-    }
-
+    // Excel Export Functionality
     public Task<byte[]> ExportData(string search = "", string Status = "", int UserId = 0, string fromDate = "", string toDate = "")
     {
         IQueryable<OrderViewModel>? query = _orderRepo.GetOrderList();
+        IQueryable<OrderViewModel>? allDataQuery = _orderRepo.GetOrderList(); // Separate query for all data
 
-        // Apply search 
+        // Apply filters for filtered data sheet
         if (!string.IsNullOrEmpty(search))
         {
             string lowerSearchTerm = search.ToLower();
-
             query = query.Where(u =>
                 u.OrderId.ToString().ToLower().Contains(lowerSearchTerm) ||
                 u.TotalAmount.ToString().Contains(lowerSearchTerm) ||
@@ -247,7 +276,6 @@ public class OrderService : IOrderService
             );
         }
 
-        // Apply filter
         if (Status == "Pending")
         {
             query = query.Where(o => !o.IsDelivered);
@@ -262,7 +290,6 @@ public class OrderService : IOrderService
             query = query.Where(o => o.CreatedByUser == UserId);
         }
 
-        // Apply date filter
         if (!string.IsNullOrEmpty(fromDate) && !string.IsNullOrEmpty(toDate))
         {
             query = query.Where(u => u.OrderDate >= DateTime.Parse(fromDate) && u.OrderDate <= DateTime.Parse(toDate).AddDays(1));
@@ -276,20 +303,22 @@ public class OrderService : IOrderService
             query = query.Where(u => u.OrderDate >= DateTime.Parse(fromDate));
         }
 
-        List<OrderViewModel>? orders = query.ToList();
+        List<OrderViewModel>? filteredOrders = query.ToList();
+        List<OrderViewModel>? allOrders = allDataQuery.ToList();
 
         // Create Excel package
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         using (var package = new ExcelPackage())
         {
-            ExcelWorksheet? worksheet = package.Workbook.Worksheets.Add("Orders");
+            // Sheet 1: All Data
+            ExcelWorksheet? allDataSheet = package.Workbook.Worksheets.Add("All Orders");
             int currentRow = 3;
             int currentCol = 2;
 
-            // this is first row....................................
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
-            worksheet.Cells[currentRow, currentCol].Value = "Customer Name: ";
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
+            // Header for All Data Sheet
+            allDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
+            allDataSheet.Cells[currentRow, currentCol].Value = "No. of Records: ";
+            using (var headingCells = allDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
             {
                 headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
                 headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
@@ -300,262 +329,268 @@ public class OrderService : IOrderService
                 headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             }
             currentCol += 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
-
-            if (UserId > 0)
-            {
-                worksheet.Cells[currentRow, currentCol].Value = query.Where(i => i.CreatedByUser == UserId).Select(i => i.CustomerName).FirstOrDefault();
-            }
-            else
-            {
-                worksheet.Cells[currentRow, currentCol].Value = "-";
-            }
-
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
+            allDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
+            allDataSheet.Cells[currentRow, currentCol].Value = allOrders.Count;
+            using (var headingCells = allDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
             {
                 headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
                 headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
                 headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
                 headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             }
 
-            currentCol += 5;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
-            worksheet.Cells[currentRow, currentCol].Value = "Search Text: ";
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
-                headingCells.Style.Font.Bold = true;
-                headingCells.Style.Font.Color.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            currentCol += 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                worksheet.Cells[currentRow, currentCol].Value = search;
-            }
-            else
-            {
-                worksheet.Cells[currentRow, currentCol].Value = "-";
-            }
-
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            // this is second row....................................
-            currentRow += 3;
-            currentCol = 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
-            worksheet.Cells[currentRow, currentCol].Value = "From Date: ";
-
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
-                headingCells.Style.Font.Bold = true;
-                headingCells.Style.Font.Color.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            currentCol += 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
-            if (!string.IsNullOrEmpty(fromDate))
-            {
-                worksheet.Cells[currentRow, currentCol].Value = fromDate;
-            }
-            else
-            {
-                worksheet.Cells[currentRow, currentCol].Value = "-";
-            }
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            currentCol += 5;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
-            worksheet.Cells[currentRow, currentCol].Value = "To Date : ";
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
-                headingCells.Style.Font.Bold = true;
-                headingCells.Style.Font.Color.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            currentCol += 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
-            if (!string.IsNullOrEmpty(toDate))
-            {
-                worksheet.Cells[currentRow, currentCol].Value = toDate;
-            }
-            else
-            {
-                worksheet.Cells[currentRow, currentCol].Value = "-";
-            }
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            currentRow += 3;
-            currentCol = 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
-            worksheet.Cells[currentRow, currentCol].Value = "No. of Records: ";
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
-                headingCells.Style.Font.Bold = true;
-                headingCells.Style.Font.Color.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-            currentCol += 2;
-            worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
-            worksheet.Cells[currentRow, currentCol].Value = orders.Count;
-            using (var headingCells = worksheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
-            {
-                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
-                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-
-                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            }
-
-
-            // this is table ....................................
+            // Table headers for All Data Sheet
             int headingRow = currentRow + 4;
             int headingCol = 2;
-
-            worksheet.Cells[headingRow, headingCol].Value = "Order No";
+            allDataSheet.Cells[headingRow, headingCol].Value = "Order No";
             headingCol++;
-
-            worksheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
-            worksheet.Cells[headingRow, headingCol].Value = "Order Date";
-            headingCol += 3;  // Move to next unmerged column
-
-            worksheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
-            worksheet.Cells[headingRow, headingCol].Value = "Customer Name";
+            allDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
+            allDataSheet.Cells[headingRow, headingCol].Value = "Order Date";
             headingCol += 3;
-
-            worksheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
-            worksheet.Cells[headingRow, headingCol].Value = "Status";
+            allDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
+            allDataSheet.Cells[headingRow, headingCol].Value = "Customer Name";
             headingCol += 3;
-
-            worksheet.Cells[headingRow, headingCol, headingRow, headingCol + 1].Merge = true;
-            worksheet.Cells[headingRow, headingCol].Value = "Total Amount";
-
-
-            using (var headingCells = worksheet.Cells[headingRow, 2, headingRow, headingCol + 1])
+            allDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
+            allDataSheet.Cells[headingRow, headingCol].Value = "Status";
+            headingCol += 3;
+            allDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 1].Merge = true;
+            allDataSheet.Cells[headingRow, headingCol].Value = "Total Amount";
+            using (var headingCells = allDataSheet.Cells[headingRow, 2, headingRow, headingCol + 1])
             {
                 headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
                 headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
                 headingCells.Style.Font.Bold = true;
                 headingCells.Style.Font.Color.SetColor(Color.White);
-
                 headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-
                 headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             }
 
-
-            // Populate data
+            // Populate All Data Sheet
             int row = headingRow + 1;
-
-            foreach (var order in orders)
+            foreach (var order in allOrders)
             {
                 int startCol = 2;
-
-                worksheet.Cells[row, startCol].Value = order.OrderId;
+                allDataSheet.Cells[row, startCol].Value = order.OrderId;
                 startCol += 1;
-
-                worksheet.Cells[row, startCol, row, startCol + 2].Merge = true;
-                worksheet.Cells[row, startCol].Value = order.OrderDate.ToString();
+                allDataSheet.Cells[row, startCol, row, startCol + 2].Merge = true;
+                allDataSheet.Cells[row, startCol].Value = order.OrderDate.ToString();
                 startCol += 3;
-
-                worksheet.Cells[row, startCol, row, startCol + 2].Merge = true;
-                worksheet.Cells[row, startCol].Value = order.CustomerName;
+                allDataSheet.Cells[row, startCol, row, startCol + 2].Merge = true;
+                allDataSheet.Cells[row, startCol].Value = order.CustomerName;
                 startCol += 3;
-
-                worksheet.Cells[row, startCol, row, startCol + 2].Merge = true;
-                if (order.IsDelivered)
-                {
-                    worksheet.Cells[row, startCol].Value = "Delivered";
-                }
-                else
-                {
-                    worksheet.Cells[row, startCol].Value = "Pending";
-                }
+                allDataSheet.Cells[row, startCol, row, startCol + 2].Merge = true;
+                allDataSheet.Cells[row, startCol].Value = order.IsDelivered ? "Delivered" : "Pending";
                 startCol += 3;
-
-                worksheet.Cells[row, startCol, row, startCol + 1].Merge = true;
-                worksheet.Cells[row, startCol].Value = order.TotalAmount;
-
-                using (var rowCells = worksheet.Cells[row, 2, row, startCol + 1])
+                allDataSheet.Cells[row, startCol, row, startCol + 1].Merge = true;
+                allDataSheet.Cells[row, startCol].Value = order.TotalAmount;
+                using (var rowCells = allDataSheet.Cells[row, 2, row, startCol + 1])
                 {
                     if (row % 2 == 0)
                     {
                         rowCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
                         rowCells.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
                     }
-
                     rowCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
-
-
                     rowCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                     rowCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
                 }
-
                 row++;
             }
+
+            // Sheet 2: Filtered Data
+            ExcelWorksheet? filteredDataSheet = package.Workbook.Worksheets.Add("Filtered Orders");
+            currentRow = 3;
+            currentCol = 2;
+
+            // Headers for Filtered Data Sheet
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = "Customer Name: ";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
+                headingCells.Style.Font.Bold = true;
+                headingCells.Style.Font.Color.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            currentCol += 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = UserId > 0 ? filteredOrders.FirstOrDefault(i => i.CreatedByUser == UserId)?.CustomerName ?? "-" : "-";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+
+            currentCol += 5;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = "Search Text: ";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
+                headingCells.Style.Font.Bold = true;
+                headingCells.Style.Font.Color.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            currentCol += 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = !string.IsNullOrEmpty(search) ? search : "-";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+
+            currentRow += 3;
+            currentCol = 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = "From Date: ";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
+                headingCells.Style.Font.Bold = true;
+                headingCells.Style.Font.Color.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            currentCol += 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = !string.IsNullOrEmpty(fromDate) ? fromDate : "-";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            currentCol += 5;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = "To Date: ";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
+                headingCells.Style.Font.Bold = true;
+                headingCells.Style.Font.Color.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            currentCol += 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = !string.IsNullOrEmpty(toDate) ? toDate : "-";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+
+            currentRow += 3;
+            currentCol = 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = "No. of Records: ";
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 1])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
+                headingCells.Style.Font.Bold = true;
+                headingCells.Style.Font.Color.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            currentCol += 2;
+            filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3].Merge = true;
+            filteredDataSheet.Cells[currentRow, currentCol].Value = filteredOrders.Count;
+            using (var headingCells = filteredDataSheet.Cells[currentRow, currentCol, currentRow + 1, currentCol + 3])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+
+            // Table headers for Filtered Data Sheet
+            headingRow = currentRow + 4;
+            headingCol = 2;
+            filteredDataSheet.Cells[headingRow, headingCol].Value = "Order No";
+            headingCol++;
+            filteredDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
+            filteredDataSheet.Cells[headingRow, headingCol].Value = "Order Date";
+            headingCol += 3;
+            filteredDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
+            filteredDataSheet.Cells[headingRow, headingCol].Value = "Customer Name";
+            headingCol += 3;
+            filteredDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 2].Merge = true;
+            filteredDataSheet.Cells[headingRow, headingCol].Value = "Status";
+            headingCol += 3;
+            filteredDataSheet.Cells[headingRow, headingCol, headingRow, headingCol + 1].Merge = true;
+            filteredDataSheet.Cells[headingRow, headingCol].Value = "Total Amount";
+            using (var headingCells = filteredDataSheet.Cells[headingRow, 2, headingRow, headingCol + 1])
+            {
+                headingCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headingCells.Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#0066A7"));
+                headingCells.Style.Font.Bold = true;
+                headingCells.Style.Font.Color.SetColor(Color.White);
+                headingCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                headingCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                headingCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+
+            // Populate Filtered Data Sheet
+            row = headingRow + 1;
+            foreach (var order in filteredOrders)
+            {
+                int startCol = 2;
+                filteredDataSheet.Cells[row, startCol].Value = order.OrderId;
+                startCol += 1;
+                filteredDataSheet.Cells[row, startCol, row, startCol + 2].Merge = true;
+                filteredDataSheet.Cells[row, startCol].Value = order.OrderDate.ToString();
+                startCol += 3;
+                filteredDataSheet.Cells[row, startCol, row, startCol + 2].Merge = true;
+                filteredDataSheet.Cells[row, startCol].Value = order.CustomerName;
+                startCol += 3;
+                filteredDataSheet.Cells[row, startCol, row, startCol + 2].Merge = true;
+                filteredDataSheet.Cells[row, startCol].Value = order.IsDelivered ? "Delivered" : "Pending";
+                startCol += 3;
+                filteredDataSheet.Cells[row, startCol, row, startCol + 1].Merge = true;
+                filteredDataSheet.Cells[row, startCol].Value = order.TotalAmount;
+                using (var rowCells = filteredDataSheet.Cells[row, 2, row, startCol + 1])
+                {
+                    if (row % 2 == 0)
+                    {
+                        rowCells.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        rowCells.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
+                    }
+                    rowCells.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Black);
+                    rowCells.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    rowCells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                }
+                row++;
+            }
+
             return Task.FromResult(package.GetAsByteArray());
-
         }
-
     }
 
 }

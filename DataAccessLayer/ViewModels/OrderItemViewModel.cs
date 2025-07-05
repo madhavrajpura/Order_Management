@@ -9,5 +9,6 @@ public class OrderItemViewModel
     public decimal Price { get; set; }
     public int Quantity { get; set; }
     public string ImageURL { get; set; } = null!;
+    public int Stock { get; set; }
 
 }

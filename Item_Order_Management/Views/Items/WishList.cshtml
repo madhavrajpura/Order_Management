@@ -1,5 +1,9 @@
 @model List<DataAccessLayer.ViewModels.WishListViewModel>
 
+@{
+    ViewData["Title"] = "My WishList";
+}
+
 <div class="container-fluid p-4 dashboard-color User-dasrboard min-vh-100">
     <!-- My Wishlist Text -->
     <div class="row mb-4">
@@ -9,7 +13,8 @@
         @if (Model.Any())
         {
             <div class="col-12 text-end">
-                <button class="btn solid-btn" onclick="addAllToCart()">Add All to Cart</button>
+                <button class="btn solid-btn" onclick="addAllToCart()" 
+                        disabled="@(!Model.Any(item => item.Stock > 0))">Add All to Cart</button>
             </div>
         }
     </div>
@@ -26,22 +31,44 @@
                             <div class="card-body text-center p-3">
                                 <div class="position-absolute top-0 end-0 m-2">
                                     <i class="fa-solid fa-heart fs-3 d-flex justify-content-end text-danger"
-                                        onclick="toggleWishlist(event, this)" data-item-id="@item.ItemId"
-                                        title="Remove from wishlist"></i>
+                                       onclick="toggleWishlist(event, this)" data-item-id="@item.ItemId"
+                                       title="Remove from wishlist"></i>
                                 </div>
+                                @if (item.Stock == 0)
+                {
+                    <div class="position-absolute top-0 end-0 m-2 me-5">
+                        <span class="badge fw-light"
+                            style="color: rgb(179, 0, 0); background-color: rgba(255, 71, 71, 0.336);">Out of Stock</span>
+                    </div>
+
+                    <div class="position-absolute top-0 end-75 ms-0 m-2">
+                        <button class="btn hollow-btn btn-sm notify-btn" data-item-id="@item.ItemId"
+                            data-item-name="@item.ItemName">Notify Me</button>
+                    </div>
+                }
                                 <img src="@item.ThumbnailImageUrl" class="card-img-top rounded img-fluid mb-3 cursor-pointer"
-                                    style="height: 180px; object-fit: contain;"
-                                    onclick="window.location.href='@Url.Action("ItemDetails", "Items", new { itemId = item.ItemId })'">
+                                     style="height: 180px; object-fit: contain;"
+                                     onclick="window.location.href='@Url.Action("ItemDetails", "Items", new { itemId = item.ItemId })'">
                                 <h5 class="card-title fw-bold text-dark">@item.ItemName</h5>
                                 <p class="card-text text-dark">Price : <span
                                         class="text-success fw-bold">@item.Price.ToString("C")</span></p>
                                 <p class="small text-muted truncate-text" title="@item.Details">@item.Details</p>
                                 <div class="mt-3">
-                                    <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
-                                        <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
-                                    </button>
-                                    <button class="btn solid-btn w-100"
-                                        onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
+                                    @if (item.Stock == 0)
+                                    {
+                                        <button class="btn hollow-btn w-100 mb-2" disabled>
+                                            <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                                        </button>
+                                        <button class="btn solid-btn w-100" disabled>Buy Now</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
+                                            <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
+                                        </button>
+                                        <button class="btn solid-btn w-100"
+                                                onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -64,19 +91,18 @@
 @section Scripts {
     <script>
 
+        // Function to Load User Navbar.
         function LoadUserNavbar() {
             $.ajax({
                 url: "/Items/GetUserNavbarData",
                 type: "GET",
                 success: function (data) {
                     $("#Navbar").html(data);
-                },
-                error: function () {
-                    callErrorToaster("Error loading navbar");
                 }
             });
         }
 
+        // Function to Toggle Wishlist items.
         function toggleWishlist(event, element) {
             event.preventDefault();
             event.stopPropagation();
@@ -94,23 +120,21 @@
 
                             if ($('#wishlistItems .col-12').length === 0) {
                                 $('#wishlist-content').html(`
-                                                    <div class="text-center py-5">
-                                                        <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
-                                                        <h4 class="text-muted">Your wishlist is empty</h4>
-                                                        <p class="text-muted">Add items to your wishlist to see them here</p>
-                                                        <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Browse Items</a>
-                                                    </div>
-                                                `);
+                                    <div class="text-center py-5">
+                                        <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
+                                        <h4 class="text-muted">Your wishlist is empty</h4>
+                                        <p class="text-muted">Add items to your wishlist to see them here</p>
+                                        <a href="@Url.Action("Dashboard", "Items")" class="btn solid-btn mt-3">Browse Items</a>
+                                    </div>
+                                `);
                             }
                         });
                     }
-                },
-                error: function () {
-                    callErrorToaster('Failed to update wishlist');
                 }
             });
         }
 
+        // Function to Add items into Cart
         function addToCart(itemId) {
             $.ajax({
                 url: "/Items/AddToCart",
@@ -118,36 +142,32 @@
                 data: { itemId: itemId, quantity: 1 },
                 success: function (response) {
                     if (response.success) {
-                        callSuccessToaster("Item added to cart!");
+                        callSuccessToaster(response.message);
                         LoadUserNavbar();
                     } else {
                         callErrorToaster(response.message);
                     }
-                },
-                error: function () {
-                    callErrorToaster("Failed to add item to cart");
                 }
             });
         }
 
+        // Function to Add all items into the Cart
         function addAllToCart() {
             $.ajax({
                 url: "/Items/AddAllFromWishlistToCart",
                 type: "POST",
                 success: function (response) {
                     if (response.success) {
-                        callSuccessToaster("All wishlist items added to cart!");
+                        callSuccessToaster(response.message);
                         LoadUserNavbar();
                     } else {
                         callErrorToaster(response.message);
                     }
-                },
-                error: function () {
-                    callErrorToaster("Failed to add items to cart");
                 }
             });
         }
 
+        // Function to show the buy now modal. CHECK
         function showBuyNowModal(itemId, itemName, price) {
             const quantity = 1;
             const orderItems = [{
@@ -160,23 +180,23 @@
             }];
 
             let itemsHtml = `<table class="table table-striped">
-                                            <thead>
-                                                <tr>
-                                                    <th class="text-nowrap">Item Name</th>
-                                                    <th class="text-nowrap">Quantity</th>
-                                                    <th class="text-nowrap">Unit Price (₹)</th>
-                                                    <th class="text-nowrap">Sub Total (₹)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="text-nowrap">${itemName}</td>
-                                                    <td class="text-nowrap">${quantity}</td>
-                                                    <td class="text-nowrap">${price.toFixed(2)}</td>
-                                                    <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>`;
+                                <thead>
+                                    <tr>
+                                        <th class="text-nowrap">Item Name</th>
+                                        <th class="text-nowrap">Quantity</th>
+                                        <th class="text-nowrap">Unit Price (₹)</th>
+                                        <th class="text-nowrap">Sub Total (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-nowrap">${itemName}</td>
+                                        <td class="text-nowrap">${quantity}</td>
+                                        <td class="text-nowrap">${price.toFixed(2)}</td>
+                                        <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>`;
 
             $("#orderItemsList").html(itemsHtml);
             $("#modalTotalAmount").text(`₹${(price * quantity).toFixed(2)}`);
@@ -195,12 +215,31 @@
                         } else {
                             callErrorToaster(response.message);
                         }
-                    },
-                    error: function () {
-                        callErrorToaster("Failed to place order");
                     }
                 });
             });
         }
+
+        // Function for Notify Me button
+            $(document).on("click", ".notify-btn", function () {
+                const itemId = $(this).data("item-id");
+                const itemName = $(this).data("item-name");
+                $.ajax({
+                    url: "/Items/RequestStockNotification",
+                    type: "POST",
+                    data: { itemId: itemId, itemName: itemName },
+                    success: function (response) {
+                        if (response.success) {
+                            $(".notify-btn").attr("disabled", true); // Disable button after request
+                            callSuccessToaster(response.message);
+                        } else {
+                            callErrorToaster(response.message);
+                        }
+                    },
+                    error: function () {
+                        callErrorToaster("Failed to request notification. Please try again.");
+                    }
+                });
+            });
     </script>
 }

@@ -125,22 +125,22 @@
                             html += '<div class="accordion">';
                             data.forEach(order => {
                                 html += `
-                                                <div class="accordion-item">
-                                                    <h2 class="accordion-header">
-                                                        <button class="accordion-button order-accordion-button collapsed" 
-                                                                type="button" 
-                                                                data-bs-target="#orderCollapse-${order.orderId}" 
-                                                                data-order-id="${order.orderId}">
-                                                            Order #${order.orderId} - ${order.orderDate} (Total: ₹ ${order.totalAmount.toFixed(2)})
-                                                        </button>
-                                                    </h2>
-                                                    <div id="orderCollapse-${order.orderId}" class="accordion-collapse">
-                                                        <div class="accordion-body">
-                                                            <!-- Order items will load here -->
+                                                    <div class="accordion-item">
+                                                        <h2 class="accordion-header">
+                                                            <button class="accordion-button order-accordion-button collapsed" 
+                                                                    type="button" 
+                                                                    data-bs-target="#orderCollapse-${order.orderId}" 
+                                                                    data-order-id="${order.orderId}">
+                                                                Order #${order.orderId} - ${order.orderDate} (Total: ₹ ${order.totalAmount.toFixed(2)})
+                                                            </button>
+                                                        </h2>
+                                                        <div id="orderCollapse-${order.orderId}" class="accordion-collapse">
+                                                            <div class="accordion-body">
+                                                                <!-- Order items will load here -->
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            `;
+                                                `;
                             });
                             html += '</div>';
                         }
@@ -163,7 +163,7 @@
                     data: { orderId: orderId },
                     success: function (data) {
                         let html = '';
-                        console.log("Order Items Data: ",  data.orderItems.length);
+                        console.log("Order Items Data: ", data.orderItems.length);
 
                         if (data.orderItems.length === 0) {
                             html = '<div class="no-orders">No order items found</div>';
@@ -174,26 +174,26 @@
 
                             data.orderItems.forEach(item => {
                                 html += `
-                            <tr>
-                                <td>${item.itemName}</td>
-                                <td>${item.quantity}</td>
-                                <td>₹ ${item.price.toFixed(2)}</td>
-                                <td>₹ ${item.subTotal || (item.quantity * item.price).toFixed(2)}</td>
-                                <td>${item.stock}</td>
-                            </tr>
-                        `;
+                                <tr>
+                                    <td>${item.itemName}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>₹ ${item.price.toFixed(2)}</td>
+                                    <td>₹ ${item.subTotal || (item.quantity * item.price).toFixed(2)}</td>
+                                    <td>${item.stock}</td>
+                                </tr>
+                            `;
                             });
 
                             html += '</tbody></table>';
 
                             // Add summary section using backend values
                             html += `
-                        <div style="margin-top: 1rem; font-size: 1.1rem;">
-                            <p><strong>SubTotal:</strong> ₹ ${data.subTotal.toFixed(2)}</p>
-                            <p style="color: red;"><strong>Discount:</strong> -₹ ${data.discountAmount.toFixed(2)}</p>
-                            <p style="color: green;"><strong>Total Amount:</strong> ₹ ${data.totalAmount.toFixed(2)}</p>
-                        </div>
-                    `;
+                            <div style="margin-top: 1rem; font-size: 1.1rem;">
+                                <p><strong>SubTotal:</strong> ₹ ${data.subTotal.toFixed(2)}</p>
+                                <p style="color: red;"><strong>Discount:</strong> -₹ ${data.discountAmount.toFixed(2)}</p>
+                                <p style="color: green;"><strong>Total Amount:</strong> ₹ ${data.totalAmount.toFixed(2)}</p>
+                            </div>
+                        `;
                         }
                         $(content).html(html);
                     },

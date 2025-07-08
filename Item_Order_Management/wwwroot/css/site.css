@@ -150,7 +150,7 @@ input:focus {
 }
 
 .dashboard-color {
-  background-color: rgba(198, 253, 255, 0.596);
+  background-color: rgba(198, 253, 255, 0.596) !important;
 }
 
 .User-dasrboard {
@@ -232,7 +232,7 @@ input:focus {
     --accordion-bg: #ffffff;
     --accordion-border-color: rgb(48, 117, 119, 0.2); /* Lighter teal for border */
     --accordion-btn-color: rgb(48, 117, 119);
-    --accordion-btn-bg: rgb(48, 117, 119, 0.1); /* Very light teal background */
+    --accordion-btn-bg: rgba(255, 255, 255, 0.203); /* Very light teal background */
     --accordion-active-color: #ffffff;
     --accordion-active-bg: rgb(48, 117, 119);
     --accordion-hover-bg: rgb(48, 117, 119, 0.15); /* Slightly darker teal for hover */
@@ -330,7 +330,7 @@ input:focus {
 }
 
 .accordion .accordion .accordion-button {
-    background-color: rgb(48, 117, 119, 0.15);
+    background-color: rgba(121, 162, 163, 0.25);
     padding-left: 2.5rem;
     color: var(--accordion-color);
 }
@@ -345,14 +345,9 @@ input:focus {
 }
 
 .accordion .accordion .accordion .accordion-button {
-    background-color: rgb(48, 117, 119, 0.25);
+    background-color: rgba(121, 162, 163, 0.25);
     padding-left: 3.75rem;
     color: var(--accordion-color);
-}
-
-/* Loading spinner */
-.text-primary {
-    color: rgb(48, 117, 119) !important;
 }
 
 .spinner-border {
@@ -368,18 +363,6 @@ input:focus {
 
 @keyframes spinner-border {
     to { transform: rotate(360deg); }
-}
-
-/* Custom dashboard styles */
-.dashboard-color {
-    background-color: rgb(48, 117, 119, 0.05);
-    padding: 2rem;
-}
-
-.custom-text-color {
-    color: rgb(48, 117, 119);
-    margin-bottom: 1.5rem;
-    font-weight: 600;
 }
 
 .no-orders {

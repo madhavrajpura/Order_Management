@@ -1,0 +1,20 @@
+@using DataAccessLayer.ViewModels
+@model List<OrderViewModel>
+
+@foreach (var order in Model)
+{
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed order-accordion-button" type="button" data-bs-toggle="collapse"
+                data-bs-target="#orderCollapse-@order.OrderId" data-order-id="@order.OrderId" aria-expanded="false"
+                aria-controls="orderCollapse-@order.OrderId">
+                Order #@order.OrderId - @order.OrderDate.ToString("MMM dd, yyyy") (Total: @order.TotalAmount.ToString("C"))
+            </button>
+        </h2>
+        <div id="orderCollapse-@order.OrderId" class="accordion-collapse collapse" data-bs-parent="">
+            <div class="accordion-body">
+                <!-- Order items will be loaded here via AJAX -->
+            </div>
+        </div>
+    </div>
+}

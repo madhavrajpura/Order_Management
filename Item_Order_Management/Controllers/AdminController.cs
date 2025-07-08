@@ -124,7 +124,7 @@ public class AdminController : Controller
             string ext = extension[extension.Length - 1].ToLower();
 
             // Validate image format
-            if (new[] { "jpg", "png", "webp"}.Contains(ext))
+            if (new[] { "jpg", "png", "webp" }.Contains(ext))
             {
                 string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
                 string fileName = ImageTemplate.GetFileName(ItemVM.ThumbnailImageFile, path);
@@ -184,7 +184,7 @@ public class AdminController : Controller
         {
             // Retrieve pending notification requests for the item
             var pendingNotifications = await _notificationService.GetPendingStockNotificationsAsync(ItemVM.ItemId);
-            
+
             foreach (var pendingNotification in pendingNotifications)
             {
                 // Mark original "Notify Me" request as read to prevent duplicates
@@ -278,6 +278,58 @@ public class AdminController : Controller
             .OrderBy(u => u.name)
             .ToList();
         return Json(UserList);
+    }
+
+    public IActionResult Data()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetUserList(int offset = 0, int limit = 10, string search = "")
+    {
+        var users = await _userService.GetUsers(offset, limit == 0 ? int.MaxValue : limit, search);
+        int totalCount = await _userService.GetTotalUserCount(search);
+        int pageNumber = (offset / (limit == 0 ? int.MaxValue : limit)) + 1;
+        int pageSize = (limit == 0 ? int.MaxValue : limit);
+        return PartialView("_UserAccordion", new PaginationViewModel<UserMainViewModel>(users, totalCount, pageNumber, pageSize));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetOrdersByUser(int userId)
+    {
+        var orders = await _orderService.GetOrdersByUser(userId);
+        return Json(orders.Select(o => new
+        {
+            orderId = o.OrderId,
+            orderDate = o.OrderDate.ToString("MMM dd, yyyy"),
+            totalAmount = o.TotalAmount
+        }));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetOrderItems(int orderId)
+    {
+        var orderItems = await _orderService.GetOrderItems(orderId);
+
+        return Json(new
+        {
+            orderId = orderItems.OrderId,
+            orderDate = orderItems.OrderDate.ToString("MMM dd, yyyy"),
+            totalAmount = orderItems.TotalAmount,
+            subTotal = orderItems.SubTotal,
+            discountAmount = orderItems.DiscountAmount,
+            deliveryDate = orderItems.DeliveryDate?.ToString("MMM dd, yyyy"),
+            isDelivered = orderItems.IsDelivered,
+            OrderItems = orderItems.OrderItems.Select(i => new
+            {
+                itemName = i.ItemName,
+                quantity = i.Quantity,
+                price = i.Price,
+                imageUrl = i.ImageURL,
+                stock = i.Stock
+            }).ToList(),
+        });
     }
 
 }

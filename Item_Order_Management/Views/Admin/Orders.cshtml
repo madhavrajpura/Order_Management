@@ -22,7 +22,7 @@
             <!-- User Filter Dropdown -->
             <div class="form-floating w-25">
                 <select id="UserFilter" class="form-select">
-                    <option value="All">All Users</option>
+                    <option value="All Users">All Users</option>
                 </select>
                 <label>Filter by User</label>
             </div>
@@ -164,7 +164,6 @@
                 url: "/Admin/GetAllUsers",
                 type: "GET",
                 success: function (data) {
-                    IsHtmlDocument(data);
 
                     let options = '<option value="">All Users</option>';
                     data.forEach(user => {
@@ -182,7 +181,6 @@
                 type: "GET",
                 data: { pageNumber: page, search, pageSize, sortColumn, sortDirection, Status, userId, fromDate, toDate },
                 success: function (data) {
-                    IsHtmlDocument(data);
 
                     $("#OrderTableBody").html(data);
                     currentPage = page;
@@ -413,8 +411,9 @@
                 $("#from-order-date").val("");
                 $("#to-order-date").val("");
                 $("#searchbtn").val("");
-                $("#Status").val("");
-                $("#UserFilter").val("");
+                $("#Status").val("All");
+                $("#UserFilter").val("All Users");
+
                 searchText = "";
                 fromDate = "";
                 toDate = "";

@@ -30,7 +30,6 @@ public class UserController : Controller
     [HttpPost]
     public async Task<IActionResult> UserProfileAsync(UserViewModel user)
     {
-        // Chnge the Email to ID
         int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         if (user.ImageFile != null)

@@ -27,6 +27,10 @@ public partial class Order
 
     public int? DeletedBy { get; set; }
 
+    public decimal? DiscountValue { get; set; }
+
+    public decimal? SubTotal { get; set; }
+
     public virtual ICollection<CouponUsage> CouponUsages { get; } = new List<CouponUsage>();
 
     public virtual User CreatedByNavigation { get; set; } = null!;

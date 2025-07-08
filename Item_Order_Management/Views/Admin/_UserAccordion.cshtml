@@ -1,0 +1,23 @@
+@using DataAccessLayer.ViewModels
+@model PaginationViewModel<UserMainViewModel>
+
+<input type="hidden" id="totalCount" value="@Model.TotalCount" />
+
+@foreach (var user in Model.Items)
+{
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button user-accordion-button collapsed" 
+                    type="button" 
+                    data-bs-target="#userCollapse-@user.UserId" 
+                    data-user-id="@user.UserId">
+                @user.CustomerName
+            </button>
+        </h2>
+        <div id="userCollapse-@user.UserId" class="accordion-collapse">
+            <div class="accordion-body">
+                <!-- Orders will load here -->
+            </div>
+        </div>
+    </div>
+}

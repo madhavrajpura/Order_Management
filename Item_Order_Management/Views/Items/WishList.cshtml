@@ -66,8 +66,8 @@
                                         <button class="btn hollow-btn w-100 mb-2" onclick="addToCart(@item.ItemId)">
                                             <i class="fa-solid fa-cart-plus pe-2"></i> Add to Cart
                                         </button>
-                                        <button class="btn solid-btn w-100"
-                                                onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price)">Buy Now</button>
+                                        <button class="btn solid-btn w-100" data-qty="1" id="BuyNow"
+                                                onclick="showBuyNowModal(@item.ItemId, '@item.ItemName', @item.Price,1)">Buy Now</button>
                                     }
                                 </div>
                             </div>
@@ -167,58 +167,155 @@
             });
         }
 
-        // Function to show the buy now modal. CHECK
-        function showBuyNowModal(itemId, itemName, price) {
-            const quantity = 1;
-            const orderItems = [{
-                OrderItemId: 0,
-                OrderId: 0,
-                ItemId: itemId,
-                ItemName: itemName,
-                Price: price,
-                Quantity: quantity
-            }];
+        // Function to show Order Summary on Buy Now
+    function showBuyNowModal(itemId, itemName, price, quantity) {
+        let orderItems = [{
+            OrderItemId: 0,
+            OrderId: 0,
+            ItemId: itemId,
+            ItemName: itemName,
+            Price: price,
+            Quantity: quantity
+        }];
 
-            let itemsHtml = `<table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th class="text-nowrap">Item Name</th>
-                                        <th class="text-nowrap">Quantity</th>
-                                        <th class="text-nowrap">Unit Price (₹)</th>
-                                        <th class="text-nowrap">Sub Total (₹)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="text-nowrap">${itemName}</td>
-                                        <td class="text-nowrap">${quantity}</td>
-                                        <td class="text-nowrap">${price.toFixed(2)}</td>
-                                        <td class="text-nowrap">${(price * quantity).toFixed(2)}</td>
-                                    </tr>
-                                </tbody>
-                            </table>`;
+        let subtotal = orderItems.reduce((sum, item) => sum + item.Quantity * item.Price, 0);
+        let discount = 0;
+        let grandTotal = subtotal;
 
-            $("#orderItemsList").html(itemsHtml);
-            $("#modalTotalAmount").text(`₹${(price * quantity).toFixed(2)}`);
-            $("#orderConfirmationModal").modal('show');
+        let itemsHtml = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-nowrap">Item Name</th>
+                        <th class="text-nowrap">Quantity</th>
+                        <th class="text-nowrap">Unit Price (₹)</th>
+                        <th class="text-nowrap">Sub Total (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orderItems.map(item => `
+                        <tr>
+                            <td class="text-nowrap">${item.ItemName}</td>
+                            <td class="text-nowrap">${item.Quantity}</td>
+                            <td class="text-nowrap">${item.Price.toFixed(2)}</td>
+                            <td class="text-nowrap">${(item.Price * item.Quantity).toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        $("#orderItemsList").html(itemsHtml);
 
-            $("#confirmOrderBtn").off('click').on('click', function () {
-                $.ajax({
-                    url: "/Items/BuyNow",
-                    type: "POST",
-                    data: { itemId: itemId, quantity: quantity },
-                    success: function (response) {
-                        if (response.success) {
-                            $("#orderConfirmationModal").modal('hide');
-                            callSuccessToaster(response.message);
-                            window.location.href = response.redirectUrl;
-                        } else {
-                            callErrorToaster(response.message);
+        // Fetch available coupons
+        $.ajax({
+            url: '/Items/GetAvailableCoupons',
+            method: 'GET',
+            data: { subTotal: grandTotal },
+            success: function (coupons) {
+                let couponHtml = coupons.length > 0 ? coupons.map(coupon => `
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input coupon-checkbox" 
+                               value="${coupon.code}" 
+                               data-discount-type="${coupon.discountType}" 
+                               data-discount-value="${coupon.discountValue}" 
+                               data-is-combinable="${coupon.isCombinable}"
+                               id="coupon-${coupon.couponId}">
+                        <label class="form-check-label" for="coupon-${coupon.couponId}">
+                            ${coupon.code} (${coupon.discountType === 'Percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`})
+                            ${coupon.isCombinable ? '(Combinable)' : ''}
+                        </label>
+                    </div>
+                `).join('') : '<p>No coupons available for this order amount.</p>';
+                $('#modalCouponCheckboxes').html(couponHtml);
+
+                // Handle coupon checkbox changes
+                $('.coupon-checkbox').on('change', function () {
+                    let selectedCoupons = $('.coupon-checkbox:checked');
+                    if (selectedCoupons.length > 2) {
+                        $(this).prop('checked', false);
+                        callErrorToaster('You can select a maximum of 2 coupons.');
+                        return;
+                    }
+
+                    // Check if selected coupons are combinable
+                    if (selectedCoupons.length === 2) {
+                        let allCombinable = selectedCoupons.toArray().every(checkbox =>
+                            $(checkbox).data('is-combinable') === true);
+                        if (!allCombinable) {
+                            $(this).prop('checked', false);
+                            callErrorToaster('This coupon is non-combinable with the selected one.');
+                            return;
                         }
                     }
+
+                    // Calculate discount
+                    discount = 0;
+                    selectedCoupons.each(function () {
+                        let coupon = $(this);
+                        let discountType = coupon.data('discount-type');
+                        let discountValue = parseFloat(coupon.data('discount-value'));
+                        if (discountType === 'Percentage') {
+                            discount += subtotal * (discountValue / 100);
+                        } else {
+                            discount += Math.min(discountValue, subtotal);
+                        }
+                    });
+
+                    grandTotal = subtotal - discount;
+                    $('#modalSubtotal').text(`₹ ${subtotal.toFixed(2)}`);
+                    $('#modalDiscount').text(`- ₹ ${discount.toFixed(2)}`);
+                    $('#modalTotalAmount').text(`₹ ${grandTotal.toFixed(2)}`);
                 });
+
+                // Initialize totals
+                $('#modalSubtotal').text(`₹ ${subtotal.toFixed(2)}`);
+                $('#modalDiscount').text(`- ₹ ${discount.toFixed(2)}`);
+                $('#modalTotalAmount').text(`₹ ${grandTotal.toFixed(2)}`);
+            },
+            error: function () {
+                $('#modalCouponCheckboxes').html('<p>Error loading coupons.</p>');
+                callErrorToaster('Failed to load coupons. Please try again.');
+            }
+        });
+
+        $("#orderConfirmationModal").modal('show');
+
+        $("#confirmOrderBtn").off('click').on('click', function () {
+            let selectedCoupons = $('.coupon-checkbox:checked').map(function () {
+                return $(this).val();
+            }).get();
+
+            let orderData = {
+                OrderItems: orderItems,
+                CouponCodes: selectedCoupons,
+                SubTotal: parseFloat($('#modalSubtotal').text().replace('₹', '').trim()),
+                DiscountAmount: Math.abs(parseFloat($('#modalDiscount').text().replace('- ₹', '').trim())),
+                TotalAmount: parseFloat($('#modalTotalAmount').text().replace('₹', '').trim()),
+                OrderDate: new Date().toISOString(),
+                CreatedByUser: parseInt('@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0")')
+            };
+
+            let BuyNow = true;
+
+            $.ajax({
+                url: '/Items/CreateOrder',
+                type: 'POST',
+                data: { orderData: JSON.stringify(orderData), BuyNow: BuyNow },
+                success: function (response) {
+                    if (response.success) {
+                        $("#orderConfirmationModal").modal('hide');
+                        callSuccessToaster(response.message);
+                        window.location.href = response.redirectUrl;
+                    } else {
+                        callErrorToaster(response.message);
+                    }
+                },
+                error: function () {
+                    callErrorToaster('Error placing order. Please try again.');
+                }
             });
-        }
+        });
+    }
 
         // Function for Notify Me button
             $(document).on("click", ".notify-btn", function () {
@@ -241,5 +338,6 @@
                     }
                 });
             });
+    
     </script>
 }

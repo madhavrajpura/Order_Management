@@ -14,9 +14,7 @@ public class OrderViewModel
     public bool IsDelete { get; set; }
     public int CreatedByUser { get; set; }
     public List<OrderItemViewModel> OrderItems { get; set; } = new List<OrderItemViewModel>();
-
-    // Added to store total discount from all applied coupons
+    public decimal SubTotal { get; set; }
     public decimal DiscountAmount { get; set; }
-    // Added to store codes of applied coupons for display
     public List<string> CouponCodes { get; set; } = new List<string>();
 }

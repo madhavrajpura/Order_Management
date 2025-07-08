@@ -133,4 +133,29 @@ public class UserRepository : IUserRepository
         return _db.Users.Where(u => !u.IsDelete && u.RoleId == 3).ToList() ?? throw new Exception();
     }
 
+    public async Task<List<UserMainViewModel>> GetUsers(int offset, int limit, string search)
+    {
+        var query = _db.Users.AsQueryable();
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(u => u.Username.Contains(search));
+        }
+        return await query
+            .Skip(offset)
+            .Take(limit == 0 ? int.MaxValue : limit)
+            .Select(u => new UserMainViewModel { UserId = u.Id ,CustomerName = u.Username })
+            .ToListAsync();
+    }
+
+    public async Task<int> GetTotalUserCount(string search)
+    {
+        var query = _db.Users.AsQueryable();
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(u => u.Username.Contains(search));
+        }
+        return await query.CountAsync();
+    }
+
+
 }

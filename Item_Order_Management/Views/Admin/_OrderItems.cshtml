@@ -1,0 +1,23 @@
+@using DataAccessLayer.ViewModels
+@model List<OrderItemViewModel>
+
+@foreach (var item in Model)
+{
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#itemCollapse-@item.OrderItemId" aria-expanded="false"
+                aria-controls="itemCollapse-@item.OrderItemId">
+                @item.ItemName (Qty: @item.Quantity, Price: @item.Price.ToString("C"))
+            </button>
+        </h2>
+        <div id="itemCollapse-@item.OrderItemId" class="accordion-collapse collapse"
+            data-bs-parent="#orderCollapse-@item.OrderId">
+            <div class="accordion-body">
+                <p><strong>Item ID:</strong> @item.ItemId</p>
+                <p><strong>Stock:</strong> @item.Stock</p>
+                <img src="@item.ImageURL" alt="@item.ItemName" style="max-width: 100px;" />
+            </div>
+        </div>
+    </div>
+}

@@ -38,11 +38,10 @@ public partial class NewItemOrderDbContext : DbContext
     public virtual DbSet<UserNotification> UserNotifications { get; set; }
 
     public virtual DbSet<WishList> WishLists { get; set; }
-    public IEnumerable<object> Coupon { get; internal set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=New_Item_Order_DB;Username=postgres;     password=tatva123");
+        => optionsBuilder.UseNpgsql("Host=localhost;Database=New_Item_Order_DB;Username=postgres;Password=postgres");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -201,9 +200,13 @@ public partial class NewItemOrderDbContext : DbContext
 
             entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.DeliveryDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DiscountValue)
+                .HasPrecision(10, 2)
+                .HasDefaultValueSql("0");
             entity.Property(e => e.OrderDate)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.SubTotal).HasPrecision(10, 2);
             entity.Property(e => e.TotalAmount).HasPrecision(10, 2);
             entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
 

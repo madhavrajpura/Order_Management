@@ -14,7 +14,6 @@ public class CouponRepository : ICouponRepository
         _db = db;
     }
 
-    // Retrieves coupon by code as CouponViewModel, ensuring it's active
     public async Task<CouponViewModel> GetCouponByCodeAsync(string code)
     {
         return await _db.Coupons
@@ -30,19 +29,19 @@ public class CouponRepository : ICouponRepository
                 ExpiryDate = c.ExpiryDate,
                 IsFirstOrderOnly = c.IsFirstOrderOnly,
                 IsSingleUsePerUser = c.IsSingleUsePerUser,
+                IsCombinable = c.IsCombinable,
                 TotalUsageLimit = c.TotalUsageLimit,
                 IsActive = c.IsActive
             })
             .FirstOrDefaultAsync();
     }
 
-    // Records coupon usage in CouponUsage table
-    public async Task<bool> RecordUsageAsync(CouponUsage usage)
-    {
-        _db.CouponUsages.Add(usage);
-        await _db.SaveChangesAsync();
-        return true;
-    }
+    // public async Task<bool> RecordUsageAsync(CouponUsage usage)
+    // {
+    //     _db.CouponUsages.Add(usage);
+    //     await _db.SaveChangesAsync();
+    //     return true;
+    // }
 
     // Counts total usages of a coupon
     public async Task<int> GetUsageCountAsync(int couponId)
@@ -69,4 +68,5 @@ public class CouponRepository : ICouponRepository
     {
         return await _db.Coupons.Where(c => (bool)c.IsActive && (!c.ExpiryDate.HasValue || c.ExpiryDate > DateTime.Now)).ToListAsync();
     }
+    
 }

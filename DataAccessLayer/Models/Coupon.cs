@@ -31,6 +31,8 @@ public partial class Coupon
 
     public int CreatedBy { get; set; }
 
+    public bool IsCombinable { get; set; }
+
     public virtual ICollection<CouponUsage> CouponUsages { get; } = new List<CouponUsage>();
 
     public virtual User CreatedByNavigation { get; set; } = null!;

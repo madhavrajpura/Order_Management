@@ -207,4 +207,16 @@ public class UserService : IUserService
         return _userRepository.GetAllUsers();
     }
 
+    // Newwwwwwwwwwwwwwwwwwwwwwwwwwww
+
+    public async Task<List<UserMainViewModel>> GetUsers(int offset, int limit, string search)
+    {
+        return await _userRepository.GetUsers(offset, limit, search);
+    }
+
+    public async Task<int> GetTotalUserCount(string search)
+    {
+        return await _userRepository.GetTotalUserCount(search);
+    }
+
 }

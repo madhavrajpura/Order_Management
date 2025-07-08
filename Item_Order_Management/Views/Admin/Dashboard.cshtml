@@ -2,7 +2,7 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="container-fluid px-5 py-4" style="padding-top: 120px !important;">
+<div class="container-fluid px-5 py-4 dashboard-color" style="padding-top: 120px !important;">
     <h3 class="custom-text-color fw-bold mb-4">Admin Dashboard</h3>
     <div class="row row-cols-1 row-cols-md-2 g-4">
         <!-- Top 5 Sold Items Pie Chart -->
@@ -47,124 +47,160 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Fetch dashboard data
-            $.ajax({
-                url: '/Admin/GetDashboardData',
-                type: 'GET',
-                success: function (data) {
 
-                    // Top 5 Sold Items Pie Chart
-                    new Chart(document.getElementById('topSoldItemsChart'), {
-                        type: 'pie',
-                        data: {
-                            labels: data.topSoldItems.map(item => item.itemName || 'Unknown'),
-                            datasets: [{
-                                data: data.topSoldItems.map(item => item.count || 0),
-                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'top' },
-                                title: { display: true, text: 'Top 5 Sold Items' }
-                            }
-                        }
-                    });
+            // Establish SignalR connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/dashboardHub") 
+                .withAutomaticReconnect()
+                .build();
 
-                    // Top 5 Active Users Pie Chart
-                    new Chart(document.getElementById('topActiveUsersChart'), {
-                        type: 'pie',
-                        data: {
-                            labels: data.topActiveUsers.map(user => user.username || 'Unknown'),
-                            datasets: [{
-                                data: data.topActiveUsers.map(user => user.orderCount || 0),
-                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'top' },
-                                title: { display: true, text: 'Top 5 Active Users' }
-                            }
-                        }
-                    });
-
-                    // Top 5 Liked Items Pie Chart
-                    new Chart(document.getElementById('topLikedItemsChart'), {
-                        type: 'pie',
-                        data: {
-                            labels: data.topLikedItems.map(item => item.itemName || 'Unknown'),
-                            datasets: [{
-                                data: data.topLikedItems.map(item => item.count || 0),
-                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'top' },
-                                title: { display: true, text: 'Top 5 Liked Items' }
-                            }
-                        }
-                    });
-
-                    // Order Stats Bar Chart
-                    // Maps period to labels, orderCount and totalAmount to two datasets
-                    new Chart(document.getElementById('orderStatsChart'), {
-                        type: 'bar',
-                        data: {
-                            labels: data.orderStats.map(stat => stat.period || 'Unknown'),
-                            datasets: [
-                                {
-                                    label: 'Order Count',
-                                    data: data.orderStats.map(stat => stat.orderCount || 0),
-                                    backgroundColor: '#36A2EB',
-                                    yAxisID: 'y'
-                                },
-                                {
-                                    label: 'Total Amount',
-                                    data: data.orderStats.map(stat => stat.totalAmount || 0),
-                                    backgroundColor: '#FFCE56',
-                                    yAxisID: 'y1'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    type: 'linear',
-                                    display: true,
-                                    position: 'left',
-                                    title: { display: true, text: 'Order Count' }
-                                },
-                                y1: {
-                                    type: 'linear',
-                                    display: true,
-                                    position: 'right',
-                                    title: { display: true, text: 'Total Amount ($)' },
-                                    grid: { drawOnChartArea: false }
-                                }
-                            },
-                            plugins: {
-                                legend: { position: 'top' },
-                                title: { display: true, text: 'Order Statistics by Period' }
-                            }
-                        }
-                    });
-                },
-                error: function (xhr, status, error) {
-                    // Handle client-side or network errors
-                    callErrorToaster('Failed to load dashboard data');
-                    // Server-side errors (e.g., CustomException) are handled by $.ajaxComplete
-                }
+            // Handle dashboard update notifications
+            connection.on("ReceiveDashboardUpdate", function () {
+                console.log("Dashboard update received");
+                fetchDashboardData(); 
             });
+
+            // Start SignalR connection and join Admins group
+            connection.start().then(function () {
+                console.log("SignalR connected");
+                connection.invoke("JoinAdminGroup").catch(function (err) {
+                    console.error("Failed to join Admins group: ", err.toString());
+                });
+            }).catch(function (err) {
+                console.error("SignalR connection error: ", err.toString());
+            });
+
+            // Function to fetch and update dashboard data
+            function fetchDashboardData() {
+                $.ajax({
+                    url: '/Admin/GetDashboardData',
+                    type: 'GET',
+                    success: function (data) {
+                        updateCharts(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Failed to load dashboard data: ", error);
+                    }
+                });
+            }
+
+            // Function to update all charts
+            function updateCharts(data) {
+                // Destroy existing charts to prevent memory leaks
+                const chartIds = ['topSoldItemsChart', 'topActiveUsersChart', 'topLikedItemsChart', 'orderStatsChart'];
+                chartIds.forEach(id => {
+                    const chart = Chart.getChart(id);
+                    if (chart) chart.destroy();
+                });
+
+                // Top 5 Sold Items Pie Chart
+                new Chart(document.getElementById('topSoldItemsChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: data.topSoldItems.map(item => item.itemName || 'Unknown'),
+                        datasets: [{
+                            data: data.topSoldItems.map(item => item.count || 0),
+                            backgroundColor: ['#004c4c', '#006666', '#008080', '#66b2b2', '#b2d8d8'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Top 5 Sold Items' }
+                        }
+                    }
+                });
+
+                // Top 5 Active Users Pie Chart
+                new Chart(document.getElementById('topActiveUsersChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: data.topActiveUsers.map(user => user.username || 'Unknown'),
+                        datasets: [{
+                            data: data.topActiveUsers.map(user => user.orderCount || 0),
+                            backgroundColor: ['#004c4c', '#006666', '#008080', '#66b2b2', '#b2d8d8'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Top 5 Active Users' }
+                        }
+                    }
+                });
+
+                // Top 5 Liked Items Pie Chart
+                new Chart(document.getElementById('topLikedItemsChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: data.topLikedItems.map(item => item.itemName || 'Unknown'),
+                        datasets: [{
+                            data: data.topLikedItems.map(item => item.count || 0),
+                            backgroundColor: ['#004c4c', '#006666', '#008080', '#66b2b2', '#b2d8d8'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Top 5 Liked Items' }
+                        }
+                    }
+                });
+
+                // Order Stats Bar Chart
+                new Chart(document.getElementById('orderStatsChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.orderStats.map(stat => stat.period || 'Unknown'),
+                        datasets: [
+                            {
+                                label: 'Order Count',
+                                data: data.orderStats.map(stat => stat.orderCount || 0),
+                                backgroundColor: '#66b2b2',
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Total Amount',
+                                data: data.orderStats.map(stat => stat.totalAmount || 0),
+                                backgroundColor: '#004c4c',
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: 'Order Count' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: { display: true, text: 'Total Amount ($)' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        },
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Order Statistics by Period' }
+                        }
+                    }
+                });
+            }
+
+            // Initial fetch of dashboard data
+            fetchDashboardData();
         });
     </script>
 }

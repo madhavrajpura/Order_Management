@@ -9,27 +9,29 @@ public class OrderRepository : IOrderRepository
 {
     private readonly NewItemOrderDbContext _db;
     private readonly ICartRepository _cartRepo;
+    private readonly ICouponRepository _couponRepo;
 
-    public OrderRepository(NewItemOrderDbContext db, ICartRepository cartRepo)
+    public OrderRepository(NewItemOrderDbContext db, ICartRepository cartRepo, ICouponRepository couponRepo)
     {
         _db = db;
         _cartRepo = cartRepo;
+        _couponRepo = couponRepo;
     }
 
-    // Modified: Added stock update logic
-    public async Task<bool> CreateOrderAsync(Order order, List<OrderItem> orderItems, List<OrderItemViewModel> orderItemViewModels)
+    public async Task<bool> CreateOrderAsync(Order order, List<OrderItem> orderItems, List<OrderItemViewModel> orderItemViewModels, List<string> CouponCodes)
     {
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            // Added: Update stock for each item
             foreach (var orderItemVM in orderItemViewModels)
             {
-                Item item = await _db.Items.FirstOrDefaultAsync(i => i.Id == orderItemVM.ItemId) 
-                    ?? throw new Exception($"{orderItemVM.ItemName} not found");
+                Item item = await _db.Items.FirstOrDefaultAsync(i => i.Id == orderItemVM.ItemId) ?? throw new Exception($"{orderItemVM.ItemName} not found");
+
                 if (item.Stock < orderItemVM.Quantity)
                     throw new Exception($"Only {item.Stock} units of {orderItemVM.ItemName} available in stock");
+
                 item.Stock -= orderItemVM.Quantity;
+
                 _db.Items.Update(item);
             }
 
@@ -41,6 +43,19 @@ public class OrderRepository : IOrderRepository
                 orderItem.OrderId = order.Id;
                 _db.OrderItems.Add(orderItem);
             }
+
+            CouponUsage couponUsage = new();
+
+            foreach (var codes in CouponCodes)
+            {
+                var CouponData = await _couponRepo.GetCouponByCodeAsync(codes);
+                couponUsage.CouponId = CouponData.CouponId;
+                couponUsage.OrderId = order.Id;
+                couponUsage.UserId = order.CreatedBy;
+                couponUsage.UsedAt = DateTime.Now;
+                _db.CouponUsages.Add(couponUsage);
+            }
+
             await _db.SaveChangesAsync();
 
             await transaction.CommitAsync();
@@ -77,7 +92,9 @@ public class OrderRepository : IOrderRepository
                 TotalAmount = order.TotalAmount,
                 IsDelivered = order.IsDelivered,
                 CreatedByUser = order.CreatedBy,
-                CustomerName = order.CreatedByNavigation.Username
+                CustomerName = order.CreatedByNavigation.Username,
+                SubTotal = (decimal)order.SubTotal,
+                DiscountAmount = (decimal)order.DiscountValue
             })
             .OrderByDescending(o => o.OrderId) ?? Enumerable.Empty<OrderViewModel>().AsQueryable();
 
@@ -107,4 +124,44 @@ public class OrderRepository : IOrderRepository
         return true;
     }
 
+    // Newwwwwwwww
+    public async Task<List<OrderViewModel>> GetOrdersByUser(int userId)
+    {
+        return await _db.Orders
+            .Where(o => o.CreatedBy == userId)
+            .Select(o => new OrderViewModel
+            {
+                OrderId = o.Id,
+                OrderDate = o.OrderDate,
+                TotalAmount = o.TotalAmount
+            })
+            .ToListAsync();
+    }
+
+    public async Task<OrderViewModel> GetOrderItems(int orderId)
+    {
+        return await _db.Orders.Include(o => o.OrderItems)
+            .Where(oi => oi.Id == orderId)
+            .Select(o => new OrderViewModel
+            {
+                OrderId = o.Id,
+                OrderDate = o.OrderDate,
+                TotalAmount = o.TotalAmount,
+                SubTotal = (decimal)o.SubTotal,
+                DiscountAmount = (decimal)o.DiscountValue,
+                IsDelivered = o.IsDelivered,
+                OrderItems = o.OrderItems.Select(oi => new OrderItemViewModel
+                {
+                    OrderItemId = oi.Id,
+                    ItemId = oi.ItemId,
+                    ItemName = oi.Item.Name,
+                    Price = oi.Price,
+                    Quantity = oi.Quantity,
+                    ImageURL = oi.Item.ItemImages.Select(i => i.ImageUrl).FirstOrDefault(),
+                    Stock = oi.Item.Stock
+                }).ToList()
+            })
+            .FirstOrDefaultAsync();
+    }
 }
+

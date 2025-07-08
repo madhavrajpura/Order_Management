@@ -11,6 +11,7 @@ public class CouponViewModel
     public DateTime? ExpiryDate { get; set; }
     public bool IsFirstOrderOnly { get; set; }
     public bool IsSingleUsePerUser { get; set; }
+    public bool IsCombinable { get; set; }
     public int? TotalUsageLimit { get; set; }
     public bool? IsActive { get; set; }
 }

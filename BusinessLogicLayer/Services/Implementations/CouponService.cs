@@ -31,6 +31,7 @@ public class CouponService : ICouponService
             ExpiryDate = c.ExpiryDate,
             IsFirstOrderOnly = c.IsFirstOrderOnly,
             IsSingleUsePerUser = c.IsSingleUsePerUser,
+            IsCombinable = c.IsCombinable,
             TotalUsageLimit = c.TotalUsageLimit,
             IsActive = c.IsActive
         }).ToList();
@@ -51,6 +52,7 @@ public class CouponService : ICouponService
     public async Task<(bool IsValid, string ErrorMessage, CouponViewModel Coupon, decimal Discount)> ValidateCouponAsync(string code, int userId, decimal cartSubtotal)
     {
         var coupon = await _couponRepository.GetCouponByCodeAsync(code);
+
         if (coupon == null)
             return (false, "Invalid or inactive coupon code", null, 0);
 
@@ -81,16 +83,5 @@ public class CouponService : ICouponService
             : Math.Min(coupon.DiscountValue, cartSubtotal);
 
         return (true, null, coupon, discount);
-    }
-
-    public async Task RecordCouponUsageAsync(int couponId, int userId, int orderId)
-    {
-        await _couponRepository.RecordUsageAsync(new DataAccessLayer.Models.CouponUsage
-        {
-            CouponId = couponId,
-            UserId = userId,
-            OrderId = orderId,
-            UsedAt = DateTime.Now
-        });
     }
 }

@@ -16,7 +16,7 @@ else
         {
             var total = item.Price * item.Quantity;
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow cart-item" data-price="@item.Price" data-stock="@item.Stock"
+                <div class="card h-100 border-0 shadow cart-item" data-price="@item.Price" data-stock="@item.Stock"  data-item-id="@item.ItemId" data-item-name="@item.ItemName"
                     data-quantity="@item.Quantity">
                     @if (item.Stock == 0 || item.Quantity > item.Stock)
                     {
@@ -56,10 +56,9 @@ else
             </div>
         }
     </div>
-    <!-- Replace the coupon dropdown section in the existing _CartItems.cshtml -->
     <div id="cartSummary" class="mt-5 p-3 bg-white shadow rounded" style="width: 97%; margin-left: 0.7%;">
-        <h4 class="custom-text-color">Cart Summary</h4>
-        <p>Total: <span id="totalAmount" class="fw-bold">₹0.00</span></p> <!-- Change: Simplified to show only total -->
-        <button class="btn solid-btn mt-3" onclick="showOrderConfirmationModal()">Place Order</button>
+        <h4 class="custom-text-color fs-4 fw-bold">Cart Summary</h4>
+        <p class="fs-5">Grand Total : <span id="totalAmount" class="fw-bold text-success">₹0.00</span></p>
+        <button class="btn solid-btn" onclick="showOrderConfirmationModal()">Place Order</button>
     </div>
 }

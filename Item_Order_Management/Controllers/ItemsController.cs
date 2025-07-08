@@ -1,8 +1,10 @@
 using BusinessLogicLayer.Helper;
 using BusinessLogicLayer.Services.Interfaces;
 using DataAccessLayer.ViewModels;
+using Item_Order_Management.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Rotativa.AspNetCore;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -22,10 +24,10 @@ public class ItemsController : Controller
     public readonly ICartService _cartService;
     public readonly IOrderService _orderService;
     public readonly INotificationService _notificationService;
-
     public readonly ICouponService _couponService;
+    private readonly IHubContext<DashboardHub> _hubContext;
 
-    public ItemsController(IItemsService itemService, IJWTService jwtService, IUserService userService, IWishListService wishListService, ICartService cartService, IOrderService orderService, INotificationService notificationService, ICouponService couponService)
+    public ItemsController(IItemsService itemService, IJWTService jwtService, IUserService userService, IWishListService wishListService, ICartService cartService, IOrderService orderService, INotificationService notificationService, ICouponService couponService, IHubContext<DashboardHub> hubContext)
     {
         _itemService = itemService;
         _jwtService = jwtService;
@@ -35,12 +37,14 @@ public class ItemsController : Controller
         _orderService = orderService;
         _notificationService = notificationService;
         _couponService = couponService;
+        _hubContext = hubContext;
     }
 
     #region Dashboard Content
 
     public IActionResult Dashboard()
     {
+        ViewData["nav-active"] = "User_Dashboard";
         return View();
     }
 
@@ -124,6 +128,7 @@ public class ItemsController : Controller
     {
         int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<WishListViewModel>? wishlistItems = await _wishListService.GetUserWishlist(UserId);
+        ViewData["nav-active"] = "User_Wislist";
         return View(wishlistItems);
     }
 
@@ -132,6 +137,7 @@ public class ItemsController : Controller
     {
         int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         bool result = await _wishListService.ToggleWishlistItem(UserId, itemId);
+        await _hubContext.Clients.Group("Admins").SendAsync("ReceiveDashboardUpdate");
         return Json(new { success = true, isFavourite = result });
     }
 
@@ -152,6 +158,7 @@ public class ItemsController : Controller
     {
         int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<CartViewModel>? cartItems = await _cartService.GetCartItems(UserId);
+        ViewData["nav-active"] = "User_Cart";
         return View(cartItems);
     }
 
@@ -275,36 +282,7 @@ public class ItemsController : Controller
             return Json(new { success = true, message = allOutOfStock ? "Some items are out of stock" : "Available wishlist items added to cart" });
         }
 
-        return Json(new { success = false, message = "Some items are out of stock" });
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> BuyNow(int itemId, int quantity = 1)
-    {
-        int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-        ItemViewModel? item = _itemService.GetItemById(itemId);
-        if (item == null)
-        {
-            return Json(new { success = false, message = "Item not found" });
-        }
-
-        if (!await _itemService.IsItemInStock(itemId))
-        {
-            return Json(new { success = false, message = $"{item.ItemName} is out of stock" });
-        }
-
-        if (quantity > item.Stock)
-        {
-            return Json(new { success = false, message = $"Only {item.Stock} units of {item.ItemName} available in stock" });
-        }
-
-        bool result = await _orderService.CreateOrderFromItemAsync(UserId, itemId, quantity);
-        if (result)
-        {
-            return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
-        }
-        return Json(new { success = false, message = "Failed to place order" });
+        return Json(new { success = false, message = "Aready present in Cart" });
     }
 
     #endregion
@@ -332,47 +310,9 @@ public class ItemsController : Controller
     {
         int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         List<OrderViewModel>? orders = await _orderService.GetUserOrdersAsync(UserId);
+        ViewData["nav-active"] = "User_Orders";
         return View(orders);
     }
-
-    // [HttpPost]
-    // public async Task<IActionResult> CreateOrder(string orderData)
-    // {
-    //     int UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-    //     OrderViewModel orderVM = new OrderViewModel();
-    //     orderVM = JsonSerializer.Deserialize<OrderViewModel>(orderData);
-
-    //     if (orderVM == null || orderVM.OrderItems == null || !orderVM.OrderItems.Any())
-    //     {
-    //         return Json(new { success = false, message = "No items in the order" });
-    //     }
-
-    //     // Check stock validation
-    //     foreach (var item in orderVM.OrderItems)
-    //     {
-    //         ItemViewModel? itemDetails = _itemService.GetItemById(item.ItemId);
-    //         if (itemDetails == null)
-    //         {
-    //             return Json(new { success = false, message = $"{item.ItemName} not found" });
-    //         }
-    //         if (!await _itemService.IsItemInStock(item.ItemId))
-    //         {
-    //             return Json(new { success = false, message = $"{item.ItemName} is out of stock" });
-    //         }
-    //         if (item.Quantity > itemDetails.Stock)
-    //         {
-    //             return Json(new { success = false, message = $"Only {itemDetails.Stock} units of {item.ItemName} available in stock" });
-    //         }
-    //     }
-
-    //     bool result = await _orderService.CreateOrderAsync(UserId, orderVM);
-    //     if (result)
-    //     {
-    //         return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
-    //     }
-    //     return Json(new { success = false, message = "Failed to place order" });
-    // }
 
     [HttpGet]
     public IActionResult GenerateInvoicePDF(int orderid)
@@ -394,39 +334,16 @@ public class ItemsController : Controller
         return PDF;
     }
 
-    #endregion
-
     [HttpGet]
-    public async Task<IActionResult> GetAvailableCoupons()
+    public async Task<IActionResult> GetAvailableCoupons(decimal subTotal)
     {
         int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var cartItems = await _cartService.GetCartItems(userId);
-        decimal cartSubtotal = cartItems.Sum(i => i.Quantity * i.Price);
-        var coupons = await _couponService.GetAvailableCouponsAsync(userId, cartSubtotal);
+        var coupons = await _couponService.GetAvailableCouponsAsync(userId, subTotal);
         return Json(coupons);
     }
 
     [HttpPost]
-    public async Task<IActionResult> ApplyCoupon(string code, decimal cartSubtotal)
-    {
-        int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var (isValid, errorMessage, coupon, discount) = await _couponService.ValidateCouponAsync(code, userId, cartSubtotal);
-        if (!isValid)
-        {
-            return Json(new { success = false, message = errorMessage });
-        }
-
-        return Json(new
-        {
-            success = true,
-            message = "Coupon applied successfully",
-            discount = discount,
-            couponCode = coupon.Code
-        });
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateOrder(string orderData)
+    public async Task<IActionResult> CreateOrder(string orderData, bool BuyNow)
     {
         int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
@@ -437,9 +354,6 @@ public class ItemsController : Controller
         {
             return Json(new { success = false, message = "No items in the order" });
         }
-
-        var cartItems = await _cartService.GetCartItems(userId);
-        decimal cartSubtotal = cartItems.Sum(i => i.Quantity * i.Price);
 
         foreach (var item in orderVM.OrderItems)
         {
@@ -458,37 +372,15 @@ public class ItemsController : Controller
             }
         }
 
-        decimal totalDiscount = 0;
-        orderVM.CouponCodes = orderVM.CouponCodes ?? new List<string>();
-        foreach (var code in orderVM.CouponCodes)
-        {
-            var (isValid, errorMessage, coupon, discount) = await _couponService.ValidateCouponAsync(code, userId, cartSubtotal);
-            if (!isValid)
-            {
-                return Json(new { success = false, message = $"Coupon {code} invalid: {errorMessage}" });
-            }
-            totalDiscount += discount;
-        }
-
-        orderVM.DiscountAmount = totalDiscount;
-        orderVM.TotalAmount = cartSubtotal - totalDiscount;
-        orderVM.OrderDate = DateTime.Now;
-        orderVM.CreatedByUser = userId;
-
-        bool result = await _orderService.CreateOrderAsync(userId, orderVM);
+        bool result = await _orderService.CreateOrderAsync(userId, orderVM, BuyNow);
         if (result)
         {
-            foreach (var code in orderVM.CouponCodes)
-            {
-                var (isValid, _, coupon, _) = await _couponService.ValidateCouponAsync(code, userId, cartSubtotal);
-                if (isValid)
-                {
-                    await _couponService.RecordCouponUsageAsync(coupon.CouponId, userId, orderVM.OrderId);
-                }
-            }
+            await _hubContext.Clients.Group("Admins").SendAsync("ReceiveDashboardUpdate");
             return Json(new { success = true, message = "Order placed successfully", redirectUrl = Url.Action("Orders") });
         }
         return Json(new { success = false, message = "Failed to place order" });
     }
+
+    #endregion
 
 }

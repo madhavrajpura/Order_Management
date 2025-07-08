@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Item_Order_Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Item_Order_Management.styles.css" asp-append-version="true" />
@@ -13,7 +14,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
 
 </head>
@@ -42,20 +42,25 @@
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title fw-bold fs-4" id="orderConfirmationModalLabel">Order Summary</h5>
+                        <h5 class="modal-title fw-bold fs-4 custom-text-color" id="orderConfirmationModalLabel">Order
+                            Summary</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div id="orderItemsList"></div>
                         <hr>
                         <div class="mb-3">
-                            <label class="form-label">Apply Coupons</label>
-                            <div id="modalCouponCheckboxes">
-                                <!-- Populated dynamically via JavaScript -->
+                            <label class="form-label fw-bold fs-6 custom-text-color">Apply Coupons</label>
+                            <div id="modalCouponCheckboxes" class="d-flex flex-column">
                             </div>
                         </div>
-                        <h4 class="text-end">Grand Total : <span id="modalTotalAmount"
-                                class="fw-bold text-success">₹0.00</span></h4>
+                        <div class="text-end">
+                            <p class="mb-1">Subtotal: <span id="modalSubtotal" class="fw-bold">₹0.00</span></p>
+                            <p class="mb-1">Discount: <span id="modalDiscount" class="fw-bold text-danger">-₹ 0.00</span>
+                            </p>
+                            <h4 class="mb-0">Grand Total: <span id="modalTotalAmount"
+                                    class="fw-bold text-success">₹0.00</span></h4>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn hollow-btn" data-bs-dismiss="modal">Cancel</button>
@@ -90,163 +95,241 @@
         </div>
     </div>
 
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
     <script>
-        let appliedCoupons = []; // Track applied coupons client-side
 
-        // Function to load available coupons into modal checkboxes
-        function loadModalCoupons(subtotal) {
-            $.ajax({
-                url: "/Items/GetAvailableCoupons",
-                type: "GET",
-                success: function (coupons) {
-                    let html = "";
-                    if (coupons.length === 0) {
-                        html = "<p>No coupons available</p>";
-                    } else {
-                        coupons.forEach(coupon => {
-                            html += `
-                                <div class="form-check mb-2">
-                                    <input type="checkbox" class="form-check-input modal-coupon-checkbox" id="modal-coupon-${coupon.code}" data-code="${coupon.code}" data-discount="${coupon.discountType === 'Percentage' ? (subtotal * (coupon.discountValue / 100)) : coupon.discountValue}">
-                                    <label class="form-check-label" for="modal-coupon-${coupon.code}">
-                                        ${coupon.code} (${coupon.discountType === "Percentage" ? `${coupon.discountValue}% off` : `₹${coupon.discountValue} off`})
-                                    </label>
-                                </div>`;
+
+
+        $(document).ready(function () {
+
+            // Function to calculate cart total 
+            function calculateCartTotal() {
+                let total = 0;
+                $('.cart-item').each(function () {
+                    let price = parseFloat($(this).data('price'));
+                    let quantity = parseInt($(this).data('quantity'));
+                    total += price * quantity;
+                });
+                return total;
+            }
+
+            // Function to update cart summary total 
+            function updateCartSummary() {
+                let total = calculateCartTotal();
+                $('#totalAmount').text(`₹${total.toFixed(2)}`);
+            }
+
+            // Function to open the order confirmation modal and populate data
+            window.showOrderConfirmationModal = function () {
+                // Collect cart items
+                let cartItems = [];
+
+                $('.cart-item').each(function () {
+                    let $card = $(this);
+                    let itemId = parseInt($card.data('item-id'));
+                    let itemName = $card.data('item-name');
+                    let price = parseFloat($card.data('price'));
+                    let quantity = parseInt($card.data('quantity'));
+                    let stock = parseInt($card.data('stock'));
+
+                    // Only include items that are in stock and have valid quantity
+                    if (stock > 0 && quantity <= stock) {
+                        cartItems.push({
+                            ItemId: itemId,
+                            ItemName: itemName,
+                            Price: price,
+                            Quantity: quantity
                         });
                     }
-                    $("#modalCouponCheckboxes").html(html);
-        @* updateModalTotal(); // Update total when coupons load *@
-                },
-                error: function () {
-                    callErrorToaster("Failed to load coupons. Please try again.");
-                }
-            });
-        }
-
-        // Function to update modal total based on applied coupons
-        function updateModalTotal(subtotal) {
-            const totalDiscount = appliedCoupons.reduce((sum, c) => sum + parseFloat(c.discount), 0);
-            $("#modalTotalAmount").text(`₹${(subtotal - totalDiscount).toFixed(2)}`);
-        }
-
-        // Function to toggle coupon application
-        function toggleModalCoupon(code, isChecked, subtotal) {
-            const discount = $(`#modal-coupon-${code}`).data("discount");
-            if (isChecked) {
-                appliedCoupons.push({ code: code, discount: discount });
-            } else {
-                appliedCoupons = appliedCoupons.filter(c => c.code !== code);
-            }
-            updateModalTotal(subtotal);
-        }
-
-        // Update showOrderConfirmationModal to include coupon logic
-        function showOrderConfirmationModal() {
-            let orderItems = [];
-            let subtotal = 0;
-            let hasOutOfStock = false;
-            let outOfStockMessages = [];
-
-            $(".cart-item").each(function () {
-                const price = parseFloat($(this).data("price"));
-                const quantity = parseInt($(this).find(".quantity-input").val());
-                const itemName = $(this).find(".card-title").text();
-                const itemId = $(this).find(".remove-btn").data("item-id");
-                const stock = parseInt($(this).data("stock"));
-
-                orderItems.push({
-                    OrderItemId: 0,
-                    OrderId: 0,
-                    ItemId: itemId,
-                    ItemName: itemName,
-                    Price: price,
-                    Quantity: quantity,
-                    Stock: stock,
-                    ImageURL: $(this).find("img").attr("src")
                 });
 
-                subtotal += price * quantity;
-                if (stock === 0) {
-                    hasOutOfStock = true;
-                    outOfStockMessages.push(`${itemName} is out of stock`);
-                } else if (quantity > stock) {
-                    hasOutOfStock = true;
-                    outOfStockMessages.push(`Only ${stock} units of ${itemName} available in stock`);
-                }
-            });
+                // Calculate initial subtotal
+                let subtotal = cartItems.reduce((sum, item) => sum + item.Quantity * item.Price, 0);
+                let discount = 0;
+                let grandTotal = subtotal;
 
-            if (hasOutOfStock) {
-                callErrorToaster(outOfStockMessages.join(". "));
-                return;
-            }
+                // Populate order items in modal using table format
+                let itemsHtml = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-nowrap">Item Name</th>
+                        <th class="text-nowrap">Quantity</th>
+                        <th class="text-nowrap">Unit Price</th>
+                        <th class="text-nowrap">Sub Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${cartItems.map(item => `
+                        <tr>
+                            <td class="text-nowrap">${item.ItemName}</td>
+                            <td class="text-nowrap">${item.Quantity}</td>
+                            <td class="text-nowrap">₹ ${item.Price.toFixed(2)}</td>
+                            <td class="text-nowrap">₹ ${(item.Price * item.Quantity).toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+                $('#orderItemsList').html(itemsHtml);
 
-            let itemsHtml = `<table class="table table-striped">
-                                <thead><tr><th>Item Name</th><th>Quantity</th><th>Unit Price (₹)</th><th>Sub Total (₹)</th></tr></thead><tbody>`;
-            orderItems.forEach(item => {
-                itemsHtml += `<tr><td>${item.ItemName}</td><td>${item.Quantity}</td><td>${item.Price.toFixed(2)}</td><td>${(item.Price * item.Quantity).toFixed(2)}</td></tr>`;
-            });
-            itemsHtml += `</tbody></table>`;
+                // Fetch available coupons
+                $.ajax({
+                    url: '/Items/GetAvailableCoupons',
+                    method: 'GET',
+                    data: { subTotal: grandTotal },
+                    success: function (coupons) {
+                        let couponHtml = coupons.length > 0 ? coupons.map(coupon => `
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input coupon-checkbox" 
+                               value="${coupon.code}" 
+                               data-discount-type="${coupon.discountType}" 
+                               data-discount-value="${coupon.discountValue}" 
+                               data-is-combinable="${coupon.isCombinable}"
+                               id="coupon-${coupon.couponId}">
+                        <label class="form-check-label" for="coupon-${coupon.couponId}">
+                            ${coupon.code} (${coupon.discountType === 'Percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`})
+                            ${coupon.isCombinable ? '(Combinable)' : ''}
+                        </label>
+                    </div>
+                `).join('') : '<p>No coupons available.</p>';
+                        $('#modalCouponCheckboxes').html(couponHtml);
 
-            $("#orderItemsList").html(itemsHtml);
-            appliedCoupons = []; // Reset applied coupons when modal opens
-            // Change: Set initial modalTotalAmount to subtotal before loading coupons
-            $("#modalTotalAmount").text(`₹${subtotal.toFixed(2)}`);
-            loadModalCoupons(subtotal); // Load coupons after setting initial total
+                        // Handle coupon checkbox changes
+                        $('.coupon-checkbox').on('change', function () {
+                            let selectedCoupons = $('.coupon-checkbox:checked');
+                            if (selectedCoupons.length > 2) {
+                                $(this).prop('checked', false);
+                                callErrorToaster('You can select a maximum of 2 coupons.');
+                                return;
+                            }
 
-            $("#orderConfirmationModal").modal('show');
+                            // Check if selected coupons are combinable
+                            if (selectedCoupons.length === 2) {
+                                let allCombinable = selectedCoupons.toArray().every(checkbox =>
+                                    $(checkbox).data('is-combinable') === true);
+                                if (!allCombinable) {
+                                    $(this).prop('checked', false);
+                                    callErrorToaster('This coupon is non Combinable with selected one.');
+                                    return;
+                                }
+                            }
 
-            $("#confirmOrderBtn").off('click').on('click', function () {
-                const orderData = {
-                    OrderId: 0,
-                    CustomerName: '@User.Identity.Name',
-                    Email: '@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value',
-                    PhoneNumber: 0,
-                    Address: null,
+                            // Calculate discount
+                            discount = 0;
+                            selectedCoupons.each(function () {
+                                let coupon = $(this);
+                                let discountType = coupon.data('discount-type');
+                                let discountValue = parseFloat(coupon.data('discount-value'));
+                                if (discountType === 'Percentage') {
+                                    discount += subtotal * (discountValue / 100);
+                                } else {
+                                    discount += Math.min(discountValue, subtotal);
+                                }
+                            });
+
+                            grandTotal = subtotal - discount;
+                            $('#modalSubtotal').text(`₹ ${subtotal.toFixed(2)}`);
+                            $('#modalDiscount').text(`- ₹ ${discount.toFixed(2)}`);
+                            $('#modalTotalAmount').text(`₹ ${grandTotal.toFixed(2)}`);
+                        });
+
+                        // Initialize totals
+                        $('#modalSubtotal').text(`₹ ${subtotal.toFixed(2)}`);
+                        $('#modalDiscount').text(`- ₹ ${discount.toFixed(2)}`);
+                        $('#modalTotalAmount').text(`₹ ${grandTotal.toFixed(2)}`);
+                    }
+                });
+
+                $('#orderConfirmationModal').modal('show');
+            };
+
+            // Handle place order button click
+            $('#confirmOrderBtn').on('click', function () {
+                let cartItems = [];
+                $('.cart-item').each(function () {
+                    let $card = $(this);
+                    let itemId = parseInt($card.data('item-id'));
+                    let itemName = $card.data('item-name')
+                    let price = parseFloat($card.data('price'));
+                    let quantity = parseInt($card.data('quantity'));
+                    let stock = parseInt($card.data('stock'));
+
+                    if (stock > 0 && quantity <= stock) {
+                        cartItems.push({
+                            ItemId: itemId,
+                            ItemName: itemName,
+                            Price: price,
+                            Quantity: quantity
+                        });
+                    }
+                });
+
+                let selectedCoupons = $('.coupon-checkbox:checked').map(function () {
+                    return $(this).val();
+                }).get();
+
+                let orderData = {
+                    OrderItems: cartItems,
+                    CouponCodes: selectedCoupons,
+                    SubTotal: parseFloat($('#modalSubtotal').text().replace('₹', '').trim()),
+                    DiscountAmount: Math.abs(parseFloat($('#modalDiscount').text().replace('- ₹', '').trim())),
+                    TotalAmount: parseFloat($('#modalTotalAmount').text().replace('₹', '').trim()),
                     OrderDate: new Date().toISOString(),
-                    TotalAmount: subtotal - appliedCoupons.reduce((sum, c) => sum + parseFloat(c.discount), 0),
-                    DiscountAmount: appliedCoupons.reduce((sum, c) => sum + parseFloat(c.discount), 0),
-                    CouponCodes: appliedCoupons.map(c => c.code),
-                    IsDelivered: false,
-                    IsDelete: false,
-                    CreatedByUser: parseInt('@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value'),
-                    OrderItems: orderItems
+                    CreatedByUser: parseInt('@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0")')
                 };
 
+                let BuyNow = false;
+
                 $.ajax({
-                    url: "/Items/CreateOrder",
-                    type: "POST",
-                    data: { orderData: JSON.stringify(orderData) },
+                    url: '/Items/CreateOrder',
+                    method: 'POST',
+                    data: { orderData: JSON.stringify(orderData), BuyNow: BuyNow },
                     success: function (response) {
                         if (response.success) {
-                            $("#orderConfirmationModal").modal('hide');
-                            callSuccessToaster(response.message);
-                            LoadUserNavbar();
                             window.location.href = response.redirectUrl;
                         } else {
-                            callErrorToaster(response.message);
+                            alert(response.message);
                         }
                     },
                     error: function () {
-                        callErrorToaster("Failed to place order. Please try again.");
+                        alert('Error placing order.');
                     }
                 });
             });
 
-            // Handle coupon checkbox changes in modal
-            $(document).on("change", ".modal-coupon-checkbox", function () {
-                const code = $(this).data("code");
-                const isChecked = $(this).is(":checked");
-                toggleModalCoupon(code, isChecked, subtotal);
+            // Handle quantity updates in cart view
+            $('.quantity-btn').on('click', function () {
+                let $card = $(this).closest('.cart-item');
+                let $input = $card.find('.quantity-input');
+                let quantity = parseInt($input.val());
+                let stock = parseInt($card.data('stock'));
+                let price = parseFloat($card.data('price'));
+
+                if ($(this).hasClass('plus') && quantity < stock) {
+                    quantity++;
+                } else if ($(this).hasClass('minus') && quantity > 1) {
+                    quantity--;
+                }
+
+                $input.val(quantity);
+                $card.data('quantity', quantity);
+                $card.find('.item-total').text(`₹${(quantity * price).toFixed(2)}`);
+                updateCartSummary();
             });
-        }
+
+            // Initialize cart summary on page load
+            updateCartSummary();
+        });
     </script>
 
     <script>

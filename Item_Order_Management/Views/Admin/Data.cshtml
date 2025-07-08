@@ -1,0 +1,208 @@
+@using DataAccessLayer.ViewModels
+@model PaginationViewModel<UserMainViewModel>
+
+
+<div class="container-fluid dashboard-color" style="padding-top: 6.6%;">
+    <h2 class="custom-text-color">Customers</h2>
+    <div id="userAccordion" class="accordion">
+        <!-- Users will be loaded here via AJAX -->
+    </div>
+    <div id="loading" class="text-center p-3" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let currentOffset = 0;
+            let totalCount = 0;
+            let isLoading = false;
+
+            // Load initial users
+            function loadUsers(offset = 0, search = "") {
+                if (isLoading) return;
+                isLoading = true;
+                $("#loading").show();
+
+                $.ajax({
+                    url: "/Admin/GetUserList",
+                    type: "GET",
+                    data: { offset: offset, limit: 10 },
+                    success: function (data) {
+                        const $data = $(data);
+                        $("#userAccordion").append($data.filter(".accordion-item"));
+                        totalCount = parseInt($data.filter("#totalCount").val()) || 0;
+                        if ($data.filter(".accordion-item").length > 0) {
+                            currentOffset += $data.filter(".accordion-item").length;
+                        } else {
+                            $(window).off("scroll");
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Failed to load users: ", error);
+                    },
+                    complete: function () {
+                        isLoading = false;
+                        $("#loading").hide();
+                    }
+                });
+            }
+
+            // Lazy loading on scroll
+            $(window).on("scroll", function () {
+                if ($(window).scrollTop() + $(window).height() >= $("#userAccordion").height() - 100 && !isLoading && currentOffset < totalCount) {
+                    loadUsers(currentOffset);
+                }
+            });
+
+            // Initial load
+            loadUsers(currentOffset);
+
+            // Handle user accordion toggle
+            $(document).on("click", ".accordion-button.user-accordion-button", function (e) {
+                e.preventDefault();
+                const $button = $(this);
+                const target = $button.attr('data-bs-target');
+                const $collapse = $(target);
+
+                // Close other top-level user accordions
+                $('#userAccordion .accordion-button.user-accordion-button').not($button).addClass('collapsed');
+                $('#userAccordion .accordion-collapse').not($collapse).removeClass('show');
+
+                // Toggle the current user accordion
+                $button.toggleClass('collapsed');
+                $collapse.toggleClass('show');
+
+                // Load orders if needed
+                if (!$button.hasClass('collapsed')) {
+                    const userId = $button.data('user-id');
+                    const $accordionBody = $collapse.find('.accordion-body');
+                    if ($accordionBody.children().length === 0) {
+                        loadOrders(userId, $accordionBody[0]);
+                    }
+                }
+            });
+            // Handle order accordion clicks separately
+            $(document).on("click", ".order-accordion-button", function (e) {
+                e.preventDefault();
+                const $button = $(this);
+                const target = $button.attr('data-bs-target');
+                const $collapse = $(target);
+
+                // Close other order accordions in the same user
+                $button.closest('.accordion-body').find('.accordion-button').not($button).addClass('collapsed');
+                $button.closest('.accordion-body').find('.accordion-collapse').not($collapse).removeClass('show');
+
+                // Toggle the current order accordion
+                $button.toggleClass('collapsed');
+                $collapse.toggleClass('show');
+
+                // Load order items if needed
+                if (!$button.hasClass('collapsed')) {
+                    const orderId = $button.data('order-id');
+                    const $accordionBody = $collapse.find('.accordion-body');
+                    if ($accordionBody.children().length === 0) {
+                        loadorderItems(orderId, $accordionBody[0]);
+                    }
+                }
+            });
+
+            // AJAX to load orders for a user
+            function loadOrders(userId, content) {
+                $.ajax({
+                    url: "/Admin/GetOrdersByUser",
+                    type: "GET",
+                    dataType: "json",
+                    data: { userId: userId },
+                    success: function (data) {
+                        let html = "";
+                        if (data.length === 0) {
+                            html = '<div class="no-orders">No orders found</div>';
+                        } else {
+                            html += '<div class="accordion">';
+                            data.forEach(order => {
+                                html += `
+                                                <div class="accordion-item">
+                                                    <h2 class="accordion-header">
+                                                        <button class="accordion-button order-accordion-button collapsed" 
+                                                                type="button" 
+                                                                data-bs-target="#orderCollapse-${order.orderId}" 
+                                                                data-order-id="${order.orderId}">
+                                                            Order #${order.orderId} - ${order.orderDate} (Total: ₹ ${order.totalAmount.toFixed(2)})
+                                                        </button>
+                                                    </h2>
+                                                    <div id="orderCollapse-${order.orderId}" class="accordion-collapse">
+                                                        <div class="accordion-body">
+                                                            <!-- Order items will load here -->
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                            });
+                            html += '</div>';
+                        }
+                        $(content).html(html);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Failed to load orders: ", error, xhr.responseText);
+                        $(content).html('<div class="no-orders">Error loading orders</div>');
+                    }
+                });
+            }
+
+            // AJAX to load order items
+
+            function loadorderItems(orderId, content) {
+                $.ajax({
+                    url: "/Admin/GetorderItems",
+                    type: "GET",
+                    dataType: "json",
+                    data: { orderId: orderId },
+                    success: function (data) {
+                        let html = '';
+                        console.log("Order Items Data: ",  data.orderItems.length);
+
+                        if (data.orderItems.length === 0) {
+                            html = '<div class="no-orders">No order items found</div>';
+                        } else {
+                            html += '<div class="table-responsive"><table class="table table-hover">';
+                            html += '<thead><tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Subtotal</th><th>Stock</th></tr></thead>';
+                            html += '<tbody>';
+
+                            data.orderItems.forEach(item => {
+                                html += `
+                            <tr>
+                                <td>${item.itemName}</td>
+                                <td>${item.quantity}</td>
+                                <td>₹ ${item.price.toFixed(2)}</td>
+                                <td>₹ ${item.subTotal || (item.quantity * item.price).toFixed(2)}</td>
+                                <td>${item.stock}</td>
+                            </tr>
+                        `;
+                            });
+
+                            html += '</tbody></table>';
+
+                            // Add summary section using backend values
+                            html += `
+                        <div style="margin-top: 1rem; font-size: 1.1rem;">
+                            <p><strong>SubTotal:</strong> ₹ ${data.subTotal.toFixed(2)}</p>
+                            <p style="color: red;"><strong>Discount:</strong> -₹ ${data.discountAmount.toFixed(2)}</p>
+                            <p style="color: green;"><strong>Total Amount:</strong> ₹ ${data.totalAmount.toFixed(2)}</p>
+                        </div>
+                    `;
+                        }
+                        $(content).html(html);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Failed to load order items: ", error, xhr.responseText);
+                        $(content).html('<div class="no-orders">Error loading order items</div>');
+                    }
+                });
+            }
+        });
+    </script>
+}

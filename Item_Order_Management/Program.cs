@@ -12,6 +12,7 @@ using Serilog;
 using Rotativa.AspNetCore;
 using Item_Order_Management.MiddleWare;
 using DataAccessLayer.Models;
+using Item_Order_Management.Hubs;
 
 WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 
@@ -115,6 +116,8 @@ builder.Services.AddAuthentication(x =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddSignalR(); // Add SignalR
+
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -155,5 +158,7 @@ app.UseSession();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Authentication}/{action=Login}/{id?}");
+
+app.MapHub<DashboardHub>("/dashboardHub"); // Map SignalR Hub
 
 app.Run();

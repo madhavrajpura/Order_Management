@@ -8,7 +8,7 @@ public interface ICouponRepository
     // Retrieves coupon by code as CouponViewModel, ensuring it's active
     Task<CouponViewModel> GetCouponByCodeAsync(string code);
     // Records coupon usage in CouponUsage table
-    Task<bool> RecordUsageAsync(CouponUsage usage);
+    // Task<bool> RecordUsageAsync(CouponUsage usage);
     // Gets total usage count for a coupon
     Task<int> GetUsageCountAsync(int couponId);
     // Checks if a user has used a specific coupon

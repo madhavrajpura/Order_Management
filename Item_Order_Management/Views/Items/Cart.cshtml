@@ -52,7 +52,6 @@
                     updateTotalAmount();
                     LoadUserNavbar();
                     updatePlaceOrderButtonState();
-                    // Change: Removed loadAvailableCoupons() since coupons are now in modal
                 }
             });
         }
@@ -65,7 +64,7 @@
                 const quantity = parseInt($(this).find(".quantity-input").val());
                 total += price * quantity;
             });
-            $("#totalAmount").text(`₹${total.toFixed(2)}`);
+            $("#totalAmount").text(`₹ ${total.toFixed(2)}`);
             updatePlaceOrderButtonState();
         }
 

@@ -14,37 +14,46 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepo;
     private readonly ICartRepository _cartRepo;
+    private readonly ICartService _cartService;
     private readonly IItemsService _itemsService;
+    private readonly ICouponService _couponService;
 
-    public OrderService(IOrderRepository orderRepo, ICartRepository cartRepo, IItemsService itemsService)
+    public OrderService(IOrderRepository orderRepo, ICartRepository cartRepo, IItemsService itemsService, ICartService cartService, ICouponService couponService)
     {
         _orderRepo = orderRepo;
         _cartRepo = cartRepo;
         _itemsService = itemsService;
+        _cartService = cartService;
+        _couponService = couponService;
     }
 
-    // Modified: Added stock validation and decrementing
-    public async Task<bool> CreateOrderAsync(int userId, OrderViewModel orderViewModel)
+    public async Task<bool> CreateOrderAsync(int userId, OrderViewModel orderViewModel, bool BuyNow)
     {
         if (userId <= 0) throw new CustomException("Invalid User ID.");
-        if (orderViewModel == null || orderViewModel.OrderItems == null || !orderViewModel.OrderItems.Any()) 
-            throw new CustomException("Invalid order data");
 
-        // Added: Validate stock for each item
-        foreach (var orderItem in orderViewModel.OrderItems)
+        if (orderViewModel == null || orderViewModel.OrderItems == null || !orderViewModel.OrderItems.Any()) throw new CustomException("Invalid order data");
+
+        decimal totalDiscount = 0;
+
+        orderViewModel.CouponCodes = orderViewModel.CouponCodes ?? new List<string>();
+
+        foreach (var code in orderViewModel.CouponCodes)
         {
-            ItemViewModel? item = _itemsService.GetItemById(orderItem.ItemId);
-            if (item == null)
-                throw new CustomException($"{orderItem.ItemName} not found");
-            if (!await _itemsService.IsItemInStock(orderItem.ItemId))
-                throw new CustomException($"{orderItem.ItemName} is out of stock");
-            if (orderItem.Quantity > item.Stock)
-                throw new CustomException($"Only {item.Stock} units of {orderItem.ItemName} available in stock");
+            var (isValid, errorMessage, coupon, discount) = await _couponService.ValidateCouponAsync(code, userId, orderViewModel.SubTotal);
+
+            if (!isValid) return false;
+
+            totalDiscount += discount;
         }
+
+        orderViewModel.DiscountAmount = totalDiscount;
+        orderViewModel.TotalAmount = orderViewModel.TotalAmount;
 
         Order order = new Order
         {
             TotalAmount = orderViewModel.TotalAmount,
+            SubTotal = orderViewModel.SubTotal,
+            DiscountValue = totalDiscount,
             OrderDate = DateTime.Now,
             CreatedBy = userId
         };
@@ -59,56 +68,18 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.Now
         }).ToList();
 
-        // Added: Update stock transactionally
-        bool orderCreationStatus = await _orderRepo.CreateOrderAsync(order, orderItemsList, orderViewModel.OrderItems);
+        bool orderCreationStatus = await _orderRepo.CreateOrderAsync(order, orderItemsList, orderViewModel.OrderItems, orderViewModel.CouponCodes);
 
-        if (orderCreationStatus)
+        if (orderCreationStatus && !BuyNow)
         {
-            // Modified: Clear cart only after successful order and stock update
-            List<CartViewModel> cartItems = await _cartRepo.GetCartItems(userId);
-            foreach (CartViewModel cartItem in cartItems)
+            List<CartViewModel> AllcartItems = await _cartRepo.GetCartItems(userId);
+            foreach (CartViewModel cartItem in AllcartItems)
             {
                 await _cartRepo.RemoveFromCart(cartItem.Id, userId);
             }
         }
 
         return orderCreationStatus;
-    }
-
-    // Modified: Added stock validation and decrementing
-    public async Task<bool> CreateOrderFromItemAsync(int userId, int itemId, int quantity)
-    {
-        if (userId <= 0) throw new CustomException("Invalid User ID.");
-        if (itemId <= 0) throw new CustomException("Invalid Item ID.");
-        if (quantity <= 0) throw new CustomException("Invalid Quantity.");
-
-        ItemViewModel? item = _itemsService.GetItemById(itemId);
-        if (item == null) throw new CustomException("Item not found");
-        if (!await _itemsService.IsItemInStock(itemId))
-            throw new CustomException($"{item.ItemName} is out of stock");
-        if (quantity > item.Stock)
-            throw new CustomException($"Only {item.Stock} units of {item.ItemName} available in stock");
-
-        Order order = new Order
-        {
-            CreatedBy = userId,
-            OrderDate = DateTime.Now,
-            TotalAmount = item.Price * quantity,
-        };
-
-        OrderItem orderItem = new OrderItem
-        {
-            ItemId = itemId,
-            Price = item.Price,
-            ItemName = item.ItemName,
-            CreatedBy = userId,
-            CreatedAt = DateTime.Now,
-            Quantity = quantity
-        };
-
-        // Added: Pass single item for stock update
-        return await _orderRepo.CreateOrderAsync(order, new List<OrderItem> { orderItem }, 
-            new List<OrderItemViewModel> { new OrderItemViewModel { ItemId = itemId, Quantity = quantity, ItemName = item.ItemName } });
     }
 
     // Get Order By User ID
@@ -126,6 +97,8 @@ public class OrderService : IOrderService
             DeliveryDate = o.DeliveryDate,
             IsDelivered = o.IsDelivered,
             IsDelete = o.IsDelete,
+            SubTotal = (decimal)o.SubTotal,
+            DiscountAmount = (decimal)o.DiscountValue,
             OrderItems = o.OrderItems.Where(oi => !oi.IsDelete).Select(oi => new OrderItemViewModel
             {
                 OrderItemId = oi.Id,
@@ -235,6 +208,8 @@ public class OrderService : IOrderService
             DeliveryDate = order.DeliveryDate,
             IsDelivered = order.IsDelivered,
             IsDelete = order.IsDelete,
+            SubTotal = (decimal)order.SubTotal,
+            DiscountAmount = (decimal)order.DiscountValue,
             OrderItems = order.OrderItems.Where(oi => !oi.IsDelete).Select(oi => new OrderItemViewModel
             {
                 OrderItemId = oi.Id,
@@ -591,6 +566,18 @@ public class OrderService : IOrderService
 
             return Task.FromResult(package.GetAsByteArray());
         }
+    }
+
+
+    // Newwwwwwwwwwwwwwwwwwwwww
+    public async Task<List<OrderViewModel>> GetOrdersByUser(int userId)
+    {
+        return await _orderRepo.GetOrdersByUser(userId);
+    }
+
+    public async Task<OrderViewModel> GetOrderItems(int orderId)
+    {
+        return await _orderRepo.GetOrderItems(orderId);
     }
 
 }

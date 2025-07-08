@@ -31,6 +31,10 @@
             }
         </div>
         <p class="text-muted"><strong class="text-dark">Customer Name : </strong>@Model.CustomerName</p>
+        <p class="text-success fw-bold mb-1"><strong class="text-dark">SubTotal :
+            </strong>@Model.SubTotal.ToString("C")</p>
+        <p class="text-danger fw-bold"><strong class="text-dark">Discount :
+            </strong>- @Model.DiscountAmount.ToString("C")</p>
         <p class="text-success fw-bold"><strong class="text-dark">Total Amount :
             </strong>@Model.TotalAmount.ToString("C")</p>
 
@@ -56,14 +60,6 @@
                                     <td>@total.ToString("C")</td>
                                 </tr>
                             }
-                            <tr>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td class="text-dark">
-                                    Total : <span class="text-success">@Model.TotalAmount.ToString("C")</span>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
